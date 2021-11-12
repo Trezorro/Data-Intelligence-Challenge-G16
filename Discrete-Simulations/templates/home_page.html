@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"
+            integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA=="
+            crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static',filename='style.css') }}">
+</head>
+<body>
+<div class="container">
+    {#menu#}
+    <ul>
+        <li><a href="/">Home</a></li>
+        <li><a href="editor">Level editor</a></li>
+    </ul>
+    <br>
+    {#grid file selector#}
+    <label for="files">Choose a grid config file:</label>
+    <select name="files" id="grid_files">
+        {% for val in files %}
+            <option value="{{ val }}">{{ val }}</option>
+        {% endfor %}
+    </select>
+    <button onclick="get_grid()">Load grid</button>
+    <br>
+    {#robot file selector#}
+    <label for="robots">Choose a robot config file:</label>
+    <select name="robots" id="robot_files">
+        {% for val in rfiles %}
+            <option value="{{ val }}">{{ val }}</option>
+        {% endfor %}
+    </select>
+    {#robot params#}
+    <label for="p_determ">Randomness of environment</label>
+    <input type="number" id="p_determ" name="p_determ" value="0" min="0" max="1" style="width: 30px">
+    <label for="orient">Robot starting orientation</label>
+    <select name="orient" id="orient">
+        <option value="n">North</option>
+        <option value="e">East</option>
+        <option value="s">South</option>
+        <option value="w">West</option>
+    </select>
+    <label for="p_drain">Probability of battery drain at each move</label>
+    <input type="number" id="p_drain" name="p_drain" value="0" min="0" max="1" style="width: 30px">
+    <label for="lam_drain">Amount of drain</label>
+    <input type="number" id="lam_drain" name="lam_drain" value="0" min="0" style="width: 30px">
+    <label for="vision">Robot vision</label>
+    <input type="number" id="vision" name="vision" value="1" min="1" style="width: 30px">
+    <label for="n_robots">Number of robots</label>
+    <input type="number" id="n_robots" name="n_robots" value="1" min="1" style="width: 30px"
+           onchange="create_starting_pos_fields()">
+    <div id="starting_pos_container">
+
+    </div>
+    {#buttons#}
+    <br>
+    <button onclick="get_robot()">Get robot</button>
+    <button onclick="start_sim()">Start simulation</button>
+    <button onclick="step_sim()">Step +1 simulation</button>
+    <button onclick="stop_sim()">Stop simulation</button>
+    <button onclick="set_sim_speed(1000)">Sim speed 1</button>
+    <button onclick="set_sim_speed(100)">Sim speed 2</button>
+    <button onclick="set_sim_speed(10)">Sim speed 3</button>
+    {#critera for ending sim#}
+    <label for="%clean">Cleanliness criteria (%)</label>
+    <input type="number" id="%clean" name="%clean" value="100" onchange="print_stats()" min="0" max="100">
+</div>
+{#containers#}
+<div class="container" id="grid_container"></div>
+<div class="container" id="stats_container"></div>
+<div class="container" id="plot_container"></div>
+</body>
+{#scripts#}
+<script type="text/javascript" charset="utf-8">
+    function create_starting_pos_fields() {
+        var n_robots = parseInt(document.getElementById('n_robots').value);
+        var container = document.getElementById('starting_pos_container')
+        container.innerHTML = '';
+        for (let i = 0; i < n_robots; i++) {
+            container.innerHTML += `<label for="x_spawn` + i + `">X coordinate of robot ` + (i + 1) + `</label>
+            <input type="number" id="x_spawn` + i + `" name="x_spawn` + i + `" value="1" min="0" style="width: 30px">
+            <label for="y_spawn` + i + `">Y coordinate of robot ` + (i + 1) + `</label>
+            <input type="number" id="y_spawn` + i + `" name="y_spawn` + i + `" value="1" min="0" style="width: 30px"><br>`
+        }
+    }
+    create_starting_pos_fields()
+
+    var updater;
+    var robot_spawned = false;
+    var finished;
+
+    function get_grid() {
+        var files = document.getElementById('grid_files');
+        socket.emit('get_grid', {data: files.value});
+        finished = false;
+        robot_spawned = false;
+        if (updater) {
+            clearInterval(updater);
+        }
+    }
+
+    function get_update() {
+        var robot = document.getElementById('robot_files').value;
+        socket.emit('get_update', {robot_file: robot});
+    }
+
+    function start_sim() {
+        var grid_container = document.getElementById('grid_container');
+        if (grid_container.innerHTML === '') {
+            alert('No grid! Get a grid first!')
+        } else if (!robot_spawned) {
+            alert('No robot! Get a robot first!')
+        } else if (finished) {
+            alert('Cannot start, simulation already finished!')
+        } else {
+            updater = setInterval(get_update, 500);
+        }
+    }
+
+    function stop_sim() {
+        if (!updater) {
+            alert('Simulation is not running!');
+        } else {
+            clearInterval(updater);
+            updater = null;
+        }
+    }
+
+    function step_sim() {
+        if (updater) {
+            alert('Simulation is running, stop first!')
+        } else if (grid_container.innerHTML === '') {
+            alert('No grid! Get a grid first!');
+        } else if (!robot_spawned) {
+            alert('No robot! Get a robot first!');
+        } else if (finished) {
+            alert('Cannot restart, simulation already finished!')
+        } else {
+            get_update();
+        }
+    }
+
+    function set_sim_speed(speed) {
+        if (grid_container.innerHTML === '') {
+            alert('No grid! Get a grid first!');
+        } else if (!robot_spawned) {
+            alert('No robot! Get a robot first!');
+        } else if (!updater) {
+            alert('Simulation is not running!');
+        } else {
+            clearInterval(updater);
+            updater = setInterval(get_update, speed);
+        }
+    }
+
+    function get_robot() {
+        var robot = document.getElementById('robot_files').value;
+        if (grid_container.innerHTML === '') {
+            alert('No grid! Get a grid first!');
+        } else if (robot_spawned) {
+            alert('Robot already spawned, re-load grid to reset!');
+        } else if (!robot) {
+            alert('Select robot config file first!')
+        } else {
+            var p_determ = document.getElementById('p_determ').value;
+            var orient = document.getElementById('orient').value;
+            var p_drain = document.getElementById('p_drain').value;
+            var lam_drain = document.getElementById('lam_drain').value;
+            var vision = document.getElementById('vision').value;
+            var n_robots = document.getElementById('n_robots').value;
+            var x_spawns = Array();
+            var y_spawns = Array();
+             for (let i = 0; i < parseInt(n_robots); i++) {
+                 var x_spawn = document.getElementById('x_spawn' + i).value;
+                 var y_spawn = document.getElementById('y_spawn' + i).value;
+                 x_spawns.push(x_spawn)
+                 y_spawns.push(y_spawn)
+             }
+            if (parseInt(n_robots) === 0) {
+                alert('Please enter valid number of robots! (More than 1)')
+            } else {
+                socket.emit('get_robot', {
+                    robot_file: robot, determ: p_determ, x_spawns: x_spawns.toString(), y_spawns: y_spawns.toString(),
+                    orient: orient, p_drain: p_drain, lam_drain: lam_drain, vision: vision, n_robots: n_robots
+                });
+                robot_spawned = true;
+            }
+        }
+    }
+
+    function print_stats(clean = 0, goals = -1, efficiency = [100, 100], battery = [100, 100], alive = [true, true]) {
+        var stats_container = document.getElementById('stats_container');
+        var cleanliness_criteria = document.getElementById('%clean').value;
+        stats_container.innerHTML = 'Room is: ' + String(clean) + '/' + String(cleanliness_criteria) + ' % clean.<br>'
+            + String(goals) + ' goal tiles remaining.<br>Effiency: ' + String(efficiency) + ' %<br>Battery remaining: '
+            + String(battery) + ' %<br>Robot alive: ' + String(alive);
+
+        const isBelowThreshold = (currentValue) => parseFloat(currentValue) <= 0;
+        const isDead = (currentValue) => currentValue === 'false';
+        console.log(alive);
+        if ((clean >= cleanliness_criteria) && (updater) && (goals === 0)) {
+            stop_sim();
+            alert('Done cleaning!');
+            finished = true;
+        } else if ((clean < cleanliness_criteria) && (!updater) && (goals > 0)) {
+            finished = false;
+        } else if ((battery.every(isBelowThreshold)) && (updater)) {
+            stop_sim();
+            finished = true;
+            alert('Batteries empty!');
+        } else if ((alive.every(isDead)) && (updater)) {
+            stop_sim();
+            finished = true;
+            alert('Robots died!');
+        }
+    }
+
+    var socket = io();
+    socket.on('connect', function () {
+        console.log('> Browser connected to server.');
+    });
+
+    socket.on('new_grid', function (data) {
+        if (!finished) {
+            var grid_container = document.getElementById('grid_container');
+            grid_container.innerHTML = data['grid'];
+            print_stats(data['clean'], data['goal'], data['efficiency'], String(data['battery']).split(','), String(data['alive']).split(','));
+        }
+    });
+
+    socket.on('new_plot', function (data) {
+        if (!finished) {
+            document.getElementById('plot_container').innerHTML = data;
+        }
+    });
+
+
+    function tile_click(x, y) {
+
+    }
+</script>
+</html>
