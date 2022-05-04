@@ -9,19 +9,19 @@ class Robot:
         if grid.cells[pos[0], pos[1]] != 1:
             raise ValueError
 
-        self.orientation = orientation
-        self.pos = pos
-        self.grid = grid
-        self.orients = {'n': -3, 'e': -4, 's': -5, 'w': -6}
+        self.orientation: str = orientation         # Current orientation of the robot, one of 'n', 'e', 's', 'w'.
+        self.pos: Tuple[int, int] = pos             # Position of the robot on the grid, tuple (x,y)
+        self.grid: Grid = grid                      # Instance of Grid class, current playing field.
+        self.orients = {'n': -3, 'e': -4, 's': -5, 'w': -6}     # Grid associated numbers of various robot orientations
         self.dirs = {'n': (0, -1), 'e': (1, 0), 's': (0, 1), 'w': (-1, 0)}
         self.grid.cells[pos] = self.orients[self.orientation]
-        self.history = [[], []]
-        self.p_move = p_move
-        self.battery_drain_p = battery_drain_p
-        self.battery_drain_lam = battery_drain_lam
-        self.battery_lvl = 100
-        self.alive = True
-        self.vision = vision
+        self.history = [[], []]  # historic x and y coordinates of the robot [[x1, x2,...], [y1, y2,...]]
+        self.p_move = p_move   # Probability of robot performing a random move instead of listening to a given command
+        self.battery_drain_p = battery_drain_p  # Probability of a battery drain event happening at each move.
+        self.battery_drain_lam = battery_drain_lam  # Amount (lambda) of battery drain (X) in X ~ Exponential(lambda)
+        self.battery_lvl = 100  # Current battery level (in %)
+        self.alive = True       # Indicator of whether the robot is alive
+        self.vision = vision    # Number of tiles in each of the 4 directions included in the robots vision.
 
     def possible_tiles_after_move(self) -> Dict[Tuple[int, int], int]:
         """Returns the values of squares the robot can see from its current position.
@@ -32,13 +32,13 @@ class Robot:
 
             example:
             {
-            (0 ,-1):  1,    Dirty square
-            (1 , 0):  0,    Clean square
-            (0 , 1): -1,    Wall (you will not move if you do this action)
+            ( 0,-1):  1,    Dirty square
+            ( 1, 0):  0,    Clean square
+            ( 0, 1): -1,    Wall (you will not move if you do this action)
             (-1, 0): -2,    Obstacle (you will not move if you do this action)
-            (0 ,-2):  2,    Goal                (it is not possible to move here in one go, it is 2 squares away)
-            (2 , 0):  0,                        (it is not possible to move here in one go, it is 2 squares away)
-            (0 , 2):  0,                        (it is not possible to move here in one go, it is 2 squares away)
+            ( 0,-2):  2,    Goal                (it is not possible to move here in one go, it is 2 squares away)
+            ( 2, 0):  0,                        (it is not possible to move here in one go, it is 2 squares away)
+            ( 0, 2):  0,                        (it is not possible to move here in one go, it is 2 squares away)
             (-2, 0):  0                         (it is not possible to move here in one go, it is 2 squares away)
             }
 
@@ -72,23 +72,46 @@ class Robot:
 
         return data
 
-    def move(self):
+    def move(self) -> bool:
+        """ Function that moves the robot.
+
+        This function simulates the movement of the robot. It will try to move forwards in the current direction it is
+        facing. The battery is drained with probability `self.battery_drain_p`. A move in a random direction is done
+        with probability `self.p_move`.
+
+        Returns:
+            boolean indicating whether
+                True: the bot has moved successfully.
+                False: the bot did not move or the bot moved and died.
+        """
+
         # Can't move if we're dead now, can we?
         if not self.alive:
             return False
+
+        # Decide whether to do a random move.
         random_move = np.random.binomial(1, self.p_move)
+
+        # Decide whether this move will drain the battery
         do_battery_drain = np.random.binomial(1, self.battery_drain_p)
+
+        # If battery should be drained, drain the battery according to exponential drain
         if do_battery_drain == 1 and self.battery_lvl > 0:
             self.battery_lvl -= np.random.exponential(self.battery_drain_lam)
-        # Handle empty battery:
+
+        # Handle empty battery --> die
         if self.battery_lvl <= 0:
             self.alive = False
             return False
+
+        # If random move, execute a random move
         if random_move == 1:
+            # Get possible moves, choose a random one and calculate the square the robot would supposedly end up on.
             moves = self.possible_tiles_after_move()
             random_move = random.choice([move for move in moves if moves[move] >= 0])
             new_pos = tuple(np.array(self.pos) + random_move)
-            # Only move to non-blocked tiles:
+
+            # If the bot can move to that square, move the bot and adapt the grid.
             if self.grid.cells[new_pos] >= 0:
                 new_orient = list(self.dirs.keys())[list(self.dirs.values()).index(random_move)]
                 tile_after_move = self.grid.cells[new_pos]
@@ -97,15 +120,23 @@ class Robot:
                 self.pos = new_pos
                 self.history[0].append(self.pos[0])
                 self.history[1].append(self.pos[1])
+
+                # If moved to death square, then the bot dies.
                 if tile_after_move == 3:
                     self.alive = False
                     return False
                 return True
+
+            # If we cannot move, just stand still and leave the bot
             else:
                 return False
+
+        # Else, execute the initially planned move
         else:
+            # Calculate the new position that the bot will supposedly end on.
             new_pos = tuple(np.array(self.pos) + self.dirs[self.orientation])
-            # Only move to non-blocked tiles:
+
+            # If the bot can move to that square, move the bot and adapt the grid.
             if self.grid.cells[new_pos] >= 0:
                 tile_after_move = self.grid.cells[new_pos]
                 self.grid.cells[self.pos] = 0
@@ -113,11 +144,14 @@ class Robot:
                 self.pos = new_pos
                 self.history[0].append(self.pos[0])
                 self.history[1].append(self.pos[1])
-                # Death:
+
+                # If moved to death square, then the bot dies.
                 if tile_after_move == 3:
                     self.alive = False
                     return False
                 return True
+
+            # If we cannot move, just stand still and leave the bot
             else:
                 return False
 
