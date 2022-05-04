@@ -13,3 +13,14 @@ For documentation see https://pipenv.pypa.io/en/latest/
 3. Activate the project environment with `pipenv shell` or configure your IDE to use the new pipenv environment (with the project folder name) as the python environment.
 
 As with normal pip or conda, installing the C++ build tools on your system is required for this project.
+
+## Notes
+
+Cel material | Label
+-------------|-------
+Obstacle (gray)    | -2
+Wall (red)         | -1
+Clean (green)      |  0
+Dirty (white)      |  1
+Goal (orange)      |  2
+Death (red cross)  |  3
