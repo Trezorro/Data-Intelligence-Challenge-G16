@@ -9,19 +9,19 @@ class Robot:
         if grid.cells[pos[0], pos[1]] != 1:
             raise ValueError
 
-        self.orientation: str = orientation         # Current orientation of the robot, one of 'n', 'e', 's', 'w'.
-        self.pos: Tuple[int, int] = pos             # Position of the robot on the grid, tuple (x,y)
-        self.grid: Grid = grid                      # Instance of Grid class, current playing field.
-        self.orients = {'n': -3, 'e': -4, 's': -5, 'w': -6}     # Grid associated numbers of various robot orientations
+        self.orientation: str = orientation  # Current orientation of the robot, one of 'n', 'e', 's', 'w'.
+        self.pos: Tuple[int, int] = pos  # Position of the robot on the grid, tuple (x,y)
+        self.grid: Grid = grid  # Instance of Grid class, current playing field.
+        self.orients = {'n': -3, 'e': -4, 's': -5, 'w': -6}  # Grid associated numbers of various robot orientations
         self.dirs = {'n': (0, -1), 'e': (1, 0), 's': (0, 1), 'w': (-1, 0)}
         self.grid.cells[pos] = self.orients[self.orientation]
         self.history = [[], []]  # historic x and y coordinates of the robot [[x1, x2,...], [y1, y2,...]]
-        self.p_move = p_move   # Probability of robot performing a random move instead of listening to a given command
+        self.p_move = p_move  # Probability of robot performing a random move instead of listening to a given command
         self.battery_drain_p = battery_drain_p  # Probability of a battery drain event happening at each move.
         self.battery_drain_lam = battery_drain_lam  # Amount (lambda) of battery drain (X) in X ~ Exponential(lambda)
         self.battery_lvl = 100  # Current battery level (in %)
-        self.alive = True       # Indicator of whether the robot is alive
-        self.vision = vision    # Number of tiles in each of the 4 directions included in the robots vision.
+        self.alive = True  # Indicator of whether the robot is alive
+        self.vision = vision  # Number of tiles in each of the 4 directions included in the robots vision.
 
     def possible_tiles_after_move(self) -> Dict[Tuple[int, int], int]:
         """Returns the values of squares the robot can see from its current position.
@@ -180,25 +180,34 @@ class Robot:
 
 
 class Grid:
-    def __init__(self, n_cols, n_rows):
+    def __init__(self, n_cols: int, n_rows: int):
         self.n_rows = n_rows
         self.n_cols = n_cols
-        # Building the boundary of the grid:
+
         self.cells = np.ones((n_cols, n_rows))
+
+        # Building the boundary of the grid:
         self.cells[0, :] = self.cells[-1, :] = -1
         self.cells[:, 0] = self.cells[:, -1] = -1
 
-    def put_obstacle(self, x0, x1, y0, y1, from_edge=1):
-        self.cells[max(x0, from_edge):min(x1 + 1, self.n_cols - from_edge),
-        max(y0, from_edge):min(y1 + 1, self.n_rows - from_edge)] = -2
+    def put_obstacle(self, x0, x1, y0, y1, from_edge=1) -> None:
+        """ Builds an obstacle on the grid starting on (x0,y0) and ending at (x1,y1)
+        """
+        self.cells[
+                max(x0, from_edge): min(x1 + 1, self.n_cols - from_edge),
+                max(y0, from_edge): min(y1 + 1, self.n_rows - from_edge)
+            ] = -2
 
-    def put_singular_obstacle(self, x, y):
+    def put_singular_obstacle(self, x, y) -> None:
+        """ Puts obstacle tile at provided (x,y) """
         self.cells[x][y] = -2
 
-    def put_singular_goal(self, x, y):
+    def put_singular_goal(self, x, y) -> None:
+        """ Puts a goal tile at provided (x,y) """
         self.cells[x][y] = 2
 
-    def put_singular_death(self, x, y):
+    def put_singular_death(self, x, y) -> None:
+        """ Puts death tile at provided (x,y) """
         self.cells[x][y] = 3
 
 
