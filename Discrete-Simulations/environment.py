@@ -1,3 +1,5 @@
+from typing import Dict, Tuple
+
 import numpy as np
 import random
 
@@ -21,7 +23,7 @@ class Robot:
         self.alive = True
         self.vision = vision
 
-    def possible_tiles_after_move(self):
+    def possible_tiles_after_move(self) -> Dict[Tuple[int, int], int]:
         """Returns the values of squares the robot can see from its current position.
 
         Returns:
@@ -119,12 +121,25 @@ class Robot:
             else:
                 return False
 
-    def rotate(self, dir):
+    def rotate(self, direction: str) -> None:
+        """ Rotates the robot in a given direction either left ('l') or right ('r')
+
+        Adapts Robot object orientation attribute and the grid value that the robot is currently positioned on.
+
+        Returns:
+            None
+        """
+
+        # Get index of orientation from list ['n', 'e', 's', 'w']
         current = list(self.orients.keys()).index(self.orientation)
-        if dir == 'r':
+
+        # Get new orientation based on index of current orientation, rotating direction and list of orientations
+        if direction == 'r':
             self.orientation = list(self.orients.keys())[(current + 1) % 4]
-        elif dir == 'l':
+        elif direction == 'l':
             self.orientation = list(self.orients.keys())[current - 1]
+
+        # Adapt grid value based on new orientation of the robot.
         self.grid.cells[self.pos] = self.orients[self.orientation]
 
 
