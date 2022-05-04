@@ -4,6 +4,13 @@ from environment import Robot, Grid
 import numpy as np
 
 
+"""
+PROBLEMS
+Currently, the bot seems to calculate the value of each state.
+However, once the bot moves, it does not see the difference between a square that has already been cleaned, and one that 
+is dirty, even though a 'clean square' is heavily discouraged in the reward function.
+"""
+
 def robot_epoch(robot: Robot):
     """ Value iteration bot """
     print("Start new epoch")
@@ -71,6 +78,7 @@ def robot_epoch(robot: Robot):
 
     robot_position = robot.pos
 
+    # For debugging purposes (visualizing V_T gives the normal view of the field)
     V_T = V.T
 
     highest_val = -100000
