@@ -6,6 +6,7 @@ class Robot:
     def __init__(self, grid, pos, orientation, p_move=0, battery_drain_p=0, battery_drain_lam=0, vision=1):
         if grid.cells[pos[0], pos[1]] != 1:
             raise ValueError
+
         self.orientation = orientation
         self.pos = pos
         self.grid = grid
@@ -21,18 +22,52 @@ class Robot:
         self.vision = vision
 
     def possible_tiles_after_move(self):
+        """Returns the values of squares the robot can see from its current position.
+
+        Returns:
+            Dictionary containing the moves relative to the robots current position that the robot can do (as keys)
+            and the value of the resulting square (values)
+
+            example:
+            {
+            (0 ,-1):  1,    Dirty square
+            (1 , 0):  0,    Clean square
+            (0 , 1): -1,    Wall (you will not move if you do this action)
+            (-1, 0): -2,    Obstacle (you will not move if you do this action)
+            (0 ,-2):  2,    Goal                (it is not possible to move here in one go, it is 2 squares away)
+            (2 , 0):  0,                        (it is not possible to move here in one go, it is 2 squares away)
+            (0 , 2):  0,                        (it is not possible to move here in one go, it is 2 squares away)
+            (-2, 0):  0                         (it is not possible to move here in one go, it is 2 squares away)
+            }
+
+            IMPORTANT NOTE: Death tiles are always returns as 'Dirty squares' with a value of 1. Hence, through this
+            function, you will not be able to see the death tiles.
+        """
+
+        # Obtain possible movement directions
         moves = list(self.dirs.values())
-        # Fool the robot and show a death tile as normal (dirty)
+
+        # Initialize dictionary to return
         data = {}
+
+        # Loop over distance the robot can see
         for i in range(self.vision):
+
+            # Loop over possible moves
             for move in moves:
+                # Get square that bot would land on after move.
                 to_check = tuple(np.array(self.pos) + (np.array(move) * (i + 1)))
-                if to_check[0] < self.grid.cells.shape[0] and to_check[1] < self.grid.cells.shape[1] and to_check[
-                    0] >= 0 and to_check[1] >= 0:
+
+                # Check whether the square is inside the playing field.
+                if self.grid.cells.shape[0] > to_check[0] >= 0 and self.grid.cells.shape[1] > to_check[1] >= 0:
+                    # Store move with corresponding grid value that would be obtained.
                     data[tuple(np.array(move) * (i + 1))] = self.grid.cells[to_check]
-                    # Show death tiles as dirty:
+
+                    # Show death tiles as dirty (fools the robot in thinking that the that square is good to go to)
+                    # TODO: so we don't want to use this function?
                     if data[tuple(np.array(move) * (i + 1))] == 3:
                         data[tuple(np.array(move) * (i + 1))] = 1
+
         return data
 
     def move(self):
