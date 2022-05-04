@@ -124,7 +124,9 @@ class Robot:
     def rotate(self, direction: str) -> None:
         """ Rotates the robot in a given direction either left ('l') or right ('r')
 
-        Adapts Robot object orientation attribute and the grid value that the robot is currently positioned on.
+        This function rotates the robot either to the left or right based on the given parameter value 'l' or 'r',
+        respectively. The function adapts Robot object orientation attribute and the grid value that the robot is
+        currently positioned on.
 
         Returns:
             None
