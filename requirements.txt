@@ -14,12 +14,12 @@ matplotlib==3.4.3
 netifaces==0.10.6
 numpy==1.21.2
 Pillow==8.4.0
-pip==21.2.2
+pip
 pyparsing==2.4.7
 python-dateutil==2.8.2
 python-engineio==4.2.1
 python-socketio==5.4.0
-setuptools==58.1.0
+setuptools
 six==1.16.0
 Werkzeug==2.0.1
 wheel==0.37.0
