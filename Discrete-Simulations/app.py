@@ -210,7 +210,8 @@ def handle_browser_update(json):
                 if robot.alive:
                     # Call the robot epoch method of the selected robot config file:
                     globals()[robot_alg].robot_epoch(robot)
-        except KeyError:
+        except KeyError as e:
+            raise e
             print(
                 f'[ERROR] restart app.py and make sure the file {robot_alg}.py is present in the robot_configs folder.')
         emit('new_grid', draw_grid(grid))
