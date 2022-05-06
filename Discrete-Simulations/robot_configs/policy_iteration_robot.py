@@ -100,4 +100,8 @@ def robot_epoch(robot: Robot):
         # If we don't have the wanted orientation, rotate clockwise until we do:
         robot.rotate('r')
     logger.info(f"LET'S MOVE!\n")
-    robot.move()
+    if not robot.move():
+        logger.warn("We hit a wall! Dummy!")
+    with np.printoptions(linewidth=150, precision=3):
+        print(*values.T, sep='\n')
+        
