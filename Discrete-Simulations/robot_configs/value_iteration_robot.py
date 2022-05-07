@@ -44,26 +44,26 @@ def robot_epoch(robot: Robot):
                     # Calculate the new position the robot would be in after the move
                     new_pos = tuple(np.array([x, y]) + move)
 
-                    # If that would be an obstacle, the robot would not move, so reset the position
+                    # If that would be an obstacle, the robot would not move
+                    # This would in no way contribute to the goal, so it would not make sense to do this move.
+                    # Therefore, it also makes no sense to let it contribute to the calculation of the states value.
                     if -3 < robot.grid.cells[new_pos] < 0:
-                        new_pos = tuple(np.array([x, y]))
+                        continue
 
                     # Get the reward of the new square.
                     reward = get_reward(robot.grid, new_pos, robot)
                     rewards[move] = reward + GAMMA * V[new_pos]
 
-                count_possible_moves = 0
-                for move in moves:
-                    if -3 < robot.grid.cells[tuple(np.array([x, y]) + move)] < 0:
-                        count_possible_moves += 1
+                count_possible_moves = len(rewards)
 
                 # Get the max new value of the state
                 max_new_val = -10000
-                for move in moves:
+                for move, reward in rewards.items():
                     sum = 0
-                    sum += (1 - p_move) * rewards[move]
+                    sum += (1 - p_move) * reward
+
                     if p_move != 0:
-                        for rand_move in moves:
+                        for rand_move in rewards.keys():
                             sum += p_move/count_possible_moves * rewards[rand_move]
 
                     if sum > max_new_val:
