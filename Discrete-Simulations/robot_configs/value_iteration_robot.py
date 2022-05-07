@@ -53,6 +53,10 @@ def robot_epoch(robot: Robot):
                     # Calculate the new position the robot would be in after the move
                     new_pos = tuple(np.array([x, y]) + move)
 
+                    # If that would be an obstacle, the robot would not move, so reset the position
+                    if -3 < robot.grid.cells[new_pos] < 0:
+                        continue
+
                     # Get the reward of the new square.
                     reward = get_reward(robot.grid, new_pos, robot)
                     rewards[move] = reward + GAMMA * V[new_pos]
@@ -63,12 +67,22 @@ def robot_epoch(robot: Robot):
                     # if robot.grid.cells[tuple(np.array([x, y]) + move)] <= 0:
                     #     count_cleaned_or_walls += 1
 
+                count_possible_moves = 0
+                for move in moves:
+                    if robot.grid.cells[tuple(np.array([x, y]) + move)] < 0:
+                        count_possible_moves += 1
+
                 # Get the max new value of the state
                 max_new_val = -10000
                 for move in moves:
+                    if robot.grid.cells[tuple(np.array([x, y]) + move)] < 0:
+                        continue
                     sum = 0
                     sum += (1 - p_move) * rewards[move]
-                    sum += (p_move) * random_reward_sum
+                    if p_move != 0:
+                        for rest_moves in moves:
+                            if rest_moves != move:
+                                sum += (p_move)/(count_possible_moves-1) * rewards[rest_moves]
 
                     if sum > max_new_val:
                         max_new_val = sum
@@ -103,6 +117,10 @@ def robot_epoch(robot: Robot):
     corresponding_move = dict(zip(moves, [None] * len(moves)))
     for move in moves:
         new_pos = tuple(np.array(robot_position) + move)
+
+        # If that would be an obstacle, the robot would not move, so reset the position
+        if -3 < robot.grid.cells[new_pos] < 0:
+            continue
 
         val = V[new_pos]
 
