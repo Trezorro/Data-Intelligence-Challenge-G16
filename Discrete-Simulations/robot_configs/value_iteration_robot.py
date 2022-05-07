@@ -2,7 +2,7 @@ from typing import Tuple
 
 from environment import Robot, Grid
 import numpy as np
-
+import random
 
 """
 PROBLEMS
@@ -115,6 +115,7 @@ def robot_epoch(robot: Robot):
 
     # Create a dict to save the value of each move
     corresponding_move = dict(zip(moves, [None] * len(moves)))
+    top_moves = []
     for move in moves:
         new_pos = tuple(np.array(robot_position) + move)
 
