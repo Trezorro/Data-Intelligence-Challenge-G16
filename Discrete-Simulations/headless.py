@@ -1,9 +1,15 @@
 # Import our robot algorithm to use in this simulation:
-from robot_configs.greedy_random_robot import robot_epoch
+from robot_configs.value_iteration_robot import robot_epoch
 import pickle
 from environment import Robot
 import matplotlib.pyplot as plt
+import pandas as pd
+import time
+import seaborn as sns
+from openpyxl import Workbook, load_workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
 
+# Change this according to grid you want to run
 grid_file = 'house.grid'
 # Cleaned tile percentage at which the room is considered 'clean':
 stopping_criteria = 100
@@ -14,8 +20,11 @@ n_moves = []
 deaths = 0
 cleaned = []
 
+time_tracker = pd.DataFrame(columns = ["Simulation", "Percent", "Time"])
+cnt = 0
+experiment = []
 # Run 100 times:
-for i in range(100):
+for i in range(20):
     # Open the grid file.
     # (You can create one yourself using the provided editor).
     with open(f'grid_configs/{grid_file}', 'rb') as f:
@@ -27,6 +36,7 @@ for i in range(100):
     # Keep track of the number of robot decision epochs:
     n_epochs = 0
     while True:
+        start_time = time.time()
         n_epochs += 1
         # Do a robot epoch (basically call the robot algorithm once):
         robot_epoch(robot)
@@ -40,6 +50,11 @@ for i in range(100):
         goal = (grid.cells == 2).sum()
         # Calculate the cleaned percentage:
         clean_percent = (clean / (dirty + clean)) * 100
+        if int(clean_percent) % 10 == 0 and int(clean_percent) != 0:
+            cnt += 1
+            time_tracker.loc[cnt,"Simulation"] = i+1
+            time_tracker.loc[cnt, "Percent"] = int(clean_percent)
+            time_tracker.loc[cnt, "Time"] = round(time.time() - start_time, 2)
         # See if the room can be considered clean, if so, stop the simulaiton instance:
         if clean_percent >= stopping_criteria and goal == 0:
             break
@@ -52,16 +67,54 @@ for i in range(100):
     efficiencies.append(float(efficiency))
     n_moves.append(len(robot.history[0]))
     cleaned.append(clean_percent)
+    # Change according to the current experiment
+    experiment.append('THETA 0.001 | GAMMA 0.9 | GRID_FILE snake.grid')
+
+    grouped_time = time_tracker[["Percent","Time"]].groupby("Percent")
+
+    mean_time = grouped_time.mean()
+
+    mean_time = mean_time.reset_index()
+
+df = pd.DataFrame(columns = ['Clean', 'Efficiency','Experiment'])
+df['Clean'] = cleaned
+df['Efficiency'] = efficiencies
+df['Experiment'] = experiment
+
+# If the value_iteration or policy_iteration excel files are already generated the uncomment the below
+
+# wb = load_workbook('policy_iteration.xlsx')
+# ws = wb['Sheet1']
+#
+# # Change the header to True for the first iteration
+# for r in dataframe_to_rows(df, index=False, header=False):
+#     ws.append(r)
+# wb.save('policy_iteration.xlsx')
+
+# If the value_iteration or policy_iteration excel files are already generated then comment the below
+df.to_excel("value_iteration.xlsx", index=False)
 
 # Make some plots:
-plt.hist(cleaned)
-plt.title('Percentage of tiles cleaned.')
+sns.histplot(data = cleaned, color = 'blue')
+plt.title('Percentage of tiles cleaned')
+# Change the suptitle according to the current parameters
+plt.suptitle('THETA : 0.001 | GAMMA : 0.9 | GRID_FILE : snake.grid')
 plt.xlabel('% cleaned')
 plt.ylabel('count')
 plt.show()
 
-plt.hist(efficiencies)
+sns.histplot(data = efficiencies, color = 'green')
 plt.title('Efficiency of robot.')
+# Change the suptitle according to the current parameters
+plt.suptitle('THETA : 0.001 | GAMMA : 0.9 | GRID_FILE : snake.grid')
 plt.xlabel('Efficiency %')
 plt.ylabel('count')
+plt.show()
+
+sns.barplot(x='Percent', y = 'Time', data = mean_time , color = 'orange', ci= None)
+plt.title('Avg time spent for house cleaning')
+# Change the suptitle according to the current parameters
+plt.suptitle('THETA : 0.001 | GAMMA : 0.9 | GRID_FILE : snake.grid')
+plt.xlabel('percentage of cleaned cells')
+plt.ylabel('time in seconds')
 plt.show()

@@ -31,7 +31,7 @@ def robot_epoch(robot: Robot):
     values = np.zeros_like(robot.grid.cells)
     policy = np.ones((robot.grid.n_cols, robot.grid.n_rows),
                      dtype=int)
-    gamma = .99
+    gamma = .9
     DIRECTIONS = list(robot.dirs.keys())
     MOVES = list(robot.dirs.values())
     MIN_DELTA = .001

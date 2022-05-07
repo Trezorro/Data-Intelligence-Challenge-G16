@@ -22,8 +22,9 @@ def robot_epoch(robot: Robot):
 
     # Initialize parameters
     THETA = 0.001
-    GAMMA = 0.7
+    GAMMA = 0.9
     MAX_ITERATIONS = 10000
+
 
     # Initialize V with all values to -1000 which are obstacles/walls
     V = np.zeros_like(robot.grid.cells)
@@ -34,7 +35,6 @@ def robot_epoch(robot: Robot):
 
     moves = list(robot.dirs.values())
     p_move = robot.p_move
-
     # For max iterations
     for iter in range(MAX_ITERATIONS):
         DELTA = 0
