@@ -9,7 +9,7 @@ def robot_epoch(robot: Robot):
 
     # Initialize parameters
     THETA = 0.001
-    GAMMA = 0.9
+    GAMMA = 0.7
     MAX_ITERATIONS = 10000
 
     # Initialize V with all values to -1000 which are obstacles/walls
@@ -32,7 +32,7 @@ def robot_epoch(robot: Robot):
         for x in range(robot.grid.n_cols):
             for y in range(robot.grid.n_rows):
                 # If obstacle, skip iteration
-                if V[(x,y)] == -100:
+                if V[(x, y)] == -100:
                     continue
 
                 # Store current value
@@ -54,9 +54,10 @@ def robot_epoch(robot: Robot):
                     reward = get_reward(robot.grid, new_pos, robot)
                     rewards[move] = reward + GAMMA * V[new_pos]
 
+                # Calculate the number of viable moves for the robot
                 count_possible_moves = len(rewards)
 
-                # Get the max new value of the state
+                # Get the max new value of the state. For this, loop over all possible logical moves
                 max_new_val = -10000
                 for move, reward in rewards.items():
                     sum = 0
@@ -95,7 +96,7 @@ def robot_epoch(robot: Robot):
     for move in moves:
         new_pos = tuple(np.array(robot_position) + move)
 
-        # If that would be an obstacle, skip, as it would not be useful
+        # If that would be an obstacle, skip, as doing that move would not contribute to the goal at all.
         if -3 < robot.grid.cells[new_pos] < 0:
             continue
 
