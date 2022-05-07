@@ -1,6 +1,19 @@
-from environment import Robot, Grid
+from environment import Robot
 import numpy as np
 import random
+
+MATERIALS = {0: 'cell_clean', -1: 'cell_wall', -2: 'cell_obstacle', -3: 'cell_robot_n', -4: 'cell_robot_e',
+             -5: 'cell_robot_s', -6: 'cell_robot_w', 1: 'cell_dirty', 2: 'cell_goal', 3: 'cell_death'}
+
+REWARD_MAP = {
+    -3: -1,  # A robot position (so clean)
+    -2: -1,  # Obstacle (gray)
+    -1: -1,  # Wall (red)
+    0: -1,   # Clean (green)
+    1: 2,    # Dirty (white)
+    2: 1,    # Goal (orange)
+    3: -666  # Death (red cross)
+}
 
 
 def robot_epoch(robot: Robot):
@@ -17,7 +30,7 @@ def robot_epoch(robot: Robot):
     for x in range(robot.grid.n_cols):
         for y in range(robot.grid.n_rows):
             if -3 < robot.grid.cells[x][y] < 0 or robot.grid.cells[x][y] == 3:
-                V[(x,y)] = -100
+                V[(x, y)] = -100
 
     moves = list(robot.dirs.values())
     p_move = robot.p_move
@@ -51,7 +64,7 @@ def robot_epoch(robot: Robot):
                         continue
 
                     # Get the reward of the new square.
-                    reward = get_reward(robot.grid, new_pos, robot)
+                    reward = get_reward(robot.grid.cells[new_pos])
                     rewards[move] = reward + GAMMA * V[new_pos]
 
                 # Calculate the number of viable moves for the robot
@@ -65,7 +78,7 @@ def robot_epoch(robot: Robot):
 
                     if p_move != 0:
                         for rand_move in rewards.keys():
-                            sum += p_move/count_possible_moves * rewards[rand_move]
+                            sum += p_move / count_possible_moves * rewards[rand_move]
 
                     if sum > max_new_val:
                         max_new_val = sum
@@ -126,20 +139,8 @@ def robot_epoch(robot: Robot):
     robot.move()
 
 
-def get_reward(grid: Grid, square, robot: Robot) -> float:
-    reward_per_cell = 0
+def get_reward(square_label: int) -> int:
+    if "cell_robot" in MATERIALS[square_label]:
+        square_label = -3
 
-    if grid.cells[square] == 3:  # Death state is negative reward
-        reward_per_cell += -200
-    elif grid.cells[square] == 2:  # Goal state positive reward
-        reward_per_cell += 3
-    elif grid.cells[square] == 1:  # Dirty square positive reward
-        reward_per_cell += 5
-    elif grid.cells[square] == 0:  # Clear square very negative reward
-        reward_per_cell += -2
-    elif grid.cells[square] < -2:  # Robot square
-        reward_per_cell += -2
-    else:                           # Obstacles, negative reward
-        reward_per_cell += -1
-
-    return reward_per_cell
+    return REWARD_MAP[square_label]
