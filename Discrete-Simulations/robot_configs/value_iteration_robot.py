@@ -1,16 +1,7 @@
-from typing import Tuple
-
 from environment import Robot, Grid
 import numpy as np
 import random
 
-"""
-PROBLEMS
-Current problems: it has no sense of 'time pressure' and doesn't seem to want to move... 
-
-As all squares have the possibility to end up in a 'dirty square' in one move, they are all valued the same, 
-it picks the first move, which is run into a wall. This is very visible with Gamma = 0.
-"""
 
 def robot_epoch(robot: Robot):
     """ Value iteration bot """
@@ -18,7 +9,7 @@ def robot_epoch(robot: Robot):
 
     # Initialize parameters
     THETA = 0.001
-    GAMMA = 0.99
+    GAMMA = 0.9
     MAX_ITERATIONS = 10000
 
     # Initialize V with all values to -1000 which are obstacles/walls
@@ -55,46 +46,31 @@ def robot_epoch(robot: Robot):
 
                     # If that would be an obstacle, the robot would not move, so reset the position
                     if -3 < robot.grid.cells[new_pos] < 0:
-                        continue
+                        new_pos = tuple(np.array([x, y]))
 
                     # Get the reward of the new square.
                     reward = get_reward(robot.grid, new_pos, robot)
                     rewards[move] = reward + GAMMA * V[new_pos]
 
-                # TODO count how many clean or obstacle tiles are around a cell
-                count_cleaned_or_walls = 0
-                # for move in moves:
-                    # if robot.grid.cells[tuple(np.array([x, y]) + move)] <= 0:
-                    #     count_cleaned_or_walls += 1
-
                 count_possible_moves = 0
                 for move in moves:
-                    if robot.grid.cells[tuple(np.array([x, y]) + move)] < 0:
+                    if -3 < robot.grid.cells[tuple(np.array([x, y]) + move)] < 0:
                         count_possible_moves += 1
 
                 # Get the max new value of the state
                 max_new_val = -10000
                 for move in moves:
-                    if robot.grid.cells[tuple(np.array([x, y]) + move)] < 0:
-                        continue
                     sum = 0
                     sum += (1 - p_move) * rewards[move]
                     if p_move != 0:
-                        for rest_moves in moves:
-                            if rest_moves != move:
-                                sum += (p_move)/(count_possible_moves-1) * rewards[rest_moves]
+                        for rand_move in moves:
+                            sum += p_move/count_possible_moves * rewards[rand_move]
 
                     if sum > max_new_val:
                         max_new_val = sum
 
-                # TODO if a cell is surrounded by cleaned cells or obstacles and this cell is dirty then give priority
-                # if count_cleaned_or_walls == 4:
-                #     if robot.grid.cells[x][y] == 1:
-                #         V_new[(x, y)] = max_new_val + 10
-                # else:
-
                 # Store new state value
-                V_new[(x,y)] = max_new_val
+                V_new[(x, y)] = max_new_val
 
                 # Store new delta
                 DELTA = max(DELTA, abs(v - max_new_val))
@@ -119,7 +95,7 @@ def robot_epoch(robot: Robot):
     for move in moves:
         new_pos = tuple(np.array(robot_position) + move)
 
-        # If that would be an obstacle, the robot would not move, so reset the position
+        # If that would be an obstacle, skip, as it would not be useful
         if -3 < robot.grid.cells[new_pos] < 0:
             continue
 
@@ -152,7 +128,7 @@ def robot_epoch(robot: Robot):
 def get_reward(grid: Grid, square, robot: Robot) -> float:
     reward_per_cell = 0
 
-    if grid.cells[square] == 3: # Death state is negative reward
+    if grid.cells[square] == 3:  # Death state is negative reward
         reward_per_cell += -200
     elif grid.cells[square] == 2:  # Goal state positive reward
         reward_per_cell += 3
@@ -160,12 +136,6 @@ def get_reward(grid: Grid, square, robot: Robot) -> float:
         reward_per_cell += 5
     elif grid.cells[square] == 0:  # Clear square very negative reward
         reward_per_cell += -2
-        # TODO can we take into consideration history?
-        # for i in robot.history:
-        #     for j in range(len(i)):
-        #         if (robot.history[0][j], robot.history[1][j]) == square:
-        #             reward_per_cell += -1
-        #     break;
     elif grid.cells[square] < -2:  # Robot square
         reward_per_cell += -2
     else:                           # Obstacles, negative reward
