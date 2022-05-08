@@ -29,6 +29,8 @@ def robot_epoch(robot: Robot, gam=0.9, min_delta=0.01):
     # figure out the policy
     # initialize values and policy
     values = np.zeros_like(robot.grid.cells)
+    robot.debug_values = np.zeros_like(robot.grid.cells)
+    robot.show_debug_values = True
     policy = np.ones((robot.grid.n_cols, robot.grid.n_rows),
                      dtype=int)
     gamma = gam
@@ -87,7 +89,9 @@ def robot_epoch(robot: Robot, gam=0.9, min_delta=0.01):
                     # Get square that bot would land on after move.
                     target_state = tuple(np.array(position) + np.array(move))
                     reward = reward_function(robot.grid.cells[target_state])
-                    expected_values.append(reward + gamma * values[target_state])
+                    q_value = reward + gamma * values[target_state]
+                    expected_values.append(q_value)
+                    robot.debug_values[col, row] = q_value  # update value
                 new_policy = np.argmax(expected_values)
                 policy[position] = new_policy
                 if new_policy != old_policy:

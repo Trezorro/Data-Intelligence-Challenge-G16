@@ -22,6 +22,8 @@ class Robot:
         self.battery_lvl = 100  # Current battery level (in %)
         self.alive = True  # Indicator of whether the robot is alive
         self.vision = vision  # Number of tiles in each of the 4 directions included in the robots vision.
+        self.debug_values = np.zeros_like(grid.cells)  # Array to store debug values for each tile
+        self.show_debug_values = False
 
     def possible_tiles_after_move(self) -> Dict[Tuple[int, int], int]:
         """Returns the values of squares the robot can see from its current position.

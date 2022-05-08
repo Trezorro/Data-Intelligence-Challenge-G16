@@ -36,6 +36,7 @@ def draw_grid(grid):
     clean = (grid.cells == 0).sum()
     dirty = (grid.cells == 1).sum() # edited to only include actual dirty cells
     goal = (grid.cells == 2).sum()
+    debug_values = None
     if robots:  # If we have robots on the grid:
         efficiencies = [100 for i in range(len(robots))]
         batteries = [100 for i in range(len(robots))]
@@ -54,8 +55,10 @@ def draw_grid(grid):
             # Battery and alive stats:
             batteries[i] = round(battery, 2)
             alives[i] = robot.alive
+            if robot.show_debug_values: 
+                debug_values = robot.debug_values # show this robot's values in the grid
         return {'grid': render_template('grid.html', height=30, width=30, n_rows=grid.n_rows, n_cols=grid.n_cols,
-                                        room_config=grid.cells,
+                                        room_config=grid.cells, values=debug_values,
                                         materials=materials), 'clean': round((clean / (dirty + clean)) * 100, 2),
                 'goal': float(goal), 'efficiency': ','.join([str(i) for i in efficiencies]),
                 'battery': ','.join([str(i) for i in batteries]),
@@ -148,6 +151,8 @@ def handle_browser_new_grid(json):
     """Handles socket event 'get_grid', needs filename of grid config as payload."""
     global grid
     global occupied
+    global robots
+    robots = None
     occupied = False
     with open(f'{PATH}/grid_configs/{json["data"]}', 'rb') as f:
         grid = pickle.load(f)
