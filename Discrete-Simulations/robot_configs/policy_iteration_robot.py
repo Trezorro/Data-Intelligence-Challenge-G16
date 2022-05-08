@@ -38,7 +38,7 @@ def robot_epoch(robot: Robot, gam=0.2, min_delta=0.1):
     logger.info("Starting policy iteration...")
 
     # Policy iteration
-    for iteration in range(500):
+    for iteration in range(200):
         # policy evaluation
         c = 1
         while True:
@@ -58,6 +58,7 @@ def robot_epoch(robot: Robot, gam=0.2, min_delta=0.1):
                             continue
                         reward = reward_function(robot.grid.cells.item(target_state))
                         if move == policy_move:
+                            # The probabilities here are not correctly scaled, but should yield similar results in the final comparison.
                             value += (1 - robot.p_move) * (reward + gamma * values[target_state])
                         else:
                             value += robot.p_move * (reward + gamma * values[target_state])
