@@ -16,8 +16,8 @@ def reward_function(square_label: Union[int, float]) -> int:
         square_label = -3
     REWARD_MAP = {
         -3: -1,   #  A robot position (so clean)    
-        -2: -1,  #  Obstacle (gray)  
-        -1: -1,  #  Wall (red)       
+        -2: -10,  #  Obstacle (gray)  
+        -1: -10,  #  Wall (red)       
         0: -1,   #  Clean (green)    
         1: 2,   #  Dirty (white)    
         2: 1,   #  Goal (orange)    
@@ -25,7 +25,7 @@ def reward_function(square_label: Union[int, float]) -> int:
     }
     return REWARD_MAP[square_label]
 
-def robot_epoch(robot: Robot, gam=0.9, min_delta=0.001):
+def robot_epoch(robot: Robot, gam=0.9, min_delta=0.01):
     # figure out the policy
     # initialize values and policy
     values = np.zeros_like(robot.grid.cells)
@@ -34,7 +34,6 @@ def robot_epoch(robot: Robot, gam=0.9, min_delta=0.001):
     gamma = gam
     DIRECTIONS = list(robot.dirs.keys())
     MOVES = list(robot.dirs.values())
-    MIN_DELTA = min_delta
     logger.info("Starting policy iteration...")
 
     # Policy iteration
@@ -48,14 +47,17 @@ def robot_epoch(robot: Robot, gam=0.9, min_delta=0.001):
                 for row in range(robot.grid.n_rows):
                     position = (col, row)
                     
-                    if robot.grid.cells.item(position) in (-1, -2):  # wall or obstacle
-                        continue
+                    # if robot.grid.cells.item(position) in (-1, -2):  # wall or obstacle
+                    #     continue
                     old_value = values[col, row]
                     value = 0
                     policy_move = MOVES[policy[col, row]]
                     for move in MOVES:
                         # Get square that bot would land on after move.
                         target_state = tuple(np.array(position) + np.array(move))
+                        if not ((0 <= target_state[0] < robot.grid.n_cols) and
+                                (0 <= target_state[1] < robot.grid.n_rows)):
+                            continue
                         reward = reward_function(robot.grid.cells.item(target_state))
                         if move == policy_move:
                             value += (1 - robot.p_move) * (reward + gamma * values[target_state])
@@ -64,7 +66,7 @@ def robot_epoch(robot: Robot, gam=0.9, min_delta=0.001):
                             
                     values[col, row] = value  # update value
                     delta = max(delta, abs(old_value - value))
-            if delta < MIN_DELTA:
+            if delta < min_delta:
                 logger.info(f"[Policy evaluation] converged in {c} iterations with {delta=}.")
                 break
             else:
