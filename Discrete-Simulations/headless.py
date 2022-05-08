@@ -16,8 +16,8 @@ stopping_criteria = 100
 
 # Settings
 GRID_FILES = [
-    # 'example-random-house-0.grid',
-    'stay_off_my_grass.grid',
+    'example-random-house-0.grid',
+    # 'stay_off_my_grass.grid',
     # 'snake.grid',
     # 'house.grid'
         ]
@@ -159,7 +159,7 @@ try:
                     # plt.ylabel('time in seconds')
                     # plt.show()
 finally:
-    big_df.to_excel("policy_iteration_experiment_more_drain.xlsx", index=False)
+    big_df.to_excel(f"policy_iteration_experiment_more_drain_{GRID_FILES[0]}.xlsx", index=False)
 
     average_df = pd.DataFrame(
         columns=['Clean mean', 'Clean variance', 'Efficiency mean', 'Efficiency variance', 'Experiment'])
@@ -169,4 +169,4 @@ finally:
     average_df['Efficiency variance'] = efficiencies_variances
     average_df['Experiment'] = experiments
 
-    average_df.to_excel("Overview_policy_iteration_experiment_aggregated_more_drain.xlsx", index=False)
+    average_df.to_excel(f"Overview_policy_iteration_experiment_aggregated_more_drain_{GRID_FILES[0]}.xlsx", index=False)
