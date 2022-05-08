@@ -28,6 +28,10 @@ Jinja2 = "==3.0.1"
 MarkupSafe = "==2.0.1"
 Pillow = "==8.4.0"
 Werkzeug = "==2.0.1"
+pandas = "*"
+seaborn = "*"
+openpyxl = "*"
+tqdm = "*"
 
 [dev-packages]
 
