@@ -2,14 +2,10 @@
 from robot_configs.policy_iteration_robot import robot_epoch
 import pickle
 from environment import Robot
-import matplotlib.pyplot as plt
 import pandas as pd
 import time
-import seaborn as sns
 import numpy as np
 from tqdm import tqdm
-from openpyxl import Workbook, load_workbook
-from openpyxl.utils.dataframe import dataframe_to_rows
 
 # Cleaned tile percentage at which the room is considered 'clean':
 stopping_criteria = 100
@@ -119,45 +115,8 @@ try:
                     efficiencies_variances.append(np.var(efficiencies))
                     experiments.append(experiment_str)
 
-                    # If the value_iteration or policy_iteration excel files are already generated the uncomment the below
-
-                    # wb = load_workbook('policy_iteration.xlsx')
-                    # ws = wb['Sheet1']
-                    #
-                    # # Change the header to True for the first iteration
-                    # for r in dataframe_to_rows(df, index=False, header=False):
-                    #     ws.append(r)
-                    # wb.save('policy_iteration.xlsx')
-
-                    # If the value_iteration or policy_iteration excel files are already generated then comment the below
-                    # df.to_excel("value_iteration.xlsx", index=False)
-
                     big_df = pd.concat([big_df, df])
 
-                    # # Make some plots:
-                    # sns.histplot(data = cleaned, color = 'blue')
-                    # plt.title('Percentage of tiles cleaned')
-                    # # Change the suptitle according to the current parameters
-                    # plt.suptitle('THETA ' + str(theta) + ' | GAMMA ' + str(gamma) + ' | GRID_FILE ' + grid_file)
-                    # plt.xlabel('% cleaned')
-                    # plt.ylabel('count')
-                    # plt.show()
-                    #
-                    # sns.histplot(data = efficiencies, color = 'green')
-                    # plt.title('Efficiency of robot.')
-                    # # Change the suptitle according to the current parameters
-                    # plt.suptitle('THETA ' + str(theta) + ' | GAMMA ' + str(gamma) + ' | GRID_FILE ' + grid_file)
-                    # plt.xlabel('Efficiency %')
-                    # plt.ylabel('count')
-                    # plt.show()
-                    #
-                    # sns.barplot(x='Percent', y = 'Time', data = mean_time , color = 'orange', ci= None)
-                    # plt.title('Avg time spent for house cleaning')
-                    # # Change the suptitle according to the current parameters
-                    # plt.suptitle('THETA ' + str(theta) + ' | GAMMA ' + str(gamma) + ' | GRID_FILE ' + grid_file)
-                    # plt.xlabel('percentage of cleaned cells')
-                    # plt.ylabel('time in seconds')
-                    # plt.show()
 finally:
     big_df.to_excel(f"policy_iteration_experiment_more_drain_{GRID_FILES[0]}.xlsx", index=False)
 

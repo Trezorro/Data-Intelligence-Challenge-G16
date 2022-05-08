@@ -14,6 +14,13 @@ For documentation see https://pipenv.pypa.io/en/latest/
 
 As with normal pip or conda, installing the C++ build tools on your system is required for this project.
 
+## Headless
+
+The `/Discrete-Simulations/headless.py` script allows for running many simulations without the use of the UI.
+This script is not suited for testing the greedy-bot, but is intended for simulating the policy-iteration and value-iteration algorithms.
+One can change between policy-iteration and value-iteration by changing the import in line 2. In addition, parameter settings can be specified such as which grids to simulate on and which gamma, theta and p_move values to test on.
+In the end, an overview excel file will be generated with semi aggregated results, as well as an excel file with the results of all individual runs.
+
 ## Notes
 
 Cel material | Label
