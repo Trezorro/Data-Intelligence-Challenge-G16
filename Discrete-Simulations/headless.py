@@ -20,11 +20,13 @@ GAMMAS = [0.2]
 THETAS = [0.01, 0.001]
 
 cleaned_means = []
+cleaned_variances = []
 efficiencies_means = []
+efficiencies_variances = []
 experiments = []
 
 # Run 100 times:
-big_df = pd.DataFrame(columns = ['Clean', 'Efficiency','Experiment'])
+big_df = pd.DataFrame(columns=['Clean', 'Efficiency', 'Experiment'])
 
 for grid_file in GRID_FILES:
 
@@ -72,7 +74,7 @@ for grid_file in GRID_FILES:
                     clean_percent = (clean / (dirty + clean)) * 100
                     if int(clean_percent) % 10 == 0 and int(clean_percent) != 0:
                         cnt += 1
-                        time_tracker.loc[cnt,"Simulation"] = i+1
+                        time_tracker.loc[cnt, "Simulation"] = i + 1
                         time_tracker.loc[cnt, "Percent"] = int(clean_percent)
                         time_tracker.loc[cnt, "Time"] = round(time.time() - start_time, 2)
                     # See if the room can be considered clean, if so, stop the simulaiton instance:
@@ -90,19 +92,21 @@ for grid_file in GRID_FILES:
                 # Change according to the current experiment
                 experiment.append('THETA ' + str(theta) + ' | GAMMA ' + str(gamma) + ' | GRID_FILE ' + grid_file)
 
-                grouped_time = time_tracker[["Percent","Time"]].groupby("Percent")
+                grouped_time = time_tracker[["Percent", "Time"]].groupby("Percent")
 
                 mean_time = grouped_time.mean()
 
                 mean_time = mean_time.reset_index()
 
-            df = pd.DataFrame(columns = ['Clean', 'Efficiency','Experiment'])
+            df = pd.DataFrame(columns=['Clean', 'Efficiency', 'Experiment'])
             df['Clean'] = cleaned
             df['Efficiency'] = efficiencies
             df['Experiment'] = experiment
 
             cleaned_means.append(np.mean(cleaned))
+            cleaned_variances.append(np.var(cleaned))
             efficiencies_means.append(np.mean(efficiencies))
+            efficiencies_variances.append(np.var(efficiencies))
             experiments.append('THETA ' + str(theta) + ' | GAMMA ' + str(gamma) + ' | GRID_FILE ' + grid_file)
 
             # If the value_iteration or policy_iteration excel files are already generated the uncomment the below
@@ -147,10 +151,12 @@ for grid_file in GRID_FILES:
 
 big_df.to_excel("value_iteration.xlsx", index=False)
 
-
-average_df = pd.DataFrame(columns = ['Mean clean', 'Mean efficiency','Experiment'])
-average_df['Mean clean'] = cleaned_means
-average_df['Mean efficiency'] = efficiencies_means
+average_df = pd.DataFrame(
+    columns=['Clean mean', 'Clean variance', 'Efficiency mean', 'Efficiency variance', 'Experiment'])
+average_df['Clean mean'] = cleaned_means
+average_df['Clean variance'] = cleaned_variances
+average_df['Efficiency mean'] = efficiencies_means
+average_df['Efficiency variance'] = efficiencies_variances
 average_df['Experiment'] = experiments
 
 average_df.to_excel("Overview.xlsx", index=False)
