@@ -9,22 +9,20 @@ REWARD_MAP = {
     -3: -1,  # A robot position (so clean)
     -2: -1,  # Obstacle (gray)
     -1: -1,  # Wall (red)
-    0: -1,   # Clean (green)
-    1: 2,    # Dirty (white)
-    2: 1,    # Goal (orange)
+    0: -1,  # Clean (green)
+    1: 2,  # Dirty (white)
+    2: 1,  # Goal (orange)
     3: -666  # Death (red cross)
 }
 
 
-def robot_epoch(robot: Robot):
+def robot_epoch(robot: Robot, gamma=0.9, theta=0.01):
     """ Value iteration bot """
-    print("Start new epoch")
 
     # Initialize parameters
-    THETA = 0.001
-    GAMMA = 0.9
+    THETA = theta
+    GAMMA = gamma
     MAX_ITERATIONS = 10000
-
 
     # Initialize V with all values to -1000 which are obstacles/walls
     V = np.zeros_like(robot.grid.cells)
@@ -71,29 +69,26 @@ def robot_epoch(robot: Robot):
                 count_possible_moves = len(rewards)
 
                 # Get the max new value of the state. For this, loop over all possible logical moves
-                max_new_val = -10000
+                expected_values = []
                 for move, reward in rewards.items():
-                    sum = 0
-                    sum += (1 - p_move) * reward
+                    expected_value = (1 - p_move) * reward
 
                     if p_move != 0:
                         for rand_move in rewards.keys():
-                            sum += p_move / count_possible_moves * rewards[rand_move]
+                            expected_value += p_move / count_possible_moves * rewards[rand_move]
 
-                    if sum > max_new_val:
-                        max_new_val = sum
+                    expected_values.append(expected_value)
 
                 # Store new state value
-                V_new[(x, y)] = max_new_val
+                V_new[(x, y)] = max(expected_values)
 
                 # Store new delta
-                DELTA = max(DELTA, abs(v - max_new_val))
+                DELTA = max(DELTA, abs(v - V_new[(x, y)]))
 
         V = V_new
 
         # Compare delta to theta
         if DELTA < THETA:
-            print("breaking at ", iter, " iterations!")
             break
 
     robot_position = robot.pos
@@ -127,10 +122,7 @@ def robot_epoch(robot: Robot):
     # Choose a random move from the best ones
     corresponding_move = random.choice(top_moves)
 
-    print("Want to move to ", corresponding_move)
-
     current_direction = robot.dirs[robot.orientation]
-    print(current_direction, corresponding_move)
 
     while current_direction != corresponding_move:
         robot.rotate('r')

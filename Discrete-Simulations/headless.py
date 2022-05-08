@@ -6,11 +6,10 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import time
 import seaborn as sns
+from tqdm import tqdm
 from openpyxl import Workbook, load_workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 
-# Change this according to grid you want to run
-grid_file = 'house.grid'
 # Cleaned tile percentage at which the room is considered 'clean':
 stopping_criteria = 100
 
@@ -23,8 +22,14 @@ cleaned = []
 time_tracker = pd.DataFrame(columns = ["Simulation", "Percent", "Time"])
 cnt = 0
 experiment = []
+
+# Settings
+grid_file = 'snake.grid'
+gamma = 0.9
+theta = 0.001
+
 # Run 100 times:
-for i in range(20):
+for i in tqdm(range(20)):
     # Open the grid file.
     # (You can create one yourself using the provided editor).
     with open(f'grid_configs/{grid_file}', 'rb') as f:
@@ -39,7 +44,7 @@ for i in range(20):
         start_time = time.time()
         n_epochs += 1
         # Do a robot epoch (basically call the robot algorithm once):
-        robot_epoch(robot)
+        robot_epoch(robot, gamma, theta)
         # Stop this simulation instance if robot died :( :
         if not robot.alive:
             deaths += 1
@@ -68,7 +73,7 @@ for i in range(20):
     n_moves.append(len(robot.history[0]))
     cleaned.append(clean_percent)
     # Change according to the current experiment
-    experiment.append('THETA 0.001 | GAMMA 0.9 | GRID_FILE snake.grid')
+    experiment.append('THETA ' + str(theta) + ' | GAMMA ' + str(gamma) + ' | GRID_FILE ' + grid_file)
 
     grouped_time = time_tracker[["Percent","Time"]].groupby("Percent")
 
@@ -98,7 +103,7 @@ df.to_excel("value_iteration.xlsx", index=False)
 sns.histplot(data = cleaned, color = 'blue')
 plt.title('Percentage of tiles cleaned')
 # Change the suptitle according to the current parameters
-plt.suptitle('THETA : 0.001 | GAMMA : 0.9 | GRID_FILE : snake.grid')
+plt.suptitle('THETA ' + str(theta) + ' | GAMMA ' + str(gamma) + ' | GRID_FILE ' + grid_file)
 plt.xlabel('% cleaned')
 plt.ylabel('count')
 plt.show()
@@ -106,7 +111,7 @@ plt.show()
 sns.histplot(data = efficiencies, color = 'green')
 plt.title('Efficiency of robot.')
 # Change the suptitle according to the current parameters
-plt.suptitle('THETA : 0.001 | GAMMA : 0.9 | GRID_FILE : snake.grid')
+plt.suptitle('THETA ' + str(theta) + ' | GAMMA ' + str(gamma) + ' | GRID_FILE ' + grid_file)
 plt.xlabel('Efficiency %')
 plt.ylabel('count')
 plt.show()
@@ -114,7 +119,7 @@ plt.show()
 sns.barplot(x='Percent', y = 'Time', data = mean_time , color = 'orange', ci= None)
 plt.title('Avg time spent for house cleaning')
 # Change the suptitle according to the current parameters
-plt.suptitle('THETA : 0.001 | GAMMA : 0.9 | GRID_FILE : snake.grid')
+plt.suptitle('THETA ' + str(theta) + ' | GAMMA ' + str(gamma) + ' | GRID_FILE ' + grid_file)
 plt.xlabel('percentage of cleaned cells')
 plt.ylabel('time in seconds')
 plt.show()
