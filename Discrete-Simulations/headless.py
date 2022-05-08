@@ -15,7 +15,7 @@ from openpyxl.utils.dataframe import dataframe_to_rows
 stopping_criteria = 100
 
 # Settings
-GRID_FILES = ['snake.grid', 'house.grid', 'example-random-house-0.grid']
+GRID_FILES = ['stay_off_my_grass.grid']
 GAMMAS = [0.2, 0.5, 0.9]
 THETAS = [0.1, 0.01, 0.001]
 P_MOVES = [0, 0.2]
