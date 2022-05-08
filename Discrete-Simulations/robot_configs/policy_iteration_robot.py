@@ -57,11 +57,15 @@ def robot_epoch(robot: Robot, gam=0.2, min_delta=0.1):
                                 (0 <= target_state[1] < robot.grid.n_rows)):
                             continue
                         reward = reward_function(robot.grid.cells.item(target_state))
+                        val = clipper(values[target_state])
+                        coefficient = clipper((reward + gamma * val))
                         if move == policy_move:
                             # The probabilities here are not correctly scaled, but should yield similar results in the final comparison.
-                            value += (1 - robot.p_move) * (reward + gamma * values[target_state])
+                            value += (1 - robot.p_move) * coefficient
+                            value = clipper(value)
                         else:
-                            value += robot.p_move * (reward + gamma * values[target_state])
+                            value += robot.p_move * coefficient
+                            value = clipper(value)
                             
                     values[col, row] = value  # update value
                     delta = max(delta, abs(old_value - value))
@@ -89,7 +93,8 @@ def robot_epoch(robot: Robot, gam=0.2, min_delta=0.1):
                         expected_values.append(np.NINF)
                         continue
                     reward = reward_function(robot.grid.cells[target_state])
-                    q_value = reward + gamma * values[target_state]
+                    val = clipper(values[target_state])
+                    q_value = reward + gamma * val
                     expected_values.append(q_value)
                     robot.debug_values[col, row] = q_value  # update value
                 new_policy = np.argmax(expected_values)
@@ -108,3 +113,8 @@ def robot_epoch(robot: Robot, gam=0.2, min_delta=0.1):
     logger.info(f"LET'S MOVE!\n")
     if not robot.move():
         logger.warn("We hit a wall! Dummy!")
+
+
+def clipper(value: float):
+    """Clips value between the given range."""
+    return max(-1000000., min(value, 1000000.))

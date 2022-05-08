@@ -16,8 +16,8 @@ stopping_criteria = 100
 
 # Settings
 GRID_FILES = [
-    'example-random-house-0.grid', 
-    # 'stay_off_my_grass.grid',
+    # 'example-random-house-0.grid',
+    'stay_off_my_grass.grid',
     # 'snake.grid',
     # 'house.grid'
         ]
