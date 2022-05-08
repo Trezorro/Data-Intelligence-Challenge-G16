@@ -21,11 +21,11 @@ def reward_function(square_label: Union[int, float]) -> int:
         0: -1,   #  Clean (green)    
         1: 2,   #  Dirty (white)    
         2: 1,   #  Goal (orange)    
-        3: -666,   #  Death (red cross)
+        3: -50,   #  Death (red cross)
     }
     return REWARD_MAP[square_label]
 
-def robot_epoch(robot: Robot, gam=0.9, min_delta=0.01):
+def robot_epoch(robot: Robot, gam=0.5, min_delta=0.1):
     # figure out the policy
     # initialize values and policy
     values = np.zeros_like(robot.grid.cells)
@@ -39,7 +39,7 @@ def robot_epoch(robot: Robot, gam=0.9, min_delta=0.01):
     logger.info("Starting policy iteration...")
 
     # Policy iteration
-    for iteration in range(10000):
+    for iteration in range(500):
         # policy evaluation
         c = 1
         while True:
@@ -48,9 +48,6 @@ def robot_epoch(robot: Robot, gam=0.9, min_delta=0.01):
             for col in range(robot.grid.n_cols):
                 for row in range(robot.grid.n_rows):
                     position = (col, row)
-                    
-                    # if robot.grid.cells.item(position) in (-1, -2):  # wall or obstacle
-                    #     continue
                     old_value = values[col, row]
                     value = 0
                     policy_move = MOVES[policy[col, row]]
@@ -81,13 +78,16 @@ def robot_epoch(robot: Robot, gam=0.9, min_delta=0.01):
         for col in range(robot.grid.n_cols):
             for row in range(robot.grid.n_rows):
                 position = (col, row)
-                if robot.grid.cells.item(position) in (-1, -2):  # wall or obstacle
-                        continue
                 old_policy = policy[position]
                 expected_values = []
                 for move in MOVES:
                     # Get square that bot would land on after move.
                     target_state = tuple(np.array(position) + np.array(move))
+                    if not ((0 <= target_state[0] < robot.grid.n_cols) and
+                                (0 <= target_state[1] < robot.grid.n_rows)):
+                        # If this move would take the bot off the grid, skip it.
+                        expected_values.append(np.NINF)
+                        continue
                     reward = reward_function(robot.grid.cells[target_state])
                     q_value = reward + gamma * values[target_state]
                     expected_values.append(q_value)
