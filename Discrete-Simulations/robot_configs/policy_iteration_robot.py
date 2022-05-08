@@ -4,8 +4,7 @@ from environment import Robot
 import logging
 logging.basicConfig(level=logging.INFO, force=True)
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
-print("Loaded policy iteration robot.")
+logger.setLevel(logging.WARNING)
 
 MATERIALS = {0: 'cell_clean', -1: 'cell_wall', -2: 'cell_obstacle', -3: 'cell_robot_n', -4: 'cell_robot_e',
                  -5: 'cell_robot_s', -6: 'cell_robot_w', 1: 'cell_dirty', 2: 'cell_goal', 3: 'cell_death'}
@@ -25,7 +24,7 @@ def reward_function(square_label: Union[int, float]) -> int:
     }
     return REWARD_MAP[square_label]
 
-def robot_epoch(robot: Robot, gam=0.5, min_delta=0.1):
+def robot_epoch(robot: Robot, gam=0.2, min_delta=0.1):
     # figure out the policy
     # initialize values and policy
     values = np.zeros_like(robot.grid.cells)
@@ -108,6 +107,3 @@ def robot_epoch(robot: Robot, gam=0.5, min_delta=0.1):
     logger.info(f"LET'S MOVE!\n")
     if not robot.move():
         logger.warn("We hit a wall! Dummy!")
-    with np.printoptions(linewidth=150, precision=3):
-        print(*values.T, sep='\n')
-        
