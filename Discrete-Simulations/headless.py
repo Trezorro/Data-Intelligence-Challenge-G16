@@ -62,7 +62,7 @@ try:
                         n_total_tiles = (grid.cells >= 0).sum()
 
                         # Spawn the robot at (1,1) facing north with battery drainage enabled:
-                        robot = Robot(grid, (1, 1), orientation='n', battery_drain_p=0.5, battery_drain_lam=2,
+                        robot = Robot(grid, (1, 1), orientation='n', battery_drain_p=1, battery_drain_lam=2,
                                     p_move=p_move_param)
 
                         # Keep track of the number of robot decision epochs:
@@ -159,7 +159,7 @@ try:
                     # plt.ylabel('time in seconds')
                     # plt.show()
 finally:
-    big_df.to_excel("policy_iteration_experiment.xlsx", index=False)
+    big_df.to_excel("policy_iteration_experiment_more_drain.xlsx", index=False)
 
     average_df = pd.DataFrame(
         columns=['Clean mean', 'Clean variance', 'Efficiency mean', 'Efficiency variance', 'Experiment'])
@@ -169,4 +169,4 @@ finally:
     average_df['Efficiency variance'] = efficiencies_variances
     average_df['Experiment'] = experiments
 
-    average_df.to_excel("Overview_policy_iteration_experiment_aggregated.xlsx", index=False)
+    average_df.to_excel("Overview_policy_iteration_experiment_aggregated_more_drain.xlsx", index=False)
