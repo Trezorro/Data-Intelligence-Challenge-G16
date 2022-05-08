@@ -25,16 +25,16 @@ def reward_function(square_label: Union[int, float]) -> int:
     }
     return REWARD_MAP[square_label]
 
-def robot_epoch(robot: Robot):
+def robot_epoch(robot: Robot, gam=0.9, min_delta=0.001):
     # figure out the policy
     # initialize values and policy
     values = np.zeros_like(robot.grid.cells)
     policy = np.ones((robot.grid.n_cols, robot.grid.n_rows),
                      dtype=int)
-    gamma = .9
+    gamma = gam
     DIRECTIONS = list(robot.dirs.keys())
     MOVES = list(robot.dirs.values())
-    MIN_DELTA = .001
+    MIN_DELTA = min_delta
     logger.info("Starting policy iteration...")
 
     # Policy iteration
