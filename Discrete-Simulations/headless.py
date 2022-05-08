@@ -72,7 +72,7 @@ for grid_file in GRID_FILES:
                             break
                         # Calculate some statistics:
                         clean = (grid.cells == 0).sum()
-                        dirty = (grid.cells >= 1).sum()
+                        dirty = (grid.cells == 1).sum() # edited to only include actual dirty cells
                         goal = (grid.cells == 2).sum()
                         # Calculate the cleaned percentage:
                         clean_percent = (clean / (dirty + clean)) * 100

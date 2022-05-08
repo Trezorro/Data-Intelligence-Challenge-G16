@@ -34,7 +34,7 @@ def draw_grid(grid):
                  -5: 'cell_robot_s', -6: 'cell_robot_w', 1: 'cell_dirty', 2: 'cell_goal', 3: 'cell_death'}
     # Setting statistics:
     clean = (grid.cells == 0).sum()
-    dirty = (grid.cells >= 1).sum()
+    dirty = (grid.cells == 1).sum() # edited to only include actual dirty cells
     goal = (grid.cells == 2).sum()
     if robots:  # If we have robots on the grid:
         efficiencies = [100 for i in range(len(robots))]
