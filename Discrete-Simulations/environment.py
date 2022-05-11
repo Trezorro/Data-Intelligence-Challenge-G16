@@ -22,7 +22,7 @@ class Robot:
         self.vision = vision  # Number of tiles in each of the 4 directions included in the robots vision.
 
         self.grid.cells[pos] = self.orients[self.orientation]
-        self.history = [[], []]  # historic x and y coordinates of the robot [[x1, x2,...], [y1, y2,...]]
+        self.history = [[pos[0]], [pos[1]]]  # historic x and y coordinates of the robot [[y1, y2,...], [x1, x2,...]]
         self.battery_lvl = 100  # Current battery level (in %)
         self.alive = True  # Indicator of whether the robot is alive
 
@@ -81,7 +81,7 @@ class Robot:
             boolean whether the robot has visited the coordinate.
         """
         for i in range(len(self.history[0])):
-            if self.history[0][i] == x and self.history[1][i] == y:
+            if self.history[0][i] == y and self.history[1][i] == x:
                 return True
 
         return False

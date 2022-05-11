@@ -125,11 +125,11 @@ def get_history():
         fig = Figure()
         ax = fig.subplots()
         for robot in robots:
-            ax.plot(np.array(robot.history[0]) + 0.5, -1 * np.array(robot.history[1]) - 0.5)
+            ax.plot(np.array(robot.history[1]) + 0.5, -1 * np.array(robot.history[0]) - 0.5)
             obstacles = [[], []]
-            for x in range(robot.grid.cells.shape[0]):
-                for y in range(robot.grid.cells.shape[1]):
-                    if (robot.grid.cells[x][y] == -2) or (robot.grid.cells[x][y] == -1):
+            for x in range(robot.grid.n_cols):
+                for y in range(robot.grid.n_rows):
+                    if (robot.grid.cells[y][x] == -2) or (robot.grid.cells[y][x] == -1):
                         obstacles[0].extend([x, x + 0.5, None])
                         obstacles[1].extend([-1 * y, -1 * y - 0.5, None])
             ax.plot(obstacles[0], obstacles[1])
