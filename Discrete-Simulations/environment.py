@@ -12,6 +12,7 @@ class Robot:
         self.orientation: str = orientation  # Current orientation of the robot, one of 'n', 'e', 's', 'w'.
         self.orients = {'w': -3, 's': -4, 'e': -5, 'n': -6}  # Grid associated numbers of various robot orientations
         self.dirs = {'n': (-1, 0), 'e': (0, 1), 's': (1, 0), 'w': (0, -1)}
+        self.dirs_inv = {(-1, 0): 'n', (0, 1): 'e', (1, 0): 's', (0, -1): 'w'}
 
         self.pos: Tuple[int, int] = pos  # Position of the robot on the grid, tuple (x,y)
         self.grid: Grid = grid  # Instance of Grid class, current playing field.
@@ -68,6 +69,22 @@ class Robot:
                     data[tuple(np.array(move) * (i + 1))] = self.grid.cells[to_check]
 
         return data
+
+    def has_visited(self, x: int, y: int) -> bool:
+        """ Function returns whether bot has visited a given coordinate combination (x, y)
+
+        Args:
+            x: the respective x coordinate.
+            y: the respective y coordinate.
+
+        Returns:
+            boolean whether the robot has visited the coordinate.
+        """
+        for i in range(len(self.history[0])):
+            if self.history[0][i] == x and self.history[1][i] == y:
+                return True
+
+        return False
 
     def move(self) -> bool:
         """ Function that moves the robot.
