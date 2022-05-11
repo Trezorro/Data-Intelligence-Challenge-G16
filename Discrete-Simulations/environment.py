@@ -43,9 +43,6 @@ class Robot:
             ( 0, 2):  0,                        (it is not possible to move here in one go, it is 2 squares away)
             (-2, 0):  0                         (it is not possible to move here in one go, it is 2 squares away)
             }
-
-            IMPORTANT NOTE: Death tiles are always returns as 'Dirty squares' with a value of 1. Hence, through this
-            function, you will not be able to see the death tiles.
         """
 
         # Obtain possible movement directions
@@ -66,11 +63,6 @@ class Robot:
                 if self.grid.cells.shape[0] > to_check[0] >= 0 and self.grid.cells.shape[1] > to_check[1] >= 0:
                     # Store move with corresponding grid value that would be obtained.
                     data[tuple(np.array(move) * (i + 1))] = self.grid.cells[to_check]
-
-                    # Show death tiles as dirty (fools the robot in thinking that the that square is good to go to)
-                    # TODO: so we don't want to use this function?
-                    if data[tuple(np.array(move) * (i + 1))] == 3:
-                        data[tuple(np.array(move) * (i + 1))] = 1
 
         return data
 
