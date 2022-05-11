@@ -4,24 +4,12 @@ from environment import Robot
 import logging
 
 # Logging settings
+from helpers.label_based_reward import get_reward
+
 logging.basicConfig(level=logging.INFO, force=True)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING) # change to INFO or DEBUG for more detailed output
-
-MATERIALS = {0: 'cell_clean', -1: 'cell_wall', -2: 'cell_obstacle', -3: 'cell_robot_n', -4: 'cell_robot_e',
-             -5: 'cell_robot_s', -6: 'cell_robot_w', 1: 'cell_dirty', 2: 'cell_goal', 3: 'cell_death'}
-
-
-REWARD_MAP = {
-    -3: -1,   #  A robot position (so clean)    
-    -2: -10,  #  Obstacle (gray)  
-    -1: -10,  #  Wall (red)       
-    0: -1,   #  Clean (green)    
-    1: 2,   #  Dirty (white)    
-    2: 1,   #  Goal (orange)    
-    3: -50,   #  Death (red cross)
-}
 
 def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
     """Policy iteration epoch."""
@@ -61,7 +49,7 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
                                 (0 <= target_state[1] < robot.grid.n_rows)):
                             continue
 
-                        reward = reward_function(robot.grid.cells.item(target_state))
+                        reward = get_reward(robot.grid.cells.item(target_state))
                         target_value = clipper(values[target_state]) # clipping is used to prevent overflow
                         coefficient = clipper((reward + gamma * target_value))
                         if move == policy_move:
@@ -102,7 +90,7 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
                         q_values.append(np.NINF)
                         continue
 
-                    reward = reward_function(robot.grid.cells[target_state])
+                    reward = get_reward(robot.grid.cells[target_state])
                     target_value = clipper(values[target_state])
                     
                     # Here we omit the summation over the possible s' states, given action a,
@@ -134,15 +122,6 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
 
     if not robot.move():
         logger.warning("We hit a wall! Dummy!")
-
-
-def reward_function(square_label: Union[int, float]) -> int:
-    square_label = int(square_label)
-
-    if "cell_robot" in MATERIALS[square_label]:  # if the square is one of the robots
-        square_label = -3
-
-    return REWARD_MAP[square_label]
 
 
 def clipper(value: float):
