@@ -13,6 +13,19 @@ REWARD_MAP = {
 
 
 def get_reward(square_label: int) -> int:
+    """ Function returns reward based on the label of a square.
+
+    Labels of the squares have to lie within a range of (-6, 3)
+
+    Returns:
+        Reward associated to the label, as defined in REWARD_MAP.
+
+    Raises:
+        ValueError: Parameter out of known range of labels.
+    """
+    if square_label < -6 or square_label > 3:
+        raise ValueError("label_based_reward.get_reward: parameter out of range with value ", square_label)
+
     if "cell_robot" in MATERIALS[square_label]:
         square_label = -3
 
