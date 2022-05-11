@@ -5,23 +5,27 @@ import random
 
 
 class Robot:
-    def __init__(self, grid, pos, orientation, p_move=0, battery_drain_p=0, battery_drain_lam=0, vision=1):
+    def __init__(self, grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=0, vision=1):
         if grid.cells[pos[0], pos[1]] != 1:
             raise ValueError
 
         self.orientation: str = orientation  # Current orientation of the robot, one of 'n', 'e', 's', 'w'.
-        self.pos: Tuple[int, int] = pos  # Position of the robot on the grid, tuple (x,y)
-        self.grid: Grid = grid  # Instance of Grid class, current playing field.
         self.orients = {'n': -3, 'e': -4, 's': -5, 'w': -6}  # Grid associated numbers of various robot orientations
         self.dirs = {'n': (0, -1), 'e': (1, 0), 's': (0, 1), 'w': (-1, 0)}
-        self.grid.cells[pos] = self.orients[self.orientation]
-        self.history = [[], []]  # historic x and y coordinates of the robot [[x1, x2,...], [y1, y2,...]]
+        self.dirs_inv = {(0, -1): 'n', (1, 0): 'e', (0, 1): 's', (-1, 0): 'w'}
+
+        self.pos: Tuple[int, int] = pos  # Position of the robot on the grid, tuple (x,y)
+        self.grid: Grid = grid  # Instance of Grid class, current playing field.
         self.p_move = p_move  # Probability of robot performing a random move instead of listening to a given command
         self.battery_drain_p = battery_drain_p  # Probability of a battery drain event happening at each move.
         self.battery_drain_lam = battery_drain_lam  # Amount (lambda) of battery drain (X) in X ~ Exponential(lambda)
+        self.vision = vision  # Number of tiles in each of the 4 directions included in the robots vision.
+
+        self.grid.cells[pos] = self.orients[self.orientation]
+        self.history = [[], []]  # historic x and y coordinates of the robot [[x1, x2,...], [y1, y2,...]]
         self.battery_lvl = 100  # Current battery level (in %)
         self.alive = True  # Indicator of whether the robot is alive
-        self.vision = vision  # Number of tiles in each of the 4 directions included in the robots vision.
+
         self.debug_values = np.zeros_like(grid.cells)  # Array to store debug values for each tile
         self.show_debug_values = False
 
@@ -160,6 +164,15 @@ class Robot:
             None
         """
 
+        # == Drain the battery
+        # Decide whether this move will drain the battery
+        do_battery_drain = np.random.binomial(1, self.battery_drain_p)
+
+        # If battery should be drained, drain the battery according to exponential drain
+        if do_battery_drain == 1 and self.battery_lvl > 0:
+            self.battery_lvl -= np.random.exponential(self.battery_drain_lam)
+
+        # == Rotate the bot
         # Get index of orientation from list ['n', 'e', 's', 'w']
         current = list(self.orients.keys()).index(self.orientation)
 
@@ -183,6 +196,15 @@ class Grid:
         # Building the boundary of the grid:
         self.cells[0, :] = self.cells[-1, :] = -1
         self.cells[:, 0] = self.cells[:, -1] = -1
+
+    def get_cell(self, x: int, y: int) -> int:
+        """ Returns value of cell in field
+
+        Args:
+            x: the x coordinate of the grid cell requested.
+            y: the y coordinate of the grid cell requested.
+        """
+        return self.cells[(x, y)]
 
     def put_obstacle(self, x0, x1, y0, y1, from_edge=1) -> None:
         """ Builds an obstacle on the grid starting on (x0,y0) and ending at (x1,y1)
