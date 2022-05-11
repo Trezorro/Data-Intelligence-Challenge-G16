@@ -10,9 +10,8 @@ class Robot:
             raise ValueError
 
         self.orientation: str = orientation  # Current orientation of the robot, one of 'n', 'e', 's', 'w'.
-        self.orients = {'n': -3, 'e': -4, 's': -5, 'w': -6}  # Grid associated numbers of various robot orientations
-        self.dirs = {'n': (0, -1), 'e': (1, 0), 's': (0, 1), 'w': (-1, 0)}
-        self.dirs_inv = {(0, -1): 'n', (1, 0): 'e', (0, 1): 's', (-1, 0): 'w'}
+        self.orients = {'w': -3, 's': -4, 'e': -5, 'n': -6}  # Grid associated numbers of various robot orientations
+        self.dirs = {'n': (-1, 0), 'e': (0, 1), 's': (1, 0), 'w': (0, -1)}
 
         self.pos: Tuple[int, int] = pos  # Position of the robot on the grid, tuple (x,y)
         self.grid: Grid = grid  # Instance of Grid class, current playing field.
