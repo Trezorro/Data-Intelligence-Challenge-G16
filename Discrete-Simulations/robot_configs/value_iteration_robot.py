@@ -17,8 +17,8 @@ def robot_epoch(robot: Robot, gamma=0.9, theta=0.01):
     V = np.zeros_like(robot.grid.cells)
     for x in range(robot.grid.n_cols):
         for y in range(robot.grid.n_rows):
-            if -3 < robot.grid.cells[x][y] < 0 or robot.grid.cells[x][y] == 3:
-                V[(x, y)] = -100
+            if -3 < robot.grid.cells[y][x] < 0 or robot.grid.cells[y][x] == 3:
+                V[(y, x)] = -100
 
     moves = list(robot.dirs.values())
     p_move = robot.p_move
@@ -32,17 +32,17 @@ def robot_epoch(robot: Robot, gamma=0.9, theta=0.01):
         for x in range(robot.grid.n_cols):
             for y in range(robot.grid.n_rows):
                 # If obstacle, skip iteration
-                if V[(x, y)] == -100:
+                if V[(y, x)] == -100:
                     continue
 
                 # Store current value
-                v = V[x, y]
+                v = V[y, x]
 
                 # Get rewards for each move
                 rewards = {}
                 for move in moves:
                     # Calculate the new position the robot would be in after the move
-                    new_pos = tuple(np.array([x, y]) + move)
+                    new_pos = tuple(np.array([y, x]) + move)
 
                     # If that would be an obstacle, the robot would not move
                     # This would in no way contribute to the goal, so it would not make sense to do this move.
@@ -69,10 +69,10 @@ def robot_epoch(robot: Robot, gamma=0.9, theta=0.01):
                     expected_values.append(expected_value)
 
                 # Store new state value
-                V_new[(x, y)] = max(expected_values)
+                V_new[(y, x)] = max(expected_values)
 
                 # Store new delta
-                DELTA = max(DELTA, abs(v - V_new[(x, y)]))
+                DELTA = max(DELTA, abs(v - V_new[(y, x)]))
 
         V = V_new
 

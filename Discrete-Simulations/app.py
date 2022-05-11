@@ -30,8 +30,8 @@ PATH = os.getcwd()
 def draw_grid(grid):
     """'Helper function for creating a JSON payload which will be displayed in the browser."""
     global robots
-    materials = {0: 'cell_clean', -1: 'cell_wall', -2: 'cell_obstacle', -3: 'cell_robot_n', -4: 'cell_robot_e',
-                 -5: 'cell_robot_s', -6: 'cell_robot_w', 1: 'cell_dirty', 2: 'cell_goal', 3: 'cell_death'}
+    materials = {0: 'cell_clean', -1: 'cell_wall', -2: 'cell_obstacle', -3: 'cell_robot_e', -4: 'cell_robot_s',
+                 -5: 'cell_robot_w', -6: 'cell_robot_n', 1: 'cell_dirty', 2: 'cell_goal', 3: 'cell_death'}
     # Setting statistics:
     clean = (grid.cells == 0).sum()
     dirty = (grid.cells == 1).sum() # edited to only include actual dirty cells
@@ -58,14 +58,14 @@ def draw_grid(grid):
             if robot.show_debug_values: 
                 debug_values = robot.debug_values # show this robot's values in the grid
         return {'grid': render_template('grid.html', height=30, width=30, n_rows=grid.n_rows, n_cols=grid.n_cols,
-                                        room_config=grid.cells, values=debug_values,
+                                        room_config=grid.cells.T, values=debug_values,
                                         materials=materials), 'clean': round((clean / (dirty + clean)) * 100, 2),
                 'goal': float(goal), 'efficiency': ','.join([str(i) for i in efficiencies]),
                 'battery': ','.join([str(i) for i in batteries]),
                 'alive': alives}
     else:  # If we have an empty grid with no robots:
         return {'grid': render_template('grid.html', height=30, width=30, n_rows=grid.n_rows, n_cols=grid.n_cols,
-                                        room_config=grid.cells,
+                                        room_config=grid.cells.T,
                                         materials=materials), 'clean': round((clean / (dirty + clean)) * 100, 2),
                 'goal': float(goal), 'efficiency': ',', 'battery': ',',
                 'alive': ','}
@@ -156,6 +156,7 @@ def handle_browser_new_grid(json):
     occupied = False
     with open(f'{PATH}/grid_configs/{json["data"]}', 'rb') as f:
         grid = pickle.load(f)
+    # grid.cells = grid.cells.T
     emit('new_grid', draw_grid(grid))
 
 
@@ -187,7 +188,7 @@ def handle_browser_spawn_robot(json):
     global robots
     global grid
     try:
-        robots = [Robot(grid, (int(x_spawn[i]), int(y_spawn[i])), orientation=orient, battery_drain_p=p_drain,
+        robots = [Robot(grid, (int(y_spawn[i]), int(x_spawn[i])), orientation=orient, battery_drain_p=p_drain,
                         battery_drain_lam=lam_drain, p_move=p_determ, vision=vision) for i in range(n_robots)]
     except IndexError:
         emit('new_grid', {'grid': '<h1>Invalid robot coordinates entered!</h1>'})
