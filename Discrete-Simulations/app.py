@@ -105,11 +105,11 @@ def build_grid():
     to_save = False if request.args.get('save') == 'false' else True
     name = str(request.args.get('name'))
     grid = Grid(n_cols, n_rows)
-    for (x, y) in obstacles:
+    for (y, x) in obstacles:
         grid.put_singular_obstacle(x, y)
-    for (x, y) in goals:
+    for (y, x) in goals:
         grid.put_singular_goal(x, y)
-    for (x, y) in deaths:
+    for (y, x) in deaths:
         grid.put_singular_death(x, y)
     if to_save and len(name) > 0:
         pickle.dump(grid, open(f'{PATH}/grid_configs/{name}.grid', 'wb'))
