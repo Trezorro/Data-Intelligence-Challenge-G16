@@ -156,7 +156,8 @@ def handle_browser_new_grid(json):
     occupied = False
     with open(f'{PATH}/grid_configs/{json["data"]}', 'rb') as f:
         grid = pickle.load(f)
-    # grid.cells = grid.cells.T
+    if not hasattr(grid, 'transposed_version'):
+        grid.cells = grid.cells.T
     emit('new_grid', draw_grid(grid))
 
 

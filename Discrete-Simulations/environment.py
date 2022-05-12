@@ -212,6 +212,7 @@ class Grid:
         # Building the boundary of the grid:
         self.cells[0, :] = self.cells[-1, :] = -1
         self.cells[:, 0] = self.cells[:, -1] = -1
+        self.transposed_version = True
 
     def get_cell(self, x: int, y: int) -> int:
         """ Returns value of cell in field
