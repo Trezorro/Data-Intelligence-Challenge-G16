@@ -1,7 +1,7 @@
 {% macro tile(x, y, room_config, values) -%}
-    <small class="{{ materials[room_config[x][y]] }}" id="({{ x }},{{ y }})" onclick="tile_click('{{ x }}', '{{ y }}')">
+    <small class="{{ materials[room_config[y][x]] }}" id="({{ y }},{{ x }})" onclick="tile_click('{{ y }}', '{{ x }}')">
         {% if values is defined and values is not none %}
-        {{ "%0.2f" | format(values[x][y]) }}
+        {{ "%0.2f" | format(values[y][x]) }}
         {% endif %}
 
     </small>
@@ -15,4 +15,3 @@
         {% endfor %}
     {% endfor %}
 </div>
-
