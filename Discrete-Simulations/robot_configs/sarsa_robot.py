@@ -1,5 +1,9 @@
+from typing import Tuple, Dict
+
 from ..environment import Robot, Grid
 import numpy as np
+import copy
+
 
 
 class SarsaState:
@@ -52,16 +56,68 @@ class Sarsa(Robot):
         self.max_steps_per_episode = max_steps_per_episode
         self.number_of_episodes = number_of_episodes
 
-        self.Q = np.zeros((grid.n_rows, grid.n_cols, 2**4))
+        self.starting_pos = copy.deepcopy(pos)
+        self.starting_grid = copy.deepcopy(grid)
+        self.starting_orientation = copy.copy(orientation)
+
+        self.Q = np.zeros((grid.n_rows, grid.n_cols, 2**4, 4))
+
+    def reset_env(self):
+        self.grid = copy.deepcopy(self.starting_grid)
+        self.pos = copy.deepcopy(self.starting_pos)
+        self.orientation = copy.copy(self.starting_orientation)
+
+        self.history = [[self.pos[0]], [self.pos[1]]]
+        self.alive = True
+        self.battery_lvl = 100
 
     def do_move(self):
         pass
 
+    def get_vision(self) -> Dict:
+        d = {'n': False, 'e': False, 's': False, 'w': False}
+
+        for dir in ['n', 'e', 's', 'w']:
+            pos = tuple(np.array(self.pos) + np.array(self.dirs[dir]))
+            val = self.grid.get_c(pos)
+            if -2 <= val <= 0:
+                d[dir] = True
+
+        return d
+
     def train(self):
+        for episode in range(self.number_of_episodes):
+            t = 0
+            self.reset_env()
+
+            state: SarsaState = SarsaState(self.pos[1], self.pos[0], self.get_vision())
+            action = self.choose_action(state)
+
+            while t < self.max_steps_per_episode:
+                new_state, reward, done = self.step(action)
+
+                new_action = self.choose_action(new_state)
+
+                self.update(state, action, reward, new_state, new_action)
+
+                state = new_state.make_copy()
+                action = tuple(*new_action)
+
+                t += 1
+
+                if done:
+                    break
+
+    def step(self, action) -> Tuple[SarsaState, float, bool]:
         pass
 
     def choose_action(self, current_state):
-        pass
+        if np.random.uniform(0, 1) < self.epsilon:
+            action = self.dirs[np.random.choice(['n', 'e', 's', 'w'])]
+        else:
+            pass
+
+        return action
 
     def update(self, state_1, action_1, reward, state_2, action_2):
         x1, y1, z1, i1 = state_1.get_index(action_1)
