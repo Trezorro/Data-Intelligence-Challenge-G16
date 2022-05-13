@@ -49,7 +49,7 @@ class SarsaState:
 class Sarsa(Robot):
 
     def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=0, vision=1,
-                 epsilon=0.5, gamma=0.9, lr=0.2, max_steps_per_episode=100, number_of_episodes=50):
+                 epsilon=0.5, gamma=0.9, lr=0.2, max_steps_per_episode=100, number_of_episodes=5000):
 
         super().__init__(grid, pos, orientation, p_move, battery_drain_p, battery_drain_lam, vision)
 
@@ -75,19 +75,6 @@ class Sarsa(Robot):
         self.history = [[self.pos[0]], [self.pos[1]]]
         self.alive = True
         self.battery_lvl = 100
-
-    def do_move(self):
-        directions = ["n", "e", "s", "w"]
-        current_state = SarsaState(self.pos[1], self.pos[0], self.get_vision())
-        x, y, z, _ = current_state.get_index(None)
-        action_idx = np.argmax(self.Q[(x, y, z)])
-        action = directions[action_idx]
-
-        # Rotate
-        while action != self.orientation:
-            self.rotate('r')
-
-        self.move()
 
     def get_vision(self) -> Dict:
         d = {'n': False, 'e': False, 's': False, 'w': False}
@@ -117,13 +104,15 @@ class Sarsa(Robot):
 
                 self.update(state, action, reward, new_state, new_action)
 
-                state = new_state.make_copy()
-                action = tuple(*new_action)
+                state = new_state.make_copy()  # copy
+                action = str(new_action)  # copy
 
                 t += 1
 
                 if done:
                     break
+
+        self.reset_env()
 
         self.is_trained = True
 
@@ -157,12 +146,24 @@ class Sarsa(Robot):
         x1, y1, z1, i1 = state_1.get_index(action_1)
         x2, y2, z2, i2 = state_2.get_index(action_2)
 
-        predict = self.Q[x1, y1, z1, i1]
-        target = reward + self.gamma * self.Q[x2, y2, z2, i2]
+        predict = self.Q[y1, x1, z1, i1]
+        target = reward + self.gamma * self.Q[y2, x2, z2, i2]
 
         update_coef = self.lr * (target - predict)
-        self.Q[x1, y1, z1, i1] = self.Q[x1, y1, z1, i1] + update_coef
+        self.Q[y1, x1, z1, i1] = self.Q[y1, x1, z1, i1] + update_coef
 
 
 def robot_epoch(robot: Sarsa):
-    robot.do_move()
+    logger.info("Do move")
+
+    directions = ["n", "e", "s", "w"]
+    current_state = SarsaState(robot.pos[1], robot.pos[0], robot.get_vision())
+    x, y, z, _ = current_state.get_index(None)
+    action_idx = np.argmax(robot.Q[(x, y, z)])
+    action = directions[action_idx]
+
+    # Rotate
+    while action != robot.orientation:
+        robot.rotate('r')
+
+    robot.move()

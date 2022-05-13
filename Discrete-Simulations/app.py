@@ -13,7 +13,7 @@ import pickle
 import os
 import ast
 from matplotlib.figure import Figure
-from environment import Grid
+from environment import Grid, Robot
 
 from robot_configs.sarsa_robot import Sarsa as Robot
 
