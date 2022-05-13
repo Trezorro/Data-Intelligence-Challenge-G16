@@ -3,7 +3,7 @@ import numpy as np
 
 
 class SarsaState:
-    def __init__(self, pos_x, pos_y, vision: dict):
+    def __init__(self, pos_x: int, pos_y: int, vision: dict):
         """State for Sarsa Lookup.
 
         Vision dict should have keys "n", "e", "w", "s" for which the values
@@ -30,8 +30,10 @@ class SarsaState:
             + self.vision["w"] * 8
         i = action_map[action]
 
-
         return x, y, z, i
+
+    def make_copy(self):
+        return SarsaState(self.pos_x, self.pos_y, self.vision)
 
 
 class Sarsa(Robot):
