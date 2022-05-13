@@ -13,7 +13,11 @@ import pickle
 import os
 import ast
 from matplotlib.figure import Figure
-from environment import Grid, Robot
+from environment import Grid
+
+from robot_configs.sarsa_robot import Sarsa as Robot
+
+
 
 # Import all robot algorithms present in the robot_configs folder. DO NOT DELETE.
 from robot_configs import *

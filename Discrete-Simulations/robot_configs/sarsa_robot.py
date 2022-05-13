@@ -1,10 +1,13 @@
+import logging
 from typing import Tuple, Dict
+from tqdm import tqdm
 
 from environment import Robot, Grid
 from helpers.reward_functions import get_label_and_battery_based_reward
 import numpy as np
 import copy
 
+logger = logging.getLogger(__name__)
 
 class SarsaState:
     def __init__(self, pos_x: int, pos_y: int, vision: dict):
@@ -98,7 +101,9 @@ class Sarsa(Robot):
         return d
 
     def train(self):
-        for episode in range(self.number_of_episodes):
+        logger.info("Sarsa.train: Started training robot for " + str(self.number_of_episodes) + " iterations.")
+
+        for episode in tqdm(range(self.number_of_episodes)):
             t = 0
             self.reset_env()
 
