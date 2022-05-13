@@ -1,6 +1,6 @@
 from typing import Tuple, Dict
 
-from ..environment import Robot, Grid
+from environment import Robot, Grid
 from helpers.reward_functions import get_label_and_battery_based_reward
 import numpy as np
 import copy
@@ -62,6 +62,8 @@ class Sarsa(Robot):
 
         self.Q = np.zeros((grid.n_rows, grid.n_cols, 2**4, 4))
 
+        self.is_trained = False
+
     def reset_env(self):
         self.grid = copy.deepcopy(self.starting_grid)
         self.pos = copy.deepcopy(self.starting_pos)
@@ -117,6 +119,8 @@ class Sarsa(Robot):
 
                 if done:
                     break
+
+        self.is_trained = True
 
     def step(self, action: str) -> Tuple[SarsaState, float, bool]:
         # Rotate

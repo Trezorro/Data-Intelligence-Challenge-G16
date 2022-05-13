@@ -206,6 +206,9 @@ def handle_browser_update(json):
             for robot in robots:
                 # Don't update dead robots:
                 if robot.alive:
+                    if hasattr(robot, 'is_trained') and not robot.is_trained:
+                        robot.train()
+
                     # Call the robot epoch method of the selected robot config file:
                     globals()[robot_alg].robot_epoch(robot)
         except KeyError as e:

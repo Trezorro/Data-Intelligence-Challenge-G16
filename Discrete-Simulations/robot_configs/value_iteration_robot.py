@@ -2,7 +2,7 @@ from environment import Robot
 import numpy as np
 import random
 
-from helpers.label_based_reward import get_reward
+from helpers.reward_functions import get_label_based_reward
 
 
 def robot_epoch(robot: Robot, gamma=0.9, theta=0.01):
@@ -51,7 +51,7 @@ def robot_epoch(robot: Robot, gamma=0.9, theta=0.01):
                         continue
 
                     # Get the reward of the new square.
-                    reward = get_reward(robot.grid.cells[new_pos])
+                    reward = get_label_based_reward(robot.grid.cells[new_pos])
                     rewards[move] = reward + GAMMA * V[new_pos]
 
                 # Calculate the number of viable moves for the robot
