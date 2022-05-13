@@ -48,8 +48,8 @@ class SarsaState:
 
 class Sarsa(Robot):
 
-    def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=0, vision=1,
-                 epsilon=0.5, gamma=0.9, lr=0.2, max_steps_per_episode=100, number_of_episodes=5000):
+    def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=2, vision=1,
+                 epsilon=0.9, gamma=0.95, lr=0.85, max_steps_per_episode=100, number_of_episodes=5000):
 
         super().__init__(grid, pos, orientation, p_move, battery_drain_p, battery_drain_lam, vision)
 
