@@ -50,6 +50,6 @@ def get_label_and_battery_based_reward(square_label: int, battery_drained: bool)
     reward = REWARD_MAP[square_label]
 
     if battery_drained:
-        reward -= 0.5
+        reward -= 0.1
 
     return REWARD_MAP[square_label]
