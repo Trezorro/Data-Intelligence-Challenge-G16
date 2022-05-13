@@ -181,13 +181,13 @@ class Robot:
             None
         """
 
-        # == Drain the battery
-        # Decide whether this move will drain the battery
-        do_battery_drain = np.random.binomial(1, self.battery_drain_p)
-
-        # If battery should be drained, drain the battery according to exponential drain
-        if do_battery_drain == 1 and self.battery_lvl > 0:
-            self.battery_lvl -= np.random.exponential(self.battery_drain_lam)
+        # # == Drain the battery
+        # # Decide whether this move will drain the battery
+        # do_battery_drain = np.random.binomial(1, self.battery_drain_p)
+        #
+        # # If battery should be drained, drain the battery according to exponential drain
+        # if do_battery_drain == 1 and self.battery_lvl > 0:
+        #     self.battery_lvl -= np.random.exponential(self.battery_drain_lam)
 
         # == Rotate the bot
         # Get index of orientation from list ['n', 'e', 's', 'w']

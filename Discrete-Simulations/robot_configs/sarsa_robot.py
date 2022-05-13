@@ -32,15 +32,15 @@ class SarsaState:
                       "e": 1,
                       "s": 2,
                       "w": 3}
-        x = self.pos_x
         y = self.pos_y
+        x = self.pos_x
         z = self.vision["n"] * 1 \
             + self.vision["e"] * 2 \
             + self.vision["s"] * 4 \
             + self.vision["w"] * 8
         i = action_map[action] if action is not None else None
 
-        return x, y, z, i
+        return y, x, z, i
 
     def make_copy(self):
         return SarsaState(self.pos_x, self.pos_y, self.vision)
@@ -92,9 +92,12 @@ class Sarsa(Robot):
     def train(self):
         logger.info("Sarsa.train: Started training robot for " + str(self.number_of_episodes) + " iterations.")
 
-        for episode in tqdm(range(self.number_of_episodes)):
+        for iter in tqdm(range(self.number_of_episodes)):
             t = 0
             self.reset_env()
+
+            if iter % 5000 == 0:
+                logger.info(iter) # For debugging
 
             state: SarsaState = SarsaState(self.pos[1], self.pos[0], self.get_vision())
             action = self.choose_action(state)
@@ -123,9 +126,11 @@ class Sarsa(Robot):
         while action != self.orientation:
             self.rotate('r')
 
+        label_square_in_front = self.grid.get_c(tuple(np.array(self.pos) + np.array(self.dirs[action])))
+
         _, drained_battery = self.move()
 
-        reward = get_label_and_battery_based_reward(self.grid.get_c(self.pos), drained_battery)
+        reward = get_label_and_battery_based_reward(label_square_in_front, drained_battery)
 
         new_state = SarsaState(self.pos[1], self.pos[0], self.get_vision())
 
@@ -138,21 +143,21 @@ class Sarsa(Robot):
         if np.random.uniform(0, 1) < self.epsilon:
             action = np.random.choice(directions)
         else:
-            x, y, z, _ = current_state.get_index(None)
-            action_idx = np.argmax(self.Q[(x, y, z)])
+            y, x, z, _ = current_state.get_index(None)
+            action_idx = np.argmax(self.Q[(y, x, z)])
             action = directions[action_idx]
 
         return action
 
     def update(self, state_1, action_1, reward, state_2, action_2):
-        x1, y1, z1, i1 = state_1.get_index(action_1)
-        x2, y2, z2, i2 = state_2.get_index(action_2)
+        index_1 = state_1.get_index(action_1)
+        index_2 = state_2.get_index(action_2)
 
-        predict = self.Q[y1, x1, z1, i1]
-        target = reward + self.gamma * self.Q[y2, x2, z2, i2]
+        predict = self.Q[index_1]
+        target = reward + self.gamma * self.Q[index_2]
 
         update_coef = self.lr * (target - predict)
-        self.Q[y1, x1, z1, i1] = self.Q[y1, x1, z1, i1] + update_coef
+        self.Q[index_1] = self.Q[index_1] + update_coef
 
 
 def robot_epoch(robot: Sarsa):
@@ -160,8 +165,8 @@ def robot_epoch(robot: Sarsa):
 
     directions = ["n", "e", "s", "w"]
     current_state = SarsaState(robot.pos[1], robot.pos[0], robot.get_vision())
-    x, y, z, _ = current_state.get_index(None)
-    action_idx = np.argmax(robot.Q[(x, y, z)])
+    y, x, z, _ = current_state.get_index(None)
+    action_idx = np.argmax(robot.Q[(y, x, z)])
     action = directions[action_idx]
 
     # Rotate
