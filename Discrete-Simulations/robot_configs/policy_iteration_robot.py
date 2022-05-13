@@ -16,7 +16,7 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
     values = np.zeros_like(robot.grid.cells)
     robot.debug_values = np.zeros_like(robot.grid.cells) # these are visualized in the GUI
     robot.show_debug_values = True
-    policy = np.ones((robot.grid.n_cols, robot.grid.n_rows), dtype=int)
+    policy = np.ones_like(robot.grid.cells, dtype=int)
     DIRECTIONS = list(robot.dirs.keys())
     MOVES = list(robot.dirs.values())
 
@@ -34,19 +34,19 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
             # iterate over states:
             for col in range(robot.grid.n_cols):
                 for row in range(robot.grid.n_rows):
-                    position = (col, row)
-                    old_value = values[col, row]
+                    position = (row, col)
+                    old_value = values[position]
 
                     value = 0
-                    policy_move = MOVES[policy[col, row]]
+                    policy_move = MOVES[policy[position]]
 
                     for move in MOVES:
 
                         # Get square that bot would land on after move.
                         target_state = tuple(np.array(position) + np.array(move))
 
-                        if not ((0 <= target_state[0] < robot.grid.n_cols) and
-                                (0 <= target_state[1] < robot.grid.n_rows)):
+                        if not ((0 <= target_state[0] < robot.grid.n_rows) and
+                                (0 <= target_state[1] < robot.grid.n_cols)):
                             continue
 
                         reward = get_reward(robot.grid.cells.item(target_state))
@@ -61,7 +61,7 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
                             value += robot.p_move * coefficient
                             value = clipper(value)
 
-                    values[col, row] = value  # update value
+                    values[position] = value  # update value
                     delta = max(delta, abs(old_value - value))
 
             # Break if converged
@@ -77,15 +77,15 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
         changed_policies = 0  # tracked to detect convergence
         for col in range(robot.grid.n_cols):
             for row in range(robot.grid.n_rows):
-                position = (col, row) # the state we evaluate now
+                position = (row, col) # the state we evaluate now
                 old_policy = policy[position]
                 q_values = []
                 for move in MOVES:
                     # Get square that bot would land on after move.
                     target_state = tuple(np.array(position) + np.array(move))
 
-                    if not ((0 <= target_state[0] < robot.grid.n_cols) and
-                            (0 <= target_state[1] < robot.grid.n_rows)):
+                    if not ((0 <= target_state[0] < robot.grid.n_rows) and
+                            (0 <= target_state[1] < robot.grid.n_cols)):
                         # If this move would take the bot off the grid, skip it.
                         q_values.append(np.NINF)
                         continue
@@ -99,7 +99,7 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
                     # can forget about the influence of the environment randomness.
                     q_value = reward + gamma * target_value
                     q_values.append(q_value)
-                    robot.debug_values[col, row] = q_value  # visualized in the GUI
+                    robot.debug_values[position] = q_value  # visualized in the GUI
                 new_policy = np.argmax(q_values)
                 policy[position] = new_policy
 

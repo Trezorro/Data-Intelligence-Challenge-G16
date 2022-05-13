@@ -30,8 +30,8 @@ PATH = os.getcwd()
 def draw_grid(grid):
     """'Helper function for creating a JSON payload which will be displayed in the browser."""
     global robots
-    materials = {0: 'cell_clean', -1: 'cell_wall', -2: 'cell_obstacle', -3: 'cell_robot_n', -4: 'cell_robot_e',
-                 -5: 'cell_robot_s', -6: 'cell_robot_w', 1: 'cell_dirty', 2: 'cell_goal', 3: 'cell_death'}
+    materials = {0: 'cell_clean', -1: 'cell_wall', -2: 'cell_obstacle', -3: 'cell_robot_e', -4: 'cell_robot_s',
+                 -5: 'cell_robot_w', -6: 'cell_robot_n', 1: 'cell_dirty', 2: 'cell_goal', 3: 'cell_death'}
     # Setting statistics:
     clean = (grid.cells == 0).sum()
     dirty = (grid.cells == 1).sum() # edited to only include actual dirty cells
@@ -105,11 +105,11 @@ def build_grid():
     to_save = False if request.args.get('save') == 'false' else True
     name = str(request.args.get('name'))
     grid = Grid(n_cols, n_rows)
-    for (x, y) in obstacles:
+    for (y, x) in obstacles:
         grid.put_singular_obstacle(x, y)
-    for (x, y) in goals:
+    for (y, x) in goals:
         grid.put_singular_goal(x, y)
-    for (x, y) in deaths:
+    for (y, x) in deaths:
         grid.put_singular_death(x, y)
     if to_save and len(name) > 0:
         pickle.dump(grid, open(f'{PATH}/grid_configs/{name}.grid', 'wb'))
@@ -125,11 +125,11 @@ def get_history():
         fig = Figure()
         ax = fig.subplots()
         for robot in robots:
-            ax.plot(np.array(robot.history[0]) + 0.5, -1 * np.array(robot.history[1]) - 0.5)
+            ax.plot(np.array(robot.history[1]) + 0.5, -1 * np.array(robot.history[0]) - 0.5)
             obstacles = [[], []]
-            for x in range(robot.grid.cells.shape[0]):
-                for y in range(robot.grid.cells.shape[1]):
-                    if (robot.grid.cells[x][y] == -2) or (robot.grid.cells[x][y] == -1):
+            for x in range(robot.grid.n_cols):
+                for y in range(robot.grid.n_rows):
+                    if (robot.grid.cells[y][x] == -2) or (robot.grid.cells[y][x] == -1):
                         obstacles[0].extend([x, x + 0.5, None])
                         obstacles[1].extend([-1 * y, -1 * y - 0.5, None])
             ax.plot(obstacles[0], obstacles[1])
@@ -156,6 +156,8 @@ def handle_browser_new_grid(json):
     occupied = False
     with open(f'{PATH}/grid_configs/{json["data"]}', 'rb') as f:
         grid = pickle.load(f)
+    if not hasattr(grid, 'transposed_version'):
+        grid.cells = grid.cells.T
     emit('new_grid', draw_grid(grid))
 
 
@@ -187,7 +189,7 @@ def handle_browser_spawn_robot(json):
     global robots
     global grid
     try:
-        robots = [Robot(grid, (int(x_spawn[i]), int(y_spawn[i])), orientation=orient, battery_drain_p=p_drain,
+        robots = [Robot(grid, (int(y_spawn[i]), int(x_spawn[i])), orientation=orient, battery_drain_p=p_drain,
                         battery_drain_lam=lam_drain, p_move=p_determ, vision=vision) for i in range(n_robots)]
     except IndexError:
         emit('new_grid', {'grid': '<h1>Invalid robot coordinates entered!</h1>'})

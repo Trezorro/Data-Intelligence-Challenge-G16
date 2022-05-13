@@ -10,11 +10,11 @@ class Robot:
             raise ValueError
 
         self.orientation: str = orientation  # Current orientation of the robot, one of 'n', 'e', 's', 'w'.
-        self.orients = {'n': -3, 'e': -4, 's': -5, 'w': -6}  # Grid associated numbers of various robot orientations
-        self.dirs = {'n': (0, -1), 'e': (1, 0), 's': (0, 1), 'w': (-1, 0)}
-        self.dirs_inv = {(0, -1): 'n', (1, 0): 'e', (0, 1): 's', (-1, 0): 'w'}
+        self.orients = {'e': -3, 's': -4, 'w': -5, 'n': -6}  # Grid associated numbers of various robot orientations
+        self.dirs = {'e': (0, 1), 's': (1, 0), 'w': (0, -1), 'n': (-1, 0)}
+        self.dirs_inv = {(0, 1): 'e', (1, 0): 's', (0, -1): 'w', (-1, 0): 'n'}
 
-        self.pos: Tuple[int, int] = pos  # Position of the robot on the grid, tuple (x,y)
+        self.pos: Tuple[int, int] = pos  # Position of the robot on the grid, tuple (y, x)
         self.grid: Grid = grid  # Instance of Grid class, current playing field.
         self.p_move = p_move  # Probability of robot performing a random move instead of listening to a given command
         self.battery_drain_p = battery_drain_p  # Probability of a battery drain event happening at each move.
@@ -22,7 +22,7 @@ class Robot:
         self.vision = vision  # Number of tiles in each of the 4 directions included in the robots vision.
 
         self.grid.cells[pos] = self.orients[self.orientation]
-        self.history = [[], []]  # historic x and y coordinates of the robot [[x1, x2,...], [y1, y2,...]]
+        self.history = [[pos[0]], [pos[1]]]  # historic x and y coordinates of the robot [[y1, y2,...], [x1, x2,...]]
         self.battery_lvl = 100  # Current battery level (in %)
         self.alive = True  # Indicator of whether the robot is alive
 
@@ -81,7 +81,7 @@ class Robot:
             boolean whether the robot has visited the coordinate.
         """
         for i in range(len(self.history[0])):
-            if self.history[0][i] == x and self.history[1][i] == y:
+            if self.history[0][i] == y and self.history[1][i] == x:
                 return True
 
         return False
@@ -207,11 +207,12 @@ class Grid:
         self.n_rows = n_rows
         self.n_cols = n_cols
 
-        self.cells = np.ones((n_cols, n_rows))
+        self.cells = np.ones((n_rows, n_cols))
 
         # Building the boundary of the grid:
         self.cells[0, :] = self.cells[-1, :] = -1
         self.cells[:, 0] = self.cells[:, -1] = -1
+        self.transposed_version = True
 
     def get_cell(self, x: int, y: int) -> int:
         """ Returns value of cell in field
@@ -220,27 +221,27 @@ class Grid:
             x: the x coordinate of the grid cell requested.
             y: the y coordinate of the grid cell requested.
         """
-        return self.cells[(x, y)]
+        return self.cells[y][x]
 
     def put_obstacle(self, x0, x1, y0, y1, from_edge=1) -> None:
         """ Builds an obstacle on the grid starting on (x0,y0) and ending at (x1,y1)
         """
         self.cells[
-                max(x0, from_edge): min(x1 + 1, self.n_cols - from_edge),
-                max(y0, from_edge): min(y1 + 1, self.n_rows - from_edge)
+                max(y0, from_edge): min(y1 + 1, self.n_rows - from_edge),
+                max(x0, from_edge): min(x1 + 1, self.n_cols - from_edge)
             ] = -2
 
     def put_singular_obstacle(self, x, y) -> None:
         """ Puts obstacle tile at provided (x,y) """
-        self.cells[x][y] = -2
+        self.cells[y][x] = -2
 
     def put_singular_goal(self, x, y) -> None:
         """ Puts a goal tile at provided (x,y) """
-        self.cells[x][y] = 2
+        self.cells[y][x] = 2
 
     def put_singular_death(self, x, y) -> None:
         """ Puts death tile at provided (x,y) """
-        self.cells[x][y] = 3
+        self.cells[y][x] = 3
 
 
 def generate_grid(n_cols, n_rows):
