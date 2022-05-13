@@ -263,7 +263,7 @@ class Grid:
         Returns:
             Whether there are dirty squares left in the grid.
         """
-        return 1 in self.cells
+        return not (1 in self.cells)
 
     def put_obstacle(self, x0, x1, y0, y1, from_edge=1) -> None:
         """ Builds an obstacle on the grid starting on (x0,y0) and ending at (x1,y1)

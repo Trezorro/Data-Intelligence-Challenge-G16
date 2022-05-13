@@ -145,7 +145,7 @@ class Sarsa(Robot):
     def choose_action(self, current_state) -> str:
         directions = ["n", "e", "s", "w"]
         if np.random.uniform(0, 1) < self.epsilon:
-            action = self.dirs[np.random.choice(directions)]
+            action = np.random.choice(directions)
         else:
             x, y, z, _ = current_state.get_index(None)
             action_idx = np.argmax(self.Q[(x, y, z)])
