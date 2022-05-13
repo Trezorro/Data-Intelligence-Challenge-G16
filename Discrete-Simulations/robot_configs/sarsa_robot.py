@@ -7,7 +7,8 @@ class SarsaState:
         """State for Sarsa Lookup.
 
         Vision dict should have keys "n", "e", "w", "s" for which the values
-        are True if clean and False if dirty.
+        are True if clean and False if dirty. Walls and obstacles are always
+        True.
         """
         self.pos_x = pos_x
         self.pos_y = pos_y
@@ -16,7 +17,9 @@ class SarsaState:
     def get_index(self, action):
         """Get index of Q table for Sarsa given for this state.
 
-        The Q table has an
+        The Q table has 4 dimensions. The first 2 are the physical grid, the 3rd
+        dimension is the combination of all possible vision states (len = 16),
+        and the 4th dimension is the possible actions.
         """
         action_map = {"n": 0,
                       "e": 1,
@@ -61,7 +64,14 @@ class Sarsa(Robot):
         pass
 
     def update(self, state_1, action_1, reward, state_2, action_2):
-        predict =
+        x1, y1, z1, i1 = state_1.get_index(action_1)
+        x2, y2, z2, i2 = state_2.get_index(action_2)
+
+        predict = self.Q[x1, y1, z1, i1]
+        target = reward + self.gamma * self.Q[x2, y2, z2, i2]
+
+        update_coef = self.lr * (target - predict)
+        self.Q[x1, y1, z1, i1] = self.Q[x1, y1, z1, i1] + update_coef
 
 
 def robot_epoch(robot: Sarsa):
