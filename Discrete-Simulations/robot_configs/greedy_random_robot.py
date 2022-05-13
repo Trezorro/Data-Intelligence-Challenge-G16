@@ -30,7 +30,7 @@ def robot_epoch(robot: Robot):
     # If we cannot reach a dirty tile:
     else:
         # If we can no longer move:
-        while not robot.move():
+        while not robot.move()[0]:
             # Check if we died to avoid endless looping:
             if not robot.alive:
                 break

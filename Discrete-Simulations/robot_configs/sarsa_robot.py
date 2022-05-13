@@ -1,9 +1,9 @@
 from typing import Tuple, Dict
 
 from ..environment import Robot, Grid
+from helpers.reward_functions import get_label_and_battery_based_reward
 import numpy as np
 import copy
-
 
 
 class SarsaState:
@@ -35,7 +35,7 @@ class SarsaState:
             + self.vision["e"] * 2 \
             + self.vision["s"] * 4 \
             + self.vision["w"] * 8
-        i = action_map[action]
+        i = action_map[action] if action is not None else None
 
         return x, y, z, i
 
@@ -72,7 +72,17 @@ class Sarsa(Robot):
         self.battery_lvl = 100
 
     def do_move(self):
-        pass
+        directions = ["n", "e", "s", "w"]
+        current_state = SarsaState(self.pos[1], self.pos[0], self.get_vision())
+        x, y, z, _ = current_state.get_index(None)
+        action_idx = np.argmax(self.Q[(x, y, z)])
+        action = directions[action_idx]
+
+        # Rotate
+        while action != self.orientation:
+            self.rotate('r')
+
+        self.move()
 
     def get_vision(self) -> Dict:
         d = {'n': False, 'e': False, 's': False, 'w': False}
@@ -108,14 +118,29 @@ class Sarsa(Robot):
                 if done:
                     break
 
-    def step(self, action) -> Tuple[SarsaState, float, bool]:
-        pass
+    def step(self, action: str) -> Tuple[SarsaState, float, bool]:
+        # Rotate
+        while action != self.orientation:
+            self.rotate('r')
 
-    def choose_action(self, current_state):
+        _, drained_battery = self.move()
+
+        reward = get_label_and_battery_based_reward(self.grid.get_c(self.pos), drained_battery)
+
+        new_state = SarsaState(self.pos[1], self.pos[0], self.get_vision())
+
+        done = not (self.alive or self.battery_lvl > 0) or self.grid.is_cleaned()
+
+        return new_state, reward, done
+
+    def choose_action(self, current_state) -> str:
+        directions = ["n", "e", "s", "w"]
         if np.random.uniform(0, 1) < self.epsilon:
-            action = self.dirs[np.random.choice(['n', 'e', 's', 'w'])]
+            action = self.dirs[np.random.choice(directions)]
         else:
-            pass
+            x, y, z, _ = current_state.get_index(None)
+            action_idx = np.argmax(self.Q[(x, y, z)])
+            action = directions[action_idx]
 
         return action
 

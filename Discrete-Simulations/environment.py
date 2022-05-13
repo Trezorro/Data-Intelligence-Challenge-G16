@@ -86,7 +86,7 @@ class Robot:
 
         return False
 
-    def move(self) -> bool:
+    def move(self) -> Tuple[bool, bool]:
         """ Function that moves the robot.
 
         This function simulates the movement of the robot. It will try to move forwards in the current direction it is
@@ -94,29 +94,30 @@ class Robot:
         with probability `self.p_move`.
 
         Returns:
-            boolean indicating whether
+            first boolean indicates whether
                 True: the bot has moved successfully.
                 False: the bot did not move or the bot moved and died.
+            second boolean indicates whether the battery was drained during the move
         """
 
         # Can't move if we're dead now, can we?
         if not self.alive:
-            return False
+            return False, False
 
         # Decide whether to do a random move.
         random_move = np.random.binomial(1, self.p_move)
 
         # Decide whether this move will drain the battery
-        do_battery_drain = np.random.binomial(1, self.battery_drain_p)
+        do_battery_drain: bool = (np.random.binomial(1, self.battery_drain_p) == 1)
 
         # If battery should be drained, drain the battery according to exponential drain
-        if do_battery_drain == 1 and self.battery_lvl > 0:
+        if do_battery_drain and self.battery_lvl > 0:
             self.battery_lvl -= np.random.exponential(self.battery_drain_lam)
 
         # Handle empty battery --> die
         if self.battery_lvl <= 0:
             self.alive = False
-            return False
+            return False, do_battery_drain
 
         # If random move, execute a random move
         if random_move == 1:
@@ -138,12 +139,12 @@ class Robot:
                 # If moved to death square, then the bot dies.
                 if tile_after_move == 3:
                     self.alive = False
-                    return False
-                return True
+                    return False, do_battery_drain
+                return True, do_battery_drain
 
             # If we cannot move, just stand still and leave the bot
             else:
-                return False
+                return False, do_battery_drain
 
         # Else, execute the initially planned move
         else:
@@ -162,12 +163,12 @@ class Robot:
                 # If moved to death square, then the bot dies.
                 if tile_after_move == 3:
                     self.alive = False
-                    return False
-                return True
+                    return False, do_battery_drain
+                return True, do_battery_drain
 
             # If we cannot move, just stand still and leave the bot
             else:
-                return False
+                return False, do_battery_drain
 
     def rotate(self, direction: str) -> None:
         """ Rotates the robot in a given direction either left ('l') or right ('r')
@@ -255,6 +256,14 @@ class Grid:
             value:      the new value of the cell.
         """
         self.cells[coord_y_x] = value
+
+    def is_cleaned(self) -> bool:
+        """ Function returns whether there are dirty squares left in the grid.
+
+        Returns:
+            Whether there are dirty squares left in the grid.
+        """
+        return 1 in self.cells
 
     def put_obstacle(self, x0, x1, y0, y1, from_edge=1) -> None:
         """ Builds an obstacle on the grid starting on (x0,y0) and ending at (x1,y1)

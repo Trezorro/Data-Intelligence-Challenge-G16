@@ -120,7 +120,7 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
         robot.rotate('r')
     logger.info(f"LET'S MOVE!\n")
 
-    if not robot.move():
+    if not robot.move()[0]:
         logger.warning("We hit a wall! Dummy!")
 
 
