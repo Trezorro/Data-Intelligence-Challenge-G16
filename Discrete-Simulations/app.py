@@ -15,6 +15,9 @@ import ast
 from matplotlib.figure import Figure
 from environment import Grid, Robot
 
+# Import all robot algorithms present in the robot_configs folder. DO NOT DELETE.
+from robot_configs import *
+
 Payload.max_decode_packets = 1000
 
 app = Flask(__name__)
