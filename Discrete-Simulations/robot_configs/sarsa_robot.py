@@ -1,5 +1,38 @@
-from environment import Robot, Grid
+from ..environment import Robot, Grid
 import numpy as np
+
+
+class SarsaState:
+    def __init__(self, pos_x, pos_y, vision: dict):
+        """State for Sarsa Lookup.
+
+        Vision dict should have keys "n", "e", "w", "s" for which the values
+        are True if clean and False if dirty.
+        """
+        self.pos_x = pos_x
+        self.pos_y = pos_y
+        self.vision = vision
+
+    def get_index(self, action):
+        """Get index of Q table for Sarsa given for this state.
+
+        The Q table has an
+        """
+        action_map = {"n": 0,
+                      "e": 1,
+                      "s": 2,
+                      "w": 3}
+        x = self.pos_x
+        y = self.pos_y
+        z = self.vision["n"] * 1 \
+            + self.vision["e"] * 2 \
+            + self.vision["s"] * 4 \
+            + self.vision["w"] * 8
+        i = action_map[action]
+
+
+        return x, y, z, i
+
 
 class Sarsa(Robot):
 
@@ -26,7 +59,7 @@ class Sarsa(Robot):
         pass
 
     def update(self, state_1, action_1, reward, state_2, action_2):
-        pass
+        predict =
 
 
 def robot_epoch(robot: Sarsa):

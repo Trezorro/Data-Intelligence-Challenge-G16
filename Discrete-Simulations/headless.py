@@ -12,10 +12,10 @@ stopping_criteria = 100
 
 # Settings
 GRID_FILES = [
-    'example-random-house-0.grid',
+    # 'example-random-house-0.grid',
     # 'stay_off_my_grass.grid',
     # 'snake.grid',
-    # 'house.grid'
+    'house.grid'
         ]
 GAMMAS = [0.2, 0.5, 0.9]
 THETAS = [0.1, 0.01]
