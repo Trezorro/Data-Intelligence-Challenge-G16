@@ -50,6 +50,8 @@ class Sarsa(Robot):
 
     def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
                  epsilon=0.9, gamma=0.95, lr=0.85, max_steps_per_episode=100, number_of_episodes=20000):
+        # NOTE: i have set the battery drain params here, but note that if you have the UI, those settings
+        # prevail (unless you comment them out in app.py line 187)
 
         super().__init__(grid, pos, orientation, p_move, battery_drain_p, battery_drain_lam, vision)
 
