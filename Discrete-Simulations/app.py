@@ -1,10 +1,9 @@
-# Imports:
-from flask import Flask, render_template, request, jsonify
+from typing import List
+
+from flask import Flask, render_template, request
 from engineio.payload import Payload
 
 # Increase limit to not drop too many packets:
-Payload.max_decode_packets = 1000
-import random
 from flask_socketio import SocketIO
 import base64
 import numpy as np
@@ -15,57 +14,60 @@ import os
 import ast
 from matplotlib.figure import Figure
 from environment import Grid, Robot
-# Import all robot algorithms present in the robot_configs folder:
-from robot_configs import *
+
+Payload.max_decode_packets = 1000
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
-grid, robots = None, None
+grid: Grid = None
+robots: List[Robot] = None
 occupied = False
 PATH = os.getcwd()
 
 
-def draw_grid(grid):
+def draw_grid(grid_to_draw: Grid):
     """'Helper function for creating a JSON payload which will be displayed in the browser."""
     global robots
     materials = {0: 'cell_clean', -1: 'cell_wall', -2: 'cell_obstacle', -3: 'cell_robot_e', -4: 'cell_robot_s',
                  -5: 'cell_robot_w', -6: 'cell_robot_n', 1: 'cell_dirty', 2: 'cell_goal', 3: 'cell_death'}
     # Setting statistics:
-    clean = (grid.cells == 0).sum()
-    dirty = (grid.cells == 1).sum() # edited to only include actual dirty cells
-    goal = (grid.cells == 2).sum()
+    clean = (grid_to_draw.cells == 0).sum()
+    dirty = (grid_to_draw.cells == 1).sum()  # edited to only include actual dirty cells
+    goal = (grid_to_draw.cells == 2).sum()
     debug_values = None
     if robots:  # If we have robots on the grid:
-        efficiencies = [100 for i in range(len(robots))]
-        batteries = [100 for i in range(len(robots))]
-        alives = [True for i in range(len(robots))]
+        efficiencies = [100 for _ in range(len(robots))]
+        batteries = [100 for _ in range(len(robots))]
+        alives = [True for _ in range(len(robots))]
         for i, robot in enumerate(robots):
             # Calculating efficiency:
-            moves = [(x, y) for (x, y) in zip(robot.history[0], robot.history[1])]
+            moves = [(y, x) for (y, x) in zip(robot.history[0], robot.history[1])]
             if len(moves) > 0:
                 u_moves = set(moves)
-                n_revisted_tiles = len(moves) - len(u_moves)
-                n_total_tiles = (grid.cells >= 0).sum()
-                efficiency = (100 * n_total_tiles) / (n_total_tiles + n_revisted_tiles)
+                n_revisited_tiles = len(moves) - len(u_moves)
+                n_total_tiles = (grid_to_draw.cells >= 0).sum()
+                efficiency = (100 * n_total_tiles) / (n_total_tiles + n_revisited_tiles)
                 efficiencies[i] = float(round(efficiency, 2))
             # Min battery level is 0:
             battery = 0 if robot.battery_lvl < 0 else robot.battery_lvl
             # Battery and alive stats:
             batteries[i] = round(battery, 2)
             alives[i] = robot.alive
-            if robot.show_debug_values: 
-                debug_values = robot.debug_values # show this robot's values in the grid
-        return {'grid': render_template('grid.html', height=30, width=30, n_rows=grid.n_rows, n_cols=grid.n_cols,
-                                        room_config=grid.cells, values=debug_values,
+            if robot.show_debug_values:
+                debug_values = robot.debug_values  # show this robot's values in the grid
+        return {'grid': render_template('grid.html', height=30, width=30, n_rows=grid_to_draw.n_rows,
+                                        n_cols=grid_to_draw.n_cols,
+                                        room_config=grid_to_draw.cells, values=debug_values,
                                         materials=materials), 'clean': round((clean / (dirty + clean)) * 100, 2),
                 'goal': float(goal), 'efficiency': ','.join([str(i) for i in efficiencies]),
                 'battery': ','.join([str(i) for i in batteries]),
                 'alive': alives}
     else:  # If we have an empty grid with no robots:
-        return {'grid': render_template('grid.html', height=30, width=30, n_rows=grid.n_rows, n_cols=grid.n_cols,
-                                        room_config=grid.cells,
+        return {'grid': render_template('grid.html', height=30, width=30, n_rows=grid_to_draw.n_rows,
+                                        n_cols=grid_to_draw.n_cols,
+                                        room_config=grid_to_draw.cells,
                                         materials=materials), 'clean': round((clean / (dirty + clean)) * 100, 2),
                 'goal': float(goal), 'efficiency': ',', 'battery': ',',
                 'alive': ','}
@@ -104,17 +106,17 @@ def build_grid():
     deaths = ast.literal_eval(request.args.get('deaths'))
     to_save = False if request.args.get('save') == 'false' else True
     name = str(request.args.get('name'))
-    grid = Grid(n_cols, n_rows)
+    new_grid: Grid = Grid(n_cols, n_rows)
     for (y, x) in obstacles:
-        grid.put_singular_obstacle(x, y)
+        new_grid.put_singular_obstacle(x, y)
     for (y, x) in goals:
-        grid.put_singular_goal(x, y)
+        new_grid.put_singular_goal(x, y)
     for (y, x) in deaths:
-        grid.put_singular_death(x, y)
+        new_grid.put_singular_death(x, y)
     if to_save and len(name) > 0:
-        pickle.dump(grid, open(f'{PATH}/grid_configs/{name}.grid', 'wb'))
+        pickle.dump(new_grid, open(f'{PATH}/grid_configs/{name}.grid', 'wb'))
         return {'grid': '', 'success': 'true'}
-    return draw_grid(grid)
+    return draw_grid(new_grid)
 
 
 @app.route('/get_history')
@@ -163,7 +165,6 @@ def handle_browser_new_grid(json):
 
 @socketio.on('get_robot')
 def handle_browser_spawn_robot(json):
-    robot_alg = json['robot_file']
     p_determ = float(json['determ'])
     x_spawn = json['x_spawns'].split(',')
     y_spawn = json['y_spawns'].split(',')
@@ -173,19 +174,6 @@ def handle_browser_spawn_robot(json):
     vision = int(json['vision'])
     n_robots = int(json['n_robots'])
 
-    # Uncommented after announcement 3-May to access Grid attributes
-
-    # Check if selected robot algorithm contains a cheat:
-    # with open(PATH + '/robot_configs/' + robot_alg) as f:
-    #     lines = f.read().split('\n')
-    #     ERRORS = "\n".join(
-    #         [f'Illegal access of grid by robot algorithm in line {i + 1}!\n use possible_tiles_after_move() instead!'
-    #          for i, line in enumerate(lines) if 'grid.cells' in line or 'grid' in line])
-    # if len(ERRORS) > 0:
-    #     print(f'[ERROR]: {ERRORS}')
-    #     ERRORS = ERRORS.replace('\n', '<br>')
-    #     emit('new_grid', {'grid': f'<h1>{ERRORS}</h1>'})
-    # else:
     global robots
     global grid
     try:
@@ -218,9 +206,9 @@ def handle_browser_update(json):
                     # Call the robot epoch method of the selected robot config file:
                     globals()[robot_alg].robot_epoch(robot)
         except KeyError as e:
-            raise e
             print(
                 f'[ERROR] restart app.py and make sure the file {robot_alg}.py is present in the robot_configs folder.')
+            raise e
         emit('new_grid', draw_grid(grid))
         emit('new_plot', get_history())
         occupied = False

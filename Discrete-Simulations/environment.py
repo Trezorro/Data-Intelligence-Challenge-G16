@@ -214,14 +214,47 @@ class Grid:
         self.cells[:, 0] = self.cells[:, -1] = -1
         self.transposed_version = True
 
-    def get_cell(self, x: int, y: int) -> int:
+    def get(self, x: int, y: int) -> int:
         """ Returns value of cell in field
 
         Args:
             x: the x coordinate of the grid cell requested.
             y: the y coordinate of the grid cell requested.
+
+        Returns:
+            The value of the requested cell.
         """
         return self.cells[y][x]
+
+    def get_c(self, coord_y_x: Tuple[int, int]):
+        """ Returns the value of the cell in field
+
+        Args:
+            coord_y_x: The coordinate (y, x) of the grid cell requested.
+
+        Returns:
+            The value of the requested cell.
+        """
+        return self.cells[coord_y_x]
+
+    def put(self, x: int, y: int, value: int) -> None:
+        """ Modifies the grid by putting in a new value
+
+        Args:
+            x:      the x coordinate of the grid cell to adapt.
+            y:      the y coordinate of the grid cell to adapt.
+            value:  the new value of the cell.
+        """
+        self.cells[y][x] = value
+
+    def put_c(self, coord_y_x: Tuple[int, int], value: int) -> None:
+        """ Modifies the grid by putting in a new value
+
+        Args:
+            coord_y_x:  The coordinate (y, x) of the grid cell to adapt.
+            value:      the new value of the cell.
+        """
+        self.cells[coord_y_x] = value
 
     def put_obstacle(self, x0, x1, y0, y1, from_edge=1) -> None:
         """ Builds an obstacle on the grid starting on (x0,y0) and ending at (x1,y1)
@@ -233,15 +266,15 @@ class Grid:
 
     def put_singular_obstacle(self, x, y) -> None:
         """ Puts obstacle tile at provided (x,y) """
-        self.cells[y][x] = -2
+        self.put(x, y, -2)
 
     def put_singular_goal(self, x, y) -> None:
         """ Puts a goal tile at provided (x,y) """
-        self.cells[y][x] = 2
+        self.put(x, y, 2)
 
     def put_singular_death(self, x, y) -> None:
         """ Puts death tile at provided (x,y) """
-        self.cells[y][x] = 3
+        self.put(x, y, 3)
 
 
 def generate_grid(n_cols, n_rows):

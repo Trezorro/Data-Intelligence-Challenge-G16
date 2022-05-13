@@ -17,10 +17,10 @@ for k in range(5):
     n_rooms = 5
     # Get upper rooms:
     rooms = np.random.randint(2, n_rooms)
-    for i in range(0, width, width//rooms):
-        grid.put_obstacle(x0=i, x1=i + (width//rooms) -2, y0=corr_y0, y1=corr_y0)
-    for i in range(0, rooms-1):
-        grid.put_obstacle(x0=(i+1) * int(width / rooms), x1=(i+1) *int(width / rooms), y0=1, y1=corr_y0)
+    for i in range(0, width, width // rooms):
+        grid.put_obstacle(x0=i, x1=i + (width // rooms) - 2, y0=corr_y0, y1=corr_y0)
+    for i in range(0, rooms - 1):
+        grid.put_obstacle(x0=(i + 1) * int(width / rooms), x1=(i + 1) * int(width / rooms), y0=1, y1=corr_y0)
 
     # Get lower rooms:
     rooms = np.random.randint(2, n_rooms)
