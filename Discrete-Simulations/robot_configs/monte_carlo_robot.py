@@ -8,7 +8,7 @@ import random
 from helpers.label_based_reward import get_reward
 
 
-def robot_epoch(robot: Robot, gamma=0.2, max_episodes = 100, epsilon = 0.1):
+def robot_epoch(robot: Robot, gamma=0.9, max_episodes = 100, epsilon = 0.1):
     """ Initianlize the attributes needed for the Mote Carlo On Policy implementation
 
     :param max_episodes: the max number of episodes that we want to compute
@@ -19,7 +19,7 @@ def robot_epoch(robot: Robot, gamma=0.2, max_episodes = 100, epsilon = 0.1):
     """
     max_episodes = max_episodes
     g = gamma
-    max_steps_in_episodes = 0
+    count_clean = 0
     q_grid = {}
     epsilon = epsilon
     moves = list(robot.dirs.values())
@@ -30,21 +30,19 @@ def robot_epoch(robot: Robot, gamma=0.2, max_episodes = 100, epsilon = 0.1):
         for y in range(robot.grid.n_rows):
             if -3 < robot.grid.cells[y][x] < 0 or robot.grid.cells[y][x] == 3:
                 continue
-            max_steps_in_episodes += 1
             possible_moves = []
+            if robot.grid.cells[y][x] == 0:
+                count_clean += 1
             for move in moves:
                 # Calculate the new position the robot would be in after the move
                 new_pos = tuple(np.array([y, x]) + move)
-
-                if robot.grid.cells[new_pos] < 0 or robot.grid.cells[new_pos] == 3:
+                if -3 < robot.grid.cells[new_pos] < 0 or robot.grid.cells[new_pos] == 3:
                     continue
                 possible_moves.append(move)
                 Returns[(y, x),move] = []
                 q_grid[(y, x), move] = 0
-            policy[(y, x)] = []
             for move in possible_moves:
                 policy[(y, x), move] = 1 / len(possible_moves)
-
 
     """Generate episodes"""
     def generate_episodes(policy):
@@ -60,7 +58,7 @@ def robot_epoch(robot: Robot, gamma=0.2, max_episodes = 100, epsilon = 0.1):
         episodes= []
         position = tuple(np.array(robot.pos))
 
-        for i in range(10):
+        for i in range(count_clean):
             moves = []
             probs = []
             for state, action in policy.keys():
@@ -70,6 +68,7 @@ def robot_epoch(robot: Robot, gamma=0.2, max_episodes = 100, epsilon = 0.1):
             chosen_move = random.choices(moves, weights=probs, k=1)[0]
             episodes.append([position, chosen_move])
             new_pos = tuple(np.asarray(position)+ chosen_move)
+
             reward = get_reward(robot.grid.cells[new_pos])
             episodes[i].append(reward)
 
@@ -108,6 +107,7 @@ def robot_epoch(robot: Robot, gamma=0.2, max_episodes = 100, epsilon = 0.1):
                             policy[state,action] = 1 - epsilon + epsilon / count_actions
                         else:
                             policy[state,action] =  epsilon / count_actions
+
 
     moves = []
     probs = []
