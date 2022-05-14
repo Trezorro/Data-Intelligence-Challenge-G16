@@ -19,6 +19,7 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
     :param policy: initialize a policy for every possible state
     """
     max_episodes = 100
+    max_steps_in_episodes = len(robot.grid.cells)
     q_grid = np.zeros((len(robot.grid.cells), 4))
     moves = list(robot.dirs.values())
     Returns = {}
@@ -32,19 +33,37 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
                 # Calculate the new position the robot would be in after the move
                 new_pos = tuple(np.array([y, x]) + move)
 
-                if robot.grid.cells[new_pos] < 0:
+                if robot.grid.cells[new_pos] < 0 or robot.grid.cells[new_pos] == 3:
                     continue
                 possible_moves.append(move)
                 Returns[str((y, x)) + ", " + str(move)] = []
             if len(possible_moves) > 1:
                 weights = [0.1/len(possible_moves)]*len(possible_moves)
-                policy[(y, x)] = random.choices(possible_moves,weights=weights,k=1)
+                policy[(y, x)] = random.choices(possible_moves,weights=weights,k=1)[0]
             elif len(possible_moves) == 1:
                 policy[(y, x)] = possible_moves[0]
 
-    print("Q grid",q_grid)
-    print('Returns', Returns)
-    print("Policy", policy)
+    """Generate episodes"""
+    def generate_episodes(policy):
+        """ Generate the episodes based on the current policy\
+        :param position: the mosition of the robot after applying a move based on policy. Initialized as the
+        current position
+        :param policy: the current policy
+
+        Returns the dict episodes that includes the state and the action generated for this episode
+        """
+        position = tuple(np.array(robot.pos))
+        episodes = {}
+        episodes[position] = policy[position]
+
+        for i in range(max_steps_in_episodes - 1):
+            new_pos = tuple(np.asarray(position)+ policy[position])
+            episodes[new_pos] = policy[new_pos]
+            position = new_pos
+
+        return episodes
+
+
 
     """Implementation"""
     for episode in range(max_episodes):
