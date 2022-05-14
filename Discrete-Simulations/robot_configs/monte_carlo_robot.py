@@ -21,6 +21,7 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
     max_episodes = 100
     max_steps_in_episodes = 0
     q_grid = {}
+    epsilon = 0.1
 
     moves = list(robot.dirs.values())
     Returns = {}
@@ -41,8 +42,7 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
                 Returns[(y, x),move] = []
                 q_grid[(y, x), move] = 0
             if len(possible_moves) > 1:
-                weights = [0.1/len(possible_moves)]*len(possible_moves)
-                policy[(y, x)] = random.choices(possible_moves,weights=weights,k=1)[0]
+                policy[(y, x)] = random.choice(possible_moves)
             elif len(possible_moves) == 1:
                 policy[(y, x)] = possible_moves[0]
 
@@ -84,4 +84,29 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
 
     """Implementation"""
     for episode in range(max_episodes):
-        pass
+        # generate episodes
+        single_episode = generate_episodes(policy)
+        G = 0
+        for idx, step in enumerate(single_episode[::-1]):
+            G = g * G + step[2]
+            # first-visit
+            if step[0] not in np.array(trajectory[::-1])[:, 0][idx + 1:]:
+                Returns[str(step[0]) + ", " + str(step[1])].append(G)
+                q_grid[step[0]][step[1]] = np.mean(Returns[str(step[0]) + ", " + str(step[1])])
+                best_action = (0,0)
+                max_value = -100
+
+                count_actions = 0
+                for state, action in q_grid.keys():
+                    if state == step[0]:
+                        count_actions += 1
+                        if q_grid[state, action] > max_value:
+                            best_action = action
+                            max_value = q_grid[state, action]
+
+                for state, action in q_grid.keys():
+                    if state == step[0]:
+                        if action == best_action:
+                            policy[state, action] = 1 - epsilon + epsilon / count_actions
+                        else:
+                            policy[state, action]  = epsilon / count_actions
