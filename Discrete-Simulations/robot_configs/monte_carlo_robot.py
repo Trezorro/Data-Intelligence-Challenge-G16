@@ -19,7 +19,7 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
     :param policy: initialize a policy for every possible state
     """
     max_episodes = 100
-    q_grid = np.zeros((len(robot.grid.cells), 4))
+    q_grid = np.zeros((robot.grid.n_cols,robot.grid.n_rows,4))
     moves = list(robot.dirs.values())
     Returns = {}
     policy = {}
