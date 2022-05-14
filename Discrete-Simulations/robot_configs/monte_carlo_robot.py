@@ -19,7 +19,7 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
     :param policy: initialize a policy for every possible state
     """
     max_episodes = 100
-    max_steps_in_episodes = len(robot.grid.cells)
+    max_steps_in_episodes = 0
     q_grid = np.zeros((robot.grid.n_cols,robot.grid.n_rows,4))
 
     moves = list(robot.dirs.values())
@@ -29,6 +29,7 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
         for y in range(robot.grid.n_rows):
             if -3 < robot.grid.cells[y][x] < 0 or robot.grid.cells[y][x] == 3:
                 continue
+            max_steps_in_episodes += 1
             possible_moves = []
             for move in moves:
                 # Calculate the new position the robot would be in after the move
@@ -51,20 +52,22 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
         current position
         :param policy: the current policy
 
-        Returns the dict episodes that includes the state and the action generated for this episode
+        Returns a list called episodes that includes the state, the move and the reward of the next move i.e.
+         [[(1, 1), (1, 0), 2], [(2, 1), (1, 0), -1], [(3, 1), (-1, 0), -1]]: the state (1,1) has next action (1,0)
+         that gives 2 as reward, then, the state (2,1) has (1,0) as next action that gives -1 as reward etc.
         """
         position = tuple(np.array(robot.pos))
-        episodes = {}
-        episodes[position] = policy[position]
+        episodes= []
 
         for i in range(max_steps_in_episodes - 1):
+            episodes.append([position, policy[position]])
             new_pos = tuple(np.asarray(position)+ policy[position])
-            episodes[new_pos] = policy[new_pos]
+            reward = get_reward(robot.grid.cells[new_pos])
+            episodes[i].append(reward)
+
             position = new_pos
 
         return episodes
-
-
 
     """Implementation"""
     for episode in range(max_episodes):
