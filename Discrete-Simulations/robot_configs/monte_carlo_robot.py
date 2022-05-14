@@ -31,18 +31,16 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
             for move in moves:
                 # Calculate the new position the robot would be in after the move
                 new_pos = tuple(np.array([y, x]) + move)
-                print()
 
                 if robot.grid.cells[new_pos] < 0:
                     continue
                 possible_moves.append(move)
                 Returns[str((y, x)) + ", " + str(move)] = []
             if len(possible_moves) > 1:
-                print(len(possible_moves) )
                 weights = [0.1/len(possible_moves)]*len(possible_moves)
-                policy[str((y, x))] = random.choices(possible_moves,weights=weights,k=1)
+                policy[(y, x)] = random.choices(possible_moves,weights=weights,k=1)
             elif len(possible_moves) == 1:
-                policy[str((y, x))] = possible_moves[0]
+                policy[(y, x)] = possible_moves[0]
 
     print("Q grid",q_grid)
     print('Returns', Returns)
