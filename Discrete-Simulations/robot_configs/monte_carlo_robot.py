@@ -38,8 +38,8 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
                 if robot.grid.cells[new_pos] < 0 or robot.grid.cells[new_pos] == 3:
                     continue
                 possible_moves.append(move)
-                Returns[str((y, x)) + ", " + str(move)] = []
-                q_grid[str((y, x)) + ", " + str(move)] = 0
+                Returns[(y, x),move] = []
+                q_grid[(y, x), move] = 0
             if len(possible_moves) > 1:
                 weights = [0.1/len(possible_moves)]*len(possible_moves)
                 policy[(y, x)] = random.choices(possible_moves,weights=weights,k=1)[0]
@@ -73,10 +73,14 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
     """ Iteration over episodes. Check how to get q_grid values."""
     eps = generate_episodes(policy)
 
-    for episode in eps:
-        state_action = str(episode[0])+', '+str(episode[1])
-        print(state_action)
-        print(q_grid[state_action])
+    for step in eps:
+        print(step)
+        print(q_grid[step[0], step[1]])
+
+    for state, action in q_grid.keys():
+        print(state)
+        print(action)
+        print(q_grid[state,action])
 
     """Implementation"""
     for episode in range(max_episodes):
