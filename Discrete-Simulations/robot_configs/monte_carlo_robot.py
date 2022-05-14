@@ -8,7 +8,7 @@ import random
 from helpers.label_based_reward import get_reward
 
 
-def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
+def robot_epoch(robot: Robot, gamma=0.2, max_episodes = 100, epsilon = 0.1):
     """ Initianlize the attributes needed for the Mote Carlo On Policy implementation
 
     :param max_episodes: the max number of episodes that we want to compute
@@ -18,14 +18,15 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
     :param Returns: empty array for every possible combination of moves and states
     :param policy: initialize a policy for every possible state
     """
-    max_episodes = 100
+    max_episodes = max_episodes
+    g = gamma
     max_steps_in_episodes = 0
     q_grid = {}
-    epsilon = 0.1
-
+    epsilon = epsilon
     moves = list(robot.dirs.values())
     Returns = {}
     policy = {}
+
     for x in range(robot.grid.n_cols):
         for y in range(robot.grid.n_rows):
             if -3 < robot.grid.cells[y][x] < 0 or robot.grid.cells[y][x] == 3:
@@ -89,10 +90,10 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
         for idx, step in enumerate(single_episode[::-1]):
             G = g * G + step[2]
             # first-visit
-            if step[0] not in np.array(trajectory[::-1])[:, 0][idx + 1:]:
-                Returns[str(step[0]) + ", " + str(step[1])].append(G)
-                q_grid[step[0]][step[1]] = np.mean(Returns[str(step[0]) + ", " + str(step[1])])
-                best_action = (0,0)
+            if step[0] not in np.array(single_episode[::-1])[:, 0][idx + 1:]:
+                Returns[step[0], step[1]].append(G)
+                q_grid[step[0], step[1]] = np.mean(Returns[step[0], step[1]])
+                best_action = (0, 0)
                 max_value = -100
 
                 count_actions = 0
@@ -103,9 +104,22 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
                             best_action = action
                             max_value = q_grid[state, action]
 
-                for state, action in q_grid.keys():
-                    if state == step[0]:
-                        if action == best_action:
-                            policy[state, action] = 1 - epsilon + epsilon / count_actions
-                        else:
-                            policy[state, action]  = epsilon / count_actions
+                for state, action in q_grid.keys():  # enumerate action space
+                    if action == best_action:
+                        policy[state] = (action, 1 - epsilon + epsilon / count_actions)
+                    else:
+                        policy[state] = (action, epsilon / count_actions)
+
+
+    for move, prob in policy[tuple(np.array(robot.pos))]:
+        moves.append(move)
+        probs.append(prob)
+    corresponding_move = random.choices(moves, weights=probs, k=1)[0]
+
+    current_direction = robot.dirs[robot.orientation]
+
+    while current_direction != corresponding_move:
+        robot.rotate('r')
+        current_direction = robot.dirs[robot.orientation]
+
+    robot.move()
