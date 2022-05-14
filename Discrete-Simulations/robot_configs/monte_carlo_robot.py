@@ -41,17 +41,20 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
                 possible_moves.append(move)
                 Returns[(y, x),move] = []
                 q_grid[(y, x), move] = 0
-            if len(possible_moves) > 1:
-                policy[(y, x)] = random.choice(possible_moves)
-            elif len(possible_moves) == 1:
-                policy[(y, x)] = possible_moves[0]
+            policy[(y, x)] = []
+            for move in possible_moves:
+                policy[(y, x)].append((move, 1/len(possible_moves)))
+            # if len(possible_moves) > 1:
+            #     policy[(y, x)] = random.choice(possible_moves)
+            # elif len(possible_moves) == 1:
+            #     policy[(y, x)] = possible_moves[0]
 
     """Generate episodes"""
     def generate_episodes(policy):
         """ Generate the episodes based on the current policy\
-        :param position: the mosition of the robot after applying a move based on policy. Initialized as the
+        :param position: the position of the robot after applying a move based on policy. Initialized as the
         current position
-        :param policy: the current policy
+        :param policy: the current policy probabilties
 
         Returns a list called episodes that includes the state, the move and the reward of the next move i.e.
          [[(1, 1), (1, 0), 2], [(2, 1), (1, 0), -1], [(3, 1), (-1, 0), -1]]: the state (1,1) has next action (1,0)
@@ -61,8 +64,14 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
         episodes= []
 
         for i in range(max_steps_in_episodes - 1):
-            episodes.append([position, policy[position]])
-            new_pos = tuple(np.asarray(position)+ policy[position])
+            moves = []
+            probs = []
+            for move, prob in policy[position]:
+                moves.append(move)
+                probs.append(prob)
+            chosen_move = random.choices(moves, weights=probs, k=1)[0]
+            episodes.append([position, chosen_move])
+            new_pos = tuple(np.asarray(position)+ chosen_move)
             reward = get_reward(robot.grid.cells[new_pos])
             episodes[i].append(reward)
 
@@ -70,17 +79,7 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
 
         return episodes
 
-    """ Iteration over episodes. Check how to get q_grid values."""
-    eps = generate_episodes(policy)
-
-    for step in eps:
-        print(step)
-        print(q_grid[step[0], step[1]])
-
-    for state, action in q_grid.keys():
-        print(state)
-        print(action)
-        print(q_grid[state,action])
+    print("Episodes", generate_episodes(policy))
 
     """Implementation"""
     for episode in range(max_episodes):
