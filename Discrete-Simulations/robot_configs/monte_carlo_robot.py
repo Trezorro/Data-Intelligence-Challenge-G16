@@ -36,7 +36,7 @@ def robot_epoch(robot: Robot, gamma=0.9, max_episodes = 100, epsilon = 0.1):
             for move in moves:
                 # Calculate the new position the robot would be in after the move
                 new_pos = tuple(np.array([y, x]) + move)
-                if -3 < robot.grid.cells[new_pos] < 0 or robot.grid.cells[new_pos] == 3:
+                if robot.grid.cells[new_pos] < 0 or robot.grid.cells[new_pos] == 3:
                     continue
                 possible_moves.append(move)
                 Returns[(y, x),move] = []
