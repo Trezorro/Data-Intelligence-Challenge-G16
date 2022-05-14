@@ -45,10 +45,7 @@ def robot_epoch(robot: Robot, gamma=0.2, max_episodes = 100, epsilon = 0.1):
             policy[(y, x)] = []
             for move in possible_moves:
                 policy[(y, x)].append((move, 1/len(possible_moves)))
-            # if len(possible_moves) > 1:
-            #     policy[(y, x)] = random.choice(possible_moves)
-            # elif len(possible_moves) == 1:
-            #     policy[(y, x)] = possible_moves[0]
+
 
     """Generate episodes"""
     def generate_episodes(policy):
@@ -89,6 +86,9 @@ def robot_epoch(robot: Robot, gamma=0.2, max_episodes = 100, epsilon = 0.1):
         G = 0
         for idx, step in enumerate(single_episode[::-1]):
             G = g * G + step[2]
+            print("Step", step)
+            print("single_episode", single_episode)
+            print("all previous steps", np.array(single_episode[::-1])[:, 0][idx + 1:])
             # first-visit
             if step[0] not in np.array(single_episode[::-1])[:, 0][idx + 1:]:
                 Returns[step[0], step[1]].append(G)
@@ -105,12 +105,14 @@ def robot_epoch(robot: Robot, gamma=0.2, max_episodes = 100, epsilon = 0.1):
                             max_value = q_grid[state, action]
 
                 for state, action in q_grid.keys():  # enumerate action space
+                    policy[state] = []
                     if action == best_action:
-                        policy[state] = (action, 1 - epsilon + epsilon / count_actions)
+                        policy[state].append((action, 1 - epsilon + epsilon / count_actions))
                     else:
-                        policy[state] = (action, epsilon / count_actions)
+                        policy[state].append((action, epsilon / count_actions))
 
-
+    moves = []
+    probs = []
     for move, prob in policy[tuple(np.array(robot.pos))]:
         moves.append(move)
         probs.append(prob)
