@@ -13,7 +13,6 @@ def robot_epoch(robot: Robot, gamma=0.2, max_episodes = 100, epsilon = 0.1):
 
     :param max_episodes: the max number of episodes that we want to compute
     :param q_grid: the action state value, initialzied to 0. For every cell there are 4 possible moves so 4 times 0
-    TODO not 4 possible moves in every state
     :param moves: list of all actions
     :param Returns: empty array for every possible combination of moves and states
     :param policy: initialize a policy for every possible state
@@ -44,7 +43,7 @@ def robot_epoch(robot: Robot, gamma=0.2, max_episodes = 100, epsilon = 0.1):
                 q_grid[(y, x), move] = 0
             policy[(y, x)] = []
             for move in possible_moves:
-                policy[(y, x)].append((move, 1/len(possible_moves)))
+                policy[(y, x), move] = 1 / len(possible_moves)
 
 
     """Generate episodes"""
@@ -58,15 +57,16 @@ def robot_epoch(robot: Robot, gamma=0.2, max_episodes = 100, epsilon = 0.1):
          [[(1, 1), (1, 0), 2], [(2, 1), (1, 0), -1], [(3, 1), (-1, 0), -1]]: the state (1,1) has next action (1,0)
          that gives 2 as reward, then, the state (2,1) has (1,0) as next action that gives -1 as reward etc.
         """
-        position = tuple(np.array(robot.pos))
         episodes= []
+        position = tuple(np.array(robot.pos))
 
         for i in range(max_steps_in_episodes - 1):
             moves = []
             probs = []
-            for move, prob in policy[position]:
-                moves.append(move)
-                probs.append(prob)
+            for state, action in policy.keys():
+                if state == position:
+                    moves.append(action)
+                    probs.append(policy[state,action]
             chosen_move = random.choices(moves, weights=probs, k=1)[0]
             episodes.append([position, chosen_move])
             new_pos = tuple(np.asarray(position)+ chosen_move)
@@ -86,9 +86,6 @@ def robot_epoch(robot: Robot, gamma=0.2, max_episodes = 100, epsilon = 0.1):
         G = 0
         for idx, step in enumerate(single_episode[::-1]):
             G = g * G + step[2]
-            print("Step", step)
-            print("single_episode", single_episode)
-            print("all previous steps", np.array(single_episode[::-1])[:, 0][idx + 1:])
             # first-visit
             if step[0] not in np.array(single_episode[::-1])[:, 0][idx + 1:]:
                 Returns[step[0], step[1]].append(G)
@@ -105,17 +102,18 @@ def robot_epoch(robot: Robot, gamma=0.2, max_episodes = 100, epsilon = 0.1):
                             max_value = q_grid[state, action]
 
                 for state, action in q_grid.keys():  # enumerate action space
-                    policy[state] = []
-                    if action == best_action:
-                        policy[state].append((action, 1 - epsilon + epsilon / count_actions))
-                    else:
-                        policy[state].append((action, epsilon / count_actions))
+                    if state == step[0]:
+                        if action == best_action:
+                            policy[state,action] = 1 - epsilon + epsilon / count_actions
+                        else:
+                            policy[state,action] =  epsilon / count_actions
 
     moves = []
     probs = []
-    for move, prob in policy[tuple(np.array(robot.pos))]:
-        moves.append(move)
-        probs.append(prob)
+    for state, action in policy.keys():
+        if state == tuple(np.array(robot.pos)):
+            moves.append(action)
+            probs.append(policy[state, action])
     corresponding_move = random.choices(moves, weights=probs, k=1)[0]
 
     current_direction = robot.dirs[robot.orientation]
