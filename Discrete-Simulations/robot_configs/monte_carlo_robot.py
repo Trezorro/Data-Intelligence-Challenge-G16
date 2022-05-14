@@ -66,7 +66,7 @@ def robot_epoch(robot: Robot, gamma=0.2, max_episodes = 100, epsilon = 0.1):
             for state, action in policy.keys():
                 if state == position:
                     moves.append(action)
-                    probs.append(policy[state,action]
+                    probs.append(policy[state,action])
             chosen_move = random.choices(moves, weights=probs, k=1)[0]
             episodes.append([position, chosen_move])
             new_pos = tuple(np.asarray(position)+ chosen_move)
