@@ -88,7 +88,7 @@ class Sarsa(Robot):
                 self.__reset_env()
 
             # Get initial state and action
-            state: SarsaState = SarsaState(self.pos[1], self.pos[0], self.get_vision())
+            state: SarsaState = SarsaState(self.pos[1], self.pos[0], self.__get_vision())
             action = self.__choose_action(state)
 
             for t in range(self.max_steps_per_episode):
@@ -120,6 +120,29 @@ class Sarsa(Robot):
         # Set is_trained to true after completion of training
         self.is_trained = True
 
+    def do_move(self) -> None:
+        """ Function executes a move according to the robots Q_table
+
+        """
+
+        # Check if robot is trained.
+        if not self.is_trained:
+            logger.warning("Sarsa.do_move: Executing robot move without being trained!")
+
+        # Get action according to Sarsa policy
+        directions = ["n", "e", "s", "w"]
+        current_state = SarsaState(self.pos[1], self.pos[0], self.__get_vision())
+        y, x, z, _ = current_state.get_index(None)
+        action_idx = np.argmax(self.Q[(y, x, z)])
+        action = directions[action_idx]
+
+        # Rotate bot in correct direction
+        while action != self.orientation:
+            self.rotate('r')
+
+        # Move robot
+        self.move()
+
     def __step(self, action: str) -> Tuple[SarsaState, float, bool]:
         """ This function simulates a step of the algorithm given an action and the current state of the robot.
 
@@ -144,7 +167,7 @@ class Sarsa(Robot):
 
         reward = get_label_and_battery_based_reward(label_square_in_front, drained_battery)
 
-        new_state = SarsaState(self.pos[1], self.pos[0], self.get_vision())
+        new_state = SarsaState(self.pos[1], self.pos[0], self.__get_vision())
 
         done = not (self.alive or self.battery_lvl > 0) or self.grid.is_cleaned()
 
@@ -188,7 +211,7 @@ class Sarsa(Robot):
         update_coefficient = self.lr * (target - predict)
         self.Q[index_1] = self.Q[index_1] + update_coefficient
 
-    def get_vision(self) -> Dict:
+    def __get_vision(self) -> Dict:
         """ Function retrieves the current vision of the robot according to what the SarsaState object expects.
 
         Returns:
@@ -244,14 +267,4 @@ class Sarsa(Robot):
 
 
 def robot_epoch(robot: Sarsa):
-    directions = ["n", "e", "s", "w"]
-    current_state = SarsaState(robot.pos[1], robot.pos[0], robot.get_vision())
-    y, x, z, _ = current_state.get_index(None)
-    action_idx = np.argmax(robot.Q[(y, x, z)])
-    action = directions[action_idx]
-
-    # Rotate
-    while action != robot.orientation:
-        robot.rotate('r')
-
-    robot.move()
+    robot.do_move()
