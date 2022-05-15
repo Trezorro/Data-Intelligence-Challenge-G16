@@ -9,6 +9,7 @@ import copy
 
 logger = logging.getLogger(__name__)
 
+
 class SarsaState:
     def __init__(self, pos_x: int, pos_y: int, vision: dict):
         """State for Sarsa Lookup.
@@ -24,20 +25,21 @@ class SarsaState:
     def get_index(self, action):
         """Get index of Q table for Sarsa given for this state.
 
-        The Q table has 4 dimensions. The first 2 are the physical grid, the 3rd
+        The Q table has 4 dimensions. The first 2 are the physical grid (indexed y,x), the 3rd
         dimension is the combination of all possible vision states (len = 16),
         and the 4th dimension is the possible actions.
         """
-        action_map = {"n": 0,
-                      "e": 1,
-                      "s": 2,
-                      "w": 3}
         y = self.pos_y
         x = self.pos_x
         z = self.vision["n"] * 1 \
             + self.vision["e"] * 2 \
             + self.vision["s"] * 4 \
             + self.vision["w"] * 8
+
+        action_map = {"n": 0,
+                      "e": 1,
+                      "s": 2,
+                      "w": 3}
         i = action_map[action] if action is not None else None
 
         return y, x, z, i
@@ -49,7 +51,7 @@ class SarsaState:
 class Sarsa(Robot):
 
     def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
-                 epsilon=0.9, gamma=0.95, lr=0.85, max_steps_per_episode=100, number_of_episodes=20000):
+                 epsilon=0.9, gamma=0.95, lr=0.85, max_steps_per_episode=100, number_of_episodes=1000):
         # NOTE: i have set the battery drain params here, but note that if you have the UI, those settings
         # prevail (unless you comment them out in app.py line 187)
 
@@ -61,10 +63,11 @@ class Sarsa(Robot):
         self.max_steps_per_episode = max_steps_per_episode
         self.number_of_episodes = number_of_episodes
 
-        self.starting_pos = copy.deepcopy(pos)
-        self.starting_grid = copy.deepcopy(grid)
+        self.starting_pos = pos
+        self.starting_grid = grid # This grid is linked to the visualization, so no deepcopy is made as its needed later
         self.starting_orientation = copy.copy(orientation)
 
+        # Initialize Q table
         self.Q = np.zeros((grid.n_rows, grid.n_cols, 2**4, 4))
 
         self.is_trained = False
@@ -118,6 +121,7 @@ class Sarsa(Robot):
                     break
 
         self.reset_env()
+        self.grid = self.starting_grid
 
         self.is_trained = True
 
@@ -161,8 +165,6 @@ class Sarsa(Robot):
 
 
 def robot_epoch(robot: Sarsa):
-    logger.info("Do move")
-
     directions = ["n", "e", "s", "w"]
     current_state = SarsaState(robot.pos[1], robot.pos[0], robot.get_vision())
     y, x, z, _ = current_state.get_index(None)
