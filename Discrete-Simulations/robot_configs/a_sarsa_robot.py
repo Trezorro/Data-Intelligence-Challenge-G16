@@ -1,6 +1,7 @@
 import logging
 from typing import Tuple, Dict
 from tqdm import tqdm
+from random import randint
 
 from environment import Robot, Grid
 from helpers.reward_functions import get_label_and_battery_based_reward
@@ -51,7 +52,7 @@ class SarsaState:
 class Sarsa(Robot):
 
     def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
-                 epsilon=0.9, gamma=0.95, lr=0.85, max_steps_per_episode=100, number_of_episodes=1000):
+                 epsilon=0.99, gamma=0.95, lr=0.99, max_steps_per_episode=100, number_of_episodes=5000):
         # NOTE: i have set the battery drain params here, but note that if you have the UI, those settings
         # prevail (unless you comment them out in app.py line 187)
 
@@ -72,9 +73,23 @@ class Sarsa(Robot):
 
         self.is_trained = False
 
-    def reset_env(self):
+    def reset_env(self, starting_position = None):
+        """ Function resets the environment for the next simulation.
+
+        Args:
+            starting_position: the new starting position of the robot. If not included, default starting position
+                                upon initialization is taken.
+
+        """
         self.grid = copy.deepcopy(self.starting_grid)
-        self.pos = copy.deepcopy(self.starting_pos)
+
+        if starting_position is None:
+            self.pos = copy.deepcopy(self.starting_pos)
+        else:
+            self.pos = starting_position
+            self.grid.put_c(self.starting_pos, 1)
+            self.grid.put_c(starting_position, -6)
+
         self.orientation = copy.copy(self.starting_orientation)
 
         self.history = [[self.pos[0]], [self.pos[1]]]
@@ -92,15 +107,25 @@ class Sarsa(Robot):
 
         return d
 
+    def get_random_start_pos(self):
+        while True:
+            randx = randint(1, self.grid.n_cols-1)
+            randy = randint(1, self.grid.n_rows-1)
+
+            val = self.grid.get(randx, randy)
+
+            if val == 1 or val == 0:
+                return randy, randx
+
     def train(self):
         logger.info("Sarsa.train: Started training robot for " + str(self.number_of_episodes) + " iterations.")
 
         for iter in tqdm(range(self.number_of_episodes)):
             t = 0
-            self.reset_env()
-
-            if iter % 5000 == 0:
-                logger.info(iter) # For debugging
+            if np.random.binomial(1, 0.2) == 1:
+                self.reset_env(self.get_random_start_pos())
+            else:
+                self.reset_env()
 
             state: SarsaState = SarsaState(self.pos[1], self.pos[0], self.get_vision())
             action = self.choose_action(state)
@@ -119,6 +144,16 @@ class Sarsa(Robot):
 
                 if done:
                     break
+
+            # Slowly lower the learning rate and epsilon exploration
+            self.epsilon *= 0.9995
+            self.lr *= 0.9995
+
+            if iter % 100 == 0:
+                logger.info("")
+                logger.info(str(self.lr))
+                logger.info(iter) # For debugging
+
 
         self.reset_env()
         self.grid = self.starting_grid
