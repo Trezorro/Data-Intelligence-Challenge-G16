@@ -65,7 +65,7 @@ class Sarsa(Robot):
         self.number_of_episodes = number_of_episodes
 
         self.starting_pos = pos
-        self.starting_grid = grid # This grid is linked to the visualization, so no deepcopy is made as its needed later
+        self.starting_grid = grid  # Grid linked to the visualization, so no deepcopy is made as its needed later
         self.starting_orientation = copy.copy(orientation)
 
         # Initialize Q table
@@ -73,13 +73,143 @@ class Sarsa(Robot):
 
         self.is_trained = False
 
-    def reset_env(self, starting_position = None):
+    def train(self) -> None:
+        """ Trains the robot according to the Sarsa algorithm.
+
+        Uses the other methods and the given parameters upon initialization to train the robot using the Sarsa
+        algorithm with decreasing learning rate and epsilon exploration.
+        """
+
+        for _ in tqdm(range(self.number_of_episodes)):
+            # Reset environment. There is a chance that it randomizes the starting position.
+            if np.random.binomial(1, 0.2) == 1:
+                self.__reset_env(self.__get_random_start_pos())
+            else:
+                self.__reset_env()
+
+            # Get initial state and action
+            state: SarsaState = SarsaState(self.pos[1], self.pos[0], self.get_vision())
+            action = self.__choose_action(state)
+
+            for t in range(self.max_steps_per_episode):
+                # Make step given current action
+                new_state, reward, done = self.__step(action)
+
+                # Choose a new action based on the new state
+                new_action = self.__choose_action(new_state)
+
+                # Update Q table
+                self.__update(state, action, reward, new_state, new_action)
+
+                # Copy over new state and new action for next iteration
+                state = new_state.make_copy()  # copy
+                action = str(new_action)  # copy
+
+                # Break if simulation is finished
+                if done:
+                    break
+
+            # Slowly lower the learning rate and epsilon exploration
+            self.epsilon *= 0.9995
+            self.lr *= 0.9995
+
+        # Reset environment after training for simulation.
+        self.__reset_env()
+        self.grid = self.starting_grid
+
+        # Set is_trained to true after completion of training
+        self.is_trained = True
+
+    def __step(self, action: str) -> Tuple[SarsaState, float, bool]:
+        """ This function simulates a step of the algorithm given an action and the current state of the robot.
+
+        Args:
+             action:    The action to be taken from ['n', 'e', 's', 'w']
+
+        Returns:
+            Tuple containing the following 3 items:
+                new_state:  The new SarsaState of the robot
+                reward:     The reward that was obtained for doing the move
+                done:       Whether the simulation is over, based on whether the robot is alive, there is battery left
+                                and whether the grid is cleaned.
+        """
+
+        # Rotate the bot in the correct direction it wants to move
+        while action != self.orientation:
+            self.rotate('r')
+
+        label_square_in_front = self.grid.get_c(tuple(np.array(self.pos) + np.array(self.dirs[action])))
+
+        _, drained_battery = self.move()
+
+        reward = get_label_and_battery_based_reward(label_square_in_front, drained_battery)
+
+        new_state = SarsaState(self.pos[1], self.pos[0], self.get_vision())
+
+        done = not (self.alive or self.battery_lvl > 0) or self.grid.is_cleaned()
+
+        return new_state, reward, done
+
+    def __choose_action(self, current_state: SarsaState) -> str:
+        """ Function chooses and action based on the epsilon greedy strategy.
+
+        Args:
+            current_state: Current SarsaState object
+
+        Returns:
+            The action to be taken from ['n', 'e', 's', 'w']
+        """
+        directions = ["n", "e", "s", "w"]
+        if np.random.uniform(0, 1) < self.epsilon:
+            action = np.random.choice(directions)
+        else:
+            y, x, z, _ = current_state.get_index(None)
+            action_idx = np.argmax(self.Q[(y, x, z)])
+            action = directions[action_idx]
+
+        return action
+
+    def __update(self, state_1, action_1, reward, state_2, action_2) -> None:
+        """ Function updates the Q table given several parameters.
+
+        Args:
+            state_1:    The first SarsaState object.
+            action_1:   The action chosen from state_1 which was completed.
+            reward:     The reward obtained from doing action_1 in state_1.
+            state_2:    The SarsaState that was obtained by doing action_1 in state_1.
+            action_2:   The action chosen from state_2.
+        """
+        index_1 = state_1.get_index(action_1)
+        index_2 = state_2.get_index(action_2)
+
+        predict = self.Q[index_1]
+        target = reward + self.gamma * self.Q[index_2]
+
+        update_coefficient = self.lr * (target - predict)
+        self.Q[index_1] = self.Q[index_1] + update_coefficient
+
+    def get_vision(self) -> Dict:
+        """ Function retrieves the current vision of the robot according to what the SarsaState object expects.
+
+        Returns:
+            Dictionary according to the docs of SarsaState.
+        """
+        d = {'n': False, 'e': False, 's': False, 'w': False}
+
+        for direction in ['n', 'e', 's', 'w']:
+            pos = tuple(np.array(self.pos) + np.array(self.dirs[direction]))
+            val = self.grid.get_c(pos)
+            if -2 <= val <= 0:
+                d[direction] = True
+
+        return d
+
+    def __reset_env(self, starting_position=None):
         """ Function resets the environment for the next simulation.
 
         Args:
             starting_position: the new starting position of the robot. If not included, default starting position
                                 upon initialization is taken.
-
         """
         self.grid = copy.deepcopy(self.starting_grid)
 
@@ -96,107 +226,21 @@ class Sarsa(Robot):
         self.alive = True
         self.battery_lvl = 100
 
-    def get_vision(self) -> Dict:
-        d = {'n': False, 'e': False, 's': False, 'w': False}
+    def __get_random_start_pos(self) -> Tuple[int, int]:
+        """ Function generates a random starting position out of the clean and dirty squares in the current grid.
 
-        for dir in ['n', 'e', 's', 'w']:
-            pos = tuple(np.array(self.pos) + np.array(self.dirs[dir]))
-            val = self.grid.get_c(pos)
-            if -2 <= val <= 0:
-                d[dir] = True
-
-        return d
-
-    def get_random_start_pos(self):
+        Returns:
+            Tuple (y,x) representing a random starting position for the robot. This starting position is either
+            clean or dirty.
+        """
         while True:
-            randx = randint(1, self.grid.n_cols-1)
-            randy = randint(1, self.grid.n_rows-1)
+            rand_x = randint(1, self.grid.n_cols-1)
+            rand_y = randint(1, self.grid.n_rows-1)
 
-            val = self.grid.get(randx, randy)
+            val = self.grid.get(rand_x, rand_y)
 
             if val == 1 or val == 0:
-                return randy, randx
-
-    def train(self):
-        logger.info("Sarsa.train: Started training robot for " + str(self.number_of_episodes) + " iterations.")
-
-        for iter in tqdm(range(self.number_of_episodes)):
-            t = 0
-            if np.random.binomial(1, 0.2) == 1:
-                self.reset_env(self.get_random_start_pos())
-            else:
-                self.reset_env()
-
-            state: SarsaState = SarsaState(self.pos[1], self.pos[0], self.get_vision())
-            action = self.choose_action(state)
-
-            while t < self.max_steps_per_episode:
-                new_state, reward, done = self.step(action)
-
-                new_action = self.choose_action(new_state)
-
-                self.update(state, action, reward, new_state, new_action)
-
-                state = new_state.make_copy()  # copy
-                action = str(new_action)  # copy
-
-                t += 1
-
-                if done:
-                    break
-
-            # Slowly lower the learning rate and epsilon exploration
-            self.epsilon *= 0.9995
-            self.lr *= 0.9995
-
-            if iter % 100 == 0:
-                logger.info("")
-                logger.info(str(self.lr))
-                logger.info(iter) # For debugging
-
-
-        self.reset_env()
-        self.grid = self.starting_grid
-
-        self.is_trained = True
-
-    def step(self, action: str) -> Tuple[SarsaState, float, bool]:
-        # Rotate
-        while action != self.orientation:
-            self.rotate('r')
-
-        label_square_in_front = self.grid.get_c(tuple(np.array(self.pos) + np.array(self.dirs[action])))
-
-        _, drained_battery = self.move()
-
-        reward = get_label_and_battery_based_reward(label_square_in_front, drained_battery)
-
-        new_state = SarsaState(self.pos[1], self.pos[0], self.get_vision())
-
-        done = not (self.alive or self.battery_lvl > 0) or self.grid.is_cleaned()
-
-        return new_state, reward, done
-
-    def choose_action(self, current_state) -> str:
-        directions = ["n", "e", "s", "w"]
-        if np.random.uniform(0, 1) < self.epsilon:
-            action = np.random.choice(directions)
-        else:
-            y, x, z, _ = current_state.get_index(None)
-            action_idx = np.argmax(self.Q[(y, x, z)])
-            action = directions[action_idx]
-
-        return action
-
-    def update(self, state_1, action_1, reward, state_2, action_2):
-        index_1 = state_1.get_index(action_1)
-        index_2 = state_2.get_index(action_2)
-
-        predict = self.Q[index_1]
-        target = reward + self.gamma * self.Q[index_2]
-
-        update_coef = self.lr * (target - predict)
-        self.Q[index_1] = self.Q[index_1] + update_coef
+                return rand_y, rand_x
 
 
 def robot_epoch(robot: Sarsa):
