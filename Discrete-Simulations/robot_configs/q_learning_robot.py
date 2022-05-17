@@ -10,6 +10,8 @@ import copy
 
 logger = logging.getLogger(__name__)
 
+DEBUG = True
+
 
 class QAgentState:
     def __init__(self, pos_x: int, pos_y: int, vision: dict):
@@ -52,7 +54,7 @@ class QAgentState:
 class QAgent(Robot):
 
     def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
-                 epsilon=0.99, gamma=0.95, lr=0.99, max_steps_per_episode=100, number_of_episodes=5000):
+                 epsilon=0.99, gamma=0.95, lr=0.99, max_steps_per_episode=100, number_of_episodes=500):
         # NOTE: i have set the battery drain params here, but note that if you have the UI, those settings
         # prevail (unless you comment them out in app.py line 187)
 
@@ -72,6 +74,7 @@ class QAgent(Robot):
         self.Q = np.zeros((grid.n_rows, grid.n_cols, 2**4, 4))
 
         self.is_trained = False
+        self.show_debug_values = DEBUG
 
     def train(self) -> None:
         """ Trains the robot according to the Sarsa algorithm.
@@ -140,7 +143,9 @@ class QAgent(Robot):
         y, x, z, _ = current_state.get_index(None)
         action_idx = np.argmax(self.Q[(y, x, z)])
         action = directions[action_idx]
-
+        for action in directions:
+            target_pos = tuple(np.array(self.pos) + np.array(self.dirs[action]))
+            self.debug_values[target_pos] = self.Q[current_state.get_index(action)]
         # Rotate bot in correct direction
         while action != self.orientation:
             self.rotate('r')
