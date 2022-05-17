@@ -3,6 +3,7 @@ from typing import Tuple, Dict
 from random import randint
 
 from environment import Robot, Grid
+from helpers.globals import DEBUG
 from helpers.reward_functions import get_label_and_battery_based_reward
 from helpers.td_state import TDState
 import numpy as np
@@ -34,6 +35,7 @@ class TDRobot(Robot):
         self.Q = np.zeros((grid.n_rows, grid.n_cols, 2**4, 4))
 
         self.is_trained = False
+        self.show_debug_values = DEBUG
 
     def train(self) -> None:
         """ Trains the robot according to the specified TD algorithm.
@@ -52,7 +54,7 @@ class TDRobot(Robot):
 
         # Get action according to TD policy
         directions = ["n", "e", "s", "w"]
-        current_state = TDState(self.pos[1], self.pos[0], self.__get_vision())
+        current_state = TDState(self.pos[1], self.pos[0], self.get_vision())
         y, x, z, _ = current_state.get_index(None)
         action_idx = np.argmax(self.Q[(y, x, z)])
         action = directions[action_idx]
@@ -61,10 +63,14 @@ class TDRobot(Robot):
         while action != self.orientation:
             self.rotate('r')
 
+        for d in directions:
+            target_pos = tuple(np.array(self.pos) + np.array(self.dirs[d]))
+            self.debug_values[target_pos] = self.Q[current_state.get_index(d)]
+
         # Move robot
         self.move()
 
-    def __step(self, action: str) -> Tuple[TDState, float, bool]:
+    def step(self, action: str) -> Tuple[TDState, float, bool]:
         """ This function simulates a step of the algorithm given an action and the current state of the robot.
 
         Args:
@@ -88,13 +94,13 @@ class TDRobot(Robot):
 
         reward = get_label_and_battery_based_reward(label_square_in_front, drained_battery)
 
-        new_state = TDState(self.pos[1], self.pos[0], self.__get_vision())
+        new_state = TDState(self.pos[1], self.pos[0], self.get_vision())
 
         done = not (self.alive and self.battery_lvl > 0) or self.grid.is_cleaned()
 
         return new_state, reward, done
 
-    def __choose_action(self, current_state: TDState, use_greedy_strategy: bool = False) -> str:
+    def choose_action(self, current_state: TDState, use_greedy_strategy: bool = False) -> str:
         """ Function chooses and action based on the epsilon greedy strategy.
 
         Args:
@@ -113,12 +119,12 @@ class TDRobot(Robot):
 
         return action
 
-    def __update(self, *args) -> None:
+    def update(self, *args) -> None:
         """ Updates the Q table given several parameters.
         """
-        raise NotImplementedError("Update strategy not defined. Please define your __update function")
+        raise NotImplementedError("Update strategy not defined. Please define your update function")
 
-    def __get_vision(self) -> Dict:
+    def get_vision(self) -> Dict:
         """ Function retrieves the current vision of the robot according to what the TDState object expects.
 
         Returns:
@@ -134,7 +140,7 @@ class TDRobot(Robot):
 
         return d
 
-    def __reset_env(self, starting_position=None):
+    def reset_env(self, starting_position=None):
         """ Function resets the environment for the next simulation.
 
         Args:
@@ -156,7 +162,7 @@ class TDRobot(Robot):
         self.alive = True
         self.battery_lvl = 100
 
-    def __get_random_start_pos(self) -> Tuple[int, int]:
+    def get_random_start_pos(self) -> Tuple[int, int]:
         """ Function generates a random starting position out of the clean and dirty squares in the current grid.
 
         Returns:

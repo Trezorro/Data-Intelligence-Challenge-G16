@@ -15,8 +15,7 @@ import ast
 from matplotlib.figure import Figure
 from environment import Grid, Robot
 
-from robot_configs.q_learning_robot import QAgent as Robot
-
+from robot_configs.q_learning_robot import QRobot as Robot
 
 
 # Import all robot algorithms present in the robot_configs folder. DO NOT DELETE.
