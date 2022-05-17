@@ -1,7 +1,8 @@
 # Import our robot algorithm to use in this simulation:
-from robot_configs.policy_iteration_robot import robot_epoch
+from robot_configs.q_learning_robot import robot_epoch
 import pickle
-from environment import Robot
+# from environment import Robot
+from robot_configs.q_learning_robot import QAgent as Robot
 import pandas as pd
 import time
 import numpy as np
@@ -67,7 +68,7 @@ try:
                             start_time = time.time()
                             n_epochs += 1
                             # Do a robot epoch (basically call the robot algorithm once):
-                            robot_epoch(robot, gamma, theta)
+                            robot_epoch(robot) # Gamma and theta not allowed to change (yet)
                             # Stop this simulation instance if robot died :( :
                             if not robot.alive:
                                 deaths += 1

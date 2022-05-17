@@ -15,7 +15,7 @@ import ast
 from matplotlib.figure import Figure
 from environment import Grid, Robot
 
-from robot_configs.sarsa_robot import Sarsa as Robot
+from robot_configs.q_learning_robot import QAgent as Robot
 
 
 

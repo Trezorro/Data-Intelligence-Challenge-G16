@@ -132,7 +132,7 @@ class QAgent(Robot):
 
         # Check if robot is trained.
         if not self.is_trained:
-            logger.warning("Sarsa.do_move: Executing robot move without being trained!")
+            logger.warning("QAgent.do_move: Executing robot move without being trained!")
 
         # Get action according to Sarsa policy
         directions = ["n", "e", "s", "w"]
@@ -204,15 +204,14 @@ class QAgent(Robot):
             state_1:    The first SarsaState object.
             action_1:   The action chosen from state_1 which was completed.
             reward:     The reward obtained from doing action_1 in state_1.
-            state_2:    The SarsaState that was obtained by doing action_1 in state_1.
-            action_2:   The action chosen from state_2.
+            max_next_q: The max Q reachable from the state after the action
         """
-        index_1 = state_1.get_index(action_1)
+        current_state_idx = state_1.get_index(action_1)
 
-        current_q = self.Q[index_1]
-        target = reward + self.gamma * (max_next_q - current_q)
-        new_q = current_q + self.lr * target
-        self.Q[index_1] = new_q
+        current_q = self.Q[current_state_idx]
+        delta = reward + self.gamma * (max_next_q - current_q)
+        new_q = current_q + self.lr * delta
+        self.Q[current_state_idx] = new_q
 
 
     def __get_vision(self) -> Dict:
