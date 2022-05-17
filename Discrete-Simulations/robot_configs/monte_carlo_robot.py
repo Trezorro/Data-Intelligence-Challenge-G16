@@ -3,6 +3,7 @@ import numpy as np
 from environment import Robot
 import logging
 import random
+import copy
 
 # Logging settings
 from helpers.label_based_reward import get_reward
@@ -20,17 +21,21 @@ def robot_epoch(robot: Robot, gamma=0.9, max_episodes = 100, epsilon = 0.1):
     max_episodes = max_episodes
     g = gamma
     count_clean = 0
+    number_of_cells = 0
     q_grid = {}
     epsilon = epsilon
     moves = list(robot.dirs.values())
     Returns = {}
     policy = {}
+    all_possible_moves = []
 
     for x in range(robot.grid.n_cols):
         for y in range(robot.grid.n_rows):
             if -3 < robot.grid.cells[y][x] < 0 or robot.grid.cells[y][x] == 3:
                 continue
+            all_possible_moves.append(tuple(np.array([y, x])))
             possible_moves = []
+            number_of_cells += 1
             if robot.grid.cells[y][x] == 0:
                 count_clean += 1
             for move in moves:
@@ -55,28 +60,44 @@ def robot_epoch(robot: Robot, gamma=0.9, max_episodes = 100, epsilon = 0.1):
          [[(1, 1), (1, 0), 2], [(2, 1), (1, 0), -1], [(3, 1), (-1, 0), -1]]: the state (1,1) has next action (1,0)
          that gives 2 as reward, then, the state (2,1) has (1,0) as next action that gives -1 as reward etc.
         """
-        episodes= []
-        position = tuple(np.array(robot.pos))
+        temp_robot = copy.deepcopy(robot)
 
-        for i in range(count_clean):
+        episodes= []
+        # TODO random initial move ?
+        # position = random.choice(all_possible_moves)
+        position = tuple(np.array(temp_robot.pos))
+        not_end_episode = True
+
+        found_clean = False
+
+        step = 0
+        while not_end_episode:
             moves = []
             probs = []
             for state, action in policy.keys():
                 if state == position:
                     moves.append(action)
-                    probs.append(policy[state,action])
+                    probs.append(policy[state, action])
             chosen_move = random.choices(moves, weights=probs, k=1)[0]
-            episodes.append([position, chosen_move])
-            new_pos = tuple(np.asarray(position)+ chosen_move)
 
-            reward = get_reward(robot.grid.cells[new_pos])
-            episodes[i].append(reward)
+            episodes.append([position, chosen_move])
+            new_pos = tuple(np.asarray(position) + chosen_move)
+
+            reward = get_reward(temp_robot.grid.cells[new_pos])
+            episodes[step].append(reward)
+
+            step += 1
+            if (get_reward(temp_robot.grid.cells[new_pos]) == 2):
+                found_clean = True
+
+            if (found_clean and step > number_of_cells/4) or step > count_clean:
+            # if (found_clean) or step > count_clean:
+                not_end_episode = False
 
             position = new_pos
+            temp_robot.pos = position
 
         return episodes
-
-    print("Episodes", generate_episodes(policy))
 
     """Implementation"""
     for episode in range(max_episodes):
