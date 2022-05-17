@@ -106,6 +106,8 @@ def build_grid():
      save: boolean (true, false) to save the current grid to a file.
      name: filename to save the current grid to.
      """
+    global grid, robots
+    robots = None
     n_rows = int(request.args.get('height'))
     n_cols = int(request.args.get('width'))
     obstacles = ast.literal_eval(request.args.get('obstacles'))
