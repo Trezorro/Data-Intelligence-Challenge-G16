@@ -9,7 +9,7 @@ import copy
 from helpers.label_based_reward import get_reward
 
 
-def robot_epoch(robot: Robot, gamma=0.99, max_episodes = 200, epsilon = 0.2):
+def robot_epoch(robot: Robot, gamma=0.99, max_episodes = 100, epsilon = 0.8):
     """ Initianlize the attributes needed for the Mote Carlo On Policy implementation
 
     :param max_episodes: the max number of episodes that we want to compute
@@ -18,21 +18,26 @@ def robot_epoch(robot: Robot, gamma=0.99, max_episodes = 200, epsilon = 0.2):
     :param Returns: empty array for every possible combination of moves and states
     :param policy: initialize a policy for every possible state
     """
+
+    #Initialization
     max_episodes = max_episodes
     g = gamma
     count_clean = 0
+    #number of non wall or obstacle cells
     number_of_cells = 0
-    q_grid = {}
+    q_grid = {} #q_grid : Q(state, action)
     epsilon = epsilon
     moves = list(robot.dirs.values())
-    Returns = {}
-    policy = {}
+    Returns = {} # Returns(state, action)
+    policy = {} # policy(state, action)
     all_possible_moves = []
 
     for x in range(robot.grid.n_cols):
         for y in range(robot.grid.n_rows):
+            # ignore cells that are walls or obstacles
             if -3 < robot.grid.cells[y][x] < 0 or robot.grid.cells[y][x] == 3:
                 continue
+            #create a list with possible states
             all_possible_moves.append(tuple(np.array([y, x])))
             possible_moves = []
             number_of_cells += 1
@@ -47,7 +52,9 @@ def robot_epoch(robot: Robot, gamma=0.99, max_episodes = 200, epsilon = 0.2):
                 Returns[(y, x),move] = []
                 q_grid[(y, x), move] = 0
             for move in possible_moves:
+                #initialize the policy with equal probability for every action of a certain state
                 policy[(y, x), move] = 1 / len(possible_moves)
+
 
     """Generate episodes"""
     def generate_episodes(policy):
@@ -60,6 +67,8 @@ def robot_epoch(robot: Robot, gamma=0.99, max_episodes = 200, epsilon = 0.2):
          [[(1, 1), (1, 0), 2], [(2, 1), (1, 0), -1], [(3, 1), (-1, 0), -1]]: the state (1,1) has next action (1,0)
          that gives 2 as reward, then, the state (2,1) has (1,0) as next action that gives -1 as reward etc.
         """
+        #create a deepcopy of robot object because in the simulation
+        #we will have an updated board which is the result of simulation and not the actual one
         temp_robot = copy.deepcopy(robot)
 
         episodes= []
@@ -68,9 +77,11 @@ def robot_epoch(robot: Robot, gamma=0.99, max_episodes = 200, epsilon = 0.2):
         # position = tuple(np.array(temp_robot.pos))
         not_end_episode = True
 
-        found_clean = False
+        #flag for finding a dirty cell in an episode simulation
+        found_dirty = False
 
         step = 0
+        # step of the episodes to be proportinal of the grid size
         while step < number_of_cells/3:
             moves = []
             probs = []
@@ -78,22 +89,25 @@ def robot_epoch(robot: Robot, gamma=0.99, max_episodes = 200, epsilon = 0.2):
                 if state == position:
                     moves.append(action)
                     probs.append(policy[state, action])
+            #choose randomly a move but based on action weights
             chosen_move = random.choices(moves, weights=probs, k=1)[0]
-
             episodes.append([position, chosen_move])
             new_pos = tuple(np.asarray(position) + chosen_move)
 
+            #update the reward in the simulated grid
             reward = get_reward(temp_robot.grid.cells[new_pos])
             episodes[step].append(reward)
 
             step += 1
             if (get_reward(temp_robot.grid.cells[new_pos]) == 2):
-                found_clean = True
+                found_dirty = True
 
-            if (found_clean and step > number_of_cells/4) or step > count_clean:
+
+            if (found_dirty and step > number_of_cells/4) or step > count_clean:
             # if (found_clean) or step > count_clean:
                 not_end_episode = False
 
+            #update position of the simulated robot
             position = new_pos
             temp_robot.pos = position
 
@@ -102,6 +116,8 @@ def robot_epoch(robot: Robot, gamma=0.99, max_episodes = 200, epsilon = 0.2):
     """Implementation"""
     for episode in range(max_episodes):
         # generate episodes
+
+        # gradually reduce the epsilon parameter cause we need less exploration and more exploitation as the episodes increase
         epsilon *= 0.99
         single_episode = generate_episodes(policy)
         G = 0
@@ -110,8 +126,11 @@ def robot_epoch(robot: Robot, gamma=0.99, max_episodes = 200, epsilon = 0.2):
             # first-visit
             if (step[0], step[1]) not in np.array(single_episode[::-1])[:, :2][idx + 1:]:
 
+                #update Returns(state,action) & q_grid(state,action)
                 Returns[step[0], step[1]].append(G)
                 q_grid[step[0], step[1]] = np.mean(Returns[step[0], step[1]])
+
+                #calculate the best action
                 best_action = (0, 0)
                 max_value = -100
 
@@ -123,6 +142,8 @@ def robot_epoch(robot: Robot, gamma=0.99, max_episodes = 200, epsilon = 0.2):
                             best_action = action
                             max_value = q_grid[state, action]
 
+                #update the policy matrix of the specific (state,action) pair
+                # based on e-soft policy
                 for state, action in q_grid.keys():  # enumerate action space
                     if state == step[0]:
                         if action == best_action:
