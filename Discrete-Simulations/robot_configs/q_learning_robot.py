@@ -15,7 +15,7 @@ DEBUG = True
 
 class QAgentState:
     def __init__(self, pos_x: int, pos_y: int, vision: dict):
-        """State for Sarsa Lookup.
+        """State for QAgent Lookup.
 
         Vision dict should have keys "n", "e", "w", "s" for which the values
         are True if clean and False if dirty. Walls and obstacles are always
@@ -26,7 +26,7 @@ class QAgentState:
         self.vision = vision
 
     def get_index(self, action):
-        """Get index of Q table for Sarsa given for this state.
+        """Get index of Q table for QAgent given for this state.
 
         The Q table has 4 dimensions. The first 2 are the physical grid (indexed y,x), the 3rd
         dimension is the combination of all possible vision states (len = 16),
@@ -54,7 +54,7 @@ class QAgentState:
 class QAgent(Robot):
 
     def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
-                 epsilon=0.99, gamma=0.95, lr=0.99, max_steps_per_episode=100, number_of_episodes=500):
+                 epsilon=0.49, gamma=0.95, lr=0.99, max_steps_per_episode=100, number_of_episodes=1000):
         # NOTE: i have set the battery drain params here, but note that if you have the UI, those settings
         # prevail (unless you comment them out in app.py line 187)
 
@@ -77,9 +77,9 @@ class QAgent(Robot):
         self.show_debug_values = DEBUG
 
     def train(self) -> None:
-        """ Trains the robot according to the Sarsa algorithm.
+        """ Trains the robot according to the QAgent algorithm.
 
-        Uses the other methods and the given parameters upon initialization to train the robot using the Sarsa
+        Uses the other methods and the given parameters upon initialization to train the robot using the QAgent
         algorithm with decreasing learning rate and epsilon exploration.
         """
 
@@ -103,7 +103,6 @@ class QAgent(Robot):
                 else:
                     # Choose a new action based on the greedy strategy
                     greedy_action = self.__choose_action(new_state, choose_greedy_move=True)
-
                     max_next_reward = self.Q[new_state.get_index(greedy_action)]
 
                 # Update Q table
@@ -137,20 +136,29 @@ class QAgent(Robot):
         if not self.is_trained:
             logger.warning("QAgent.do_move: Executing robot move without being trained!")
 
-        # Get action according to Sarsa policy
+        # Get action according to QAgent policy
         directions = ["n", "e", "s", "w"]
         current_state = QAgentState(self.pos[1], self.pos[0], self.__get_vision())
         y, x, z, _ = current_state.get_index(None)
         action_idx = np.argmax(self.Q[(y, x, z)])
         action = directions[action_idx]
-        for action in directions:
-            target_pos = tuple(np.array(self.pos) + np.array(self.dirs[action]))
-            self.debug_values[target_pos] = self.Q[current_state.get_index(action)]
+        for d in directions:
+            target_pos = tuple(np.array(self.pos) + np.array(self.dirs[d]))
+            self.debug_values[target_pos] = self.Q[current_state.get_index(d)]
+            # for x_idx in range(1, self.grid.n_cols - 1):
+            #     for y_idx in range(1, self.grid.n_rows - 1):
+            #         self.debug_values[y_idx, x_idx] = np.max(self.Q[y_idx, x_idx, :])
+
         # Rotate bot in correct direction
         while action != self.orientation:
             self.rotate('r')
+            idx = current_state.get_index(self.orientation)
+            # print("Q_Learning: Rotated! Current direction:", self.orientation)
+            # print("Q_Learning: Action value:", self.Q[idx])
 
         # Move robot
+        idx = current_state.get_index(self.orientation)
+        print("Q_Learning: Action value:", self.Q[idx])
         self.move()
 
     def __step(self, action: str) -> Tuple[QAgentState, float, bool]:
@@ -161,7 +169,7 @@ class QAgent(Robot):
 
         Returns:
             Tuple containing the following 3 items:
-                new_state:  The new SarsaState of the robot
+                new_state:  The new QAgentState of the robot
                 reward:     The reward that was obtained for doing the move
                 done:       Whether the simulation is over, based on whether the robot is alive, there is battery left
                                 and whether the grid is cleaned.
@@ -179,7 +187,7 @@ class QAgent(Robot):
 
         new_state = QAgentState(self.pos[1], self.pos[0], self.__get_vision())
 
-        done = not (self.alive or self.battery_lvl > 0) or self.grid.is_cleaned()
+        done = not (self.alive and self.battery_lvl > 0) or self.grid.is_cleaned()
 
         return new_state, reward, done
 
@@ -187,7 +195,7 @@ class QAgent(Robot):
         """ Function chooses and action based on the epsilon greedy strategy.
 
         Args:
-            current_state: Current SarsaState object
+            current_state: Current QAgentState object
 
         Returns:
             The action to be taken from ['n', 'e', 's', 'w']
@@ -197,7 +205,7 @@ class QAgent(Robot):
             action = np.random.choice(directions)
         else:
             y, x, z, _ = current_state.get_index(None)
-            action_idx = np.argmax(self.Q[(y, x, z)]) # How does it
+            action_idx = np.argmax(self.Q[(y, x, z)])
             action = directions[action_idx]
 
         return action
@@ -206,7 +214,7 @@ class QAgent(Robot):
         """ Function updates the Q table given several parameters.
 
         Args:
-            state_1:    The first SarsaState object.
+            state_1:    The first QAgentState object.
             action_1:   The action chosen from state_1 which was completed.
             reward:     The reward obtained from doing action_1 in state_1.
             max_next_q: The max Q reachable from the state after the action
@@ -220,10 +228,10 @@ class QAgent(Robot):
 
 
     def __get_vision(self) -> Dict:
-        """ Function retrieves the current vision of the robot according to what the SarsaState object expects.
+        """ Function retrieves the current vision of the robot according to what the QAgentState object expects.
 
         Returns:
-            Dictionary according to the docs of SarsaState.
+            Dictionary according to the docs of QAgentState.
         """
         d = {'n': False, 'e': False, 's': False, 'w': False}
 
