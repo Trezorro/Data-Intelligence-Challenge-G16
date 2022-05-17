@@ -1,11 +1,11 @@
-from environment import Robot
+from environment import RobotBase
 import numpy as np
 import random
 
 from helpers.reward_functions import get_label_based_reward
 
 
-def robot_epoch(robot: Robot, gamma=0.9, theta=0.01):
+def robot_epoch(robot: RobotBase, gamma=0.9, theta=0.01):
     """ Value iteration bot """
 
     # Initialize parameters

@@ -2,8 +2,8 @@ import logging
 from typing import Tuple, Dict
 from random import randint
 
-from environment import Robot, Grid
 from helpers.globals import DEBUG
+from environment import RobotBase, Grid
 from helpers.reward_functions import get_label_and_battery_based_reward
 from helpers.td_state import TDState
 import numpy as np
@@ -12,10 +12,10 @@ import copy
 logger = logging.getLogger(__name__)
 
 
-class TDRobot(Robot):
+class TDRobotBase(RobotBase):
 
     def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
-                 epsilon=0.99, gamma=0.95, lr=0.99, max_steps_per_episode=100, number_of_episodes=5000):
+                 epsilon=0.99, gamma=0.95, lr=0.99, max_steps_per_episode=100, number_of_episodes=2000, train_instantly=True):
         # NOTE: i have set the battery drain params here, but note that if you have the UI, those settings
         # prevail (unless you comment them out in app.py line 187)
 
@@ -36,6 +36,11 @@ class TDRobot(Robot):
 
         self.is_trained = False
         self.show_debug_values = DEBUG
+        if train_instantly:
+            self.train()
+
+    def robot_epoch(self):
+        self.do_move()
 
     def train(self) -> None:
         """ Trains the robot according to the specified TD algorithm.
@@ -43,6 +48,7 @@ class TDRobot(Robot):
         Uses the other methods and the given parameters upon initialization to train the robot using the TD
         algorithm with decreasing learning rate and epsilon exploration.
         """
+        raise NotImplementedError("Subclass and implement train() method!")
 
     def do_move(self) -> None:
         """ Function executes a move according to the robot's Q_table
@@ -63,14 +69,15 @@ class TDRobot(Robot):
         while action != self.orientation:
             self.rotate('r')
 
-        for d in directions:
-            target_pos = tuple(np.array(self.pos) + np.array(self.dirs[d]))
-            self.debug_values[target_pos] = self.Q[current_state.get_index(d)]
+        if DEBUG:
+            for d in directions:
+                target_pos = tuple(np.array(self.pos) + np.array(self.dirs[d]))
+                self.debug_values[target_pos] = self.Q[current_state.get_index(d)]
 
         # Move robot
         self.move()
 
-    def step(self, action: str) -> Tuple[TDState, float, bool]:
+    def _step(self, action: str) -> Tuple[TDState, float, bool]:
         """ This function simulates a step of the algorithm given an action and the current state of the robot.
 
         Args:
@@ -99,30 +106,6 @@ class TDRobot(Robot):
         done = not (self.alive and self.battery_lvl > 0) or self.grid.is_cleaned()
 
         return new_state, reward, done
-
-    def choose_action(self, current_state: TDState, use_greedy_strategy: bool = False) -> str:
-        """ Function chooses and action based on the epsilon greedy strategy.
-
-        Args:
-            current_state: Current TDState object
-
-        Returns:
-            The action to be taken from ['n', 'e', 's', 'w']
-        """
-        directions = ["n", "e", "s", "w"]
-        if not use_greedy_strategy and np.random.uniform(0, 1) < self.epsilon:
-            action = np.random.choice(directions)
-        else:
-            y, x, z, _ = current_state.get_index(None)
-            action_idx = np.argmax(self.Q[(y, x, z)])
-            action = directions[action_idx]
-
-        return action
-
-    def update(self, *args) -> None:
-        """ Updates the Q table given several parameters.
-        """
-        raise NotImplementedError("Update strategy not defined. Please define your update function")
 
     def get_vision(self) -> Dict:
         """ Function retrieves the current vision of the robot according to what the TDState object expects.

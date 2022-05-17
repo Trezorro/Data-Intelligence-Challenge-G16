@@ -1,4 +1,5 @@
-from typing import List
+from typing import List, Type
+import importlib
 
 from flask import Flask, render_template, request
 from engineio.payload import Payload
@@ -13,13 +14,7 @@ import pickle
 import os
 import ast
 from matplotlib.figure import Figure
-from environment import Grid, Robot
-
-from robot_configs.q_learning_robot import QRobot as Robot
-
-
-# Import all robot algorithms present in the robot_configs folder. DO NOT DELETE.
-from robot_configs import *
+from environment import Grid, RobotBase
 
 Payload.max_decode_packets = 1000
 
@@ -28,10 +23,12 @@ app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
 grid: Grid = None
-robots: List[Robot] = None
+robots: List[RobotBase] = None
 occupied = False
 PATH = os.getcwd()
 
+import logging
+logging.basicConfig(level=logging.DEBUG, force=True)
 
 def draw_grid(grid_to_draw: Grid):
     """'Helper function for creating a JSON payload which will be displayed in the browser."""
@@ -173,6 +170,8 @@ def handle_browser_new_grid(json):
 
 @socketio.on('get_robot')
 def handle_browser_spawn_robot(json):
+    global robots
+    global grid
     p_determ = float(json['determ'])
     x_spawn = json['x_spawns'].split(',')
     y_spawn = json['y_spawns'].split(',')
@@ -181,12 +180,18 @@ def handle_browser_spawn_robot(json):
     lam_drain = float(json['lam_drain'])
     vision = int(json['vision'])
     n_robots = int(json['n_robots'])
-
-    global robots
-    global grid
+    # Dynamically load correct bot class:
+    robot_module = importlib.import_module('robot_configs.'+json['robot_file'].split('.py')[0])
+    RobotClass: Type[RobotBase] = getattr(robot_module, 'Robot', RobotBase)
     try:
-        robots = [Robot(grid, (int(y_spawn[i]), int(x_spawn[i])), orientation=orient, battery_drain_p=p_drain,
-                        battery_drain_lam=lam_drain, p_move=p_determ, vision=vision) for i in range(n_robots)]
+        robots = [
+            RobotClass(grid, (int(y_spawn[i]), int(x_spawn[i])),
+                       orientation=orient,
+                       battery_drain_p=p_drain,
+                       battery_drain_lam=lam_drain,
+                       p_move=p_determ,
+                       vision=vision) for i in range(n_robots)
+        ]
     except IndexError:
         emit('new_grid', {'grid': '<h1>Invalid robot coordinates entered!</h1>'})
         print('[ERROR] invalid starting coordinate entered!')
@@ -203,23 +208,23 @@ def handle_browser_update(json):
     global occupied
     global grid
     robot_alg = json['robot_file'].split('.py')[0]
+    robot_module = importlib.import_module('robot_configs.'+robot_alg)
+    if not (hasattr(robot_module, 'Robot') or hasattr(robot_module, 'robot_epoch')):
+        raise ImportError(f"No Robot class or robot_epoch function found in {robot_alg}.py!")
+    
     if not occupied:
         occupied = True
-        # Checking if the selected robot algorithm is indeed imported, if file changed since starting app.py,
-        # throw error.
-        try:
-            for robot in robots:
-                # Don't update dead robots:
-                if robot.alive:
-                    if hasattr(robot, 'is_trained') and not robot.is_trained:
-                        robot.train()
+        for robot in robots:
+            # Don't update dead robots:
+            if robot.alive:
+                if not getattr(robot, 'is_trained', True):  # If this robot can and should be trained
+                    robot.train()
 
-                    # Call the robot epoch method of the selected robot config file:
-                    globals()[robot_alg].robot_epoch(robot)
-        except KeyError as e:
-            print(
-                f'[ERROR] restart app.py and make sure the file {robot_alg}.py is present in the robot_configs folder.')
-            raise e
+                # Call the robot epoch method of the selected robot config file:
+                if hasattr(robot_module, 'robot_epoch'):  # Try legacy robot_epoch function
+                    getattr(robot_module, 'robot_epoch')(robot)
+                else:
+                    robot.robot_epoch()  # Use method otherwise
         emit('new_grid', draw_grid(grid))
         emit('new_plot', get_history())
         occupied = False
