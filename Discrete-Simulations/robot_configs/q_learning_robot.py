@@ -1,10 +1,7 @@
 import logging
-from typing import Tuple, Dict
 from tqdm import tqdm
-from random import randint
 
-from environment import Robot, Grid
-from helpers.reward_functions import get_label_and_battery_based_reward
+from environment import Grid
 from helpers.td_robot import TDRobot
 from helpers.td_state import TDState
 import numpy as np

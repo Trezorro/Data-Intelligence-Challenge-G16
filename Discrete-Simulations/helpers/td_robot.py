@@ -11,7 +11,7 @@ import copy
 logger = logging.getLogger(__name__)
 
 
-class TDAgent(Robot):
+class TDRobot(Robot):
 
     def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
                  epsilon=0.99, gamma=0.95, lr=0.99, max_steps_per_episode=100, number_of_episodes=5000):
@@ -113,7 +113,7 @@ class TDAgent(Robot):
 
         return action
 
-    def __update(self) -> None:
+    def __update(self, *args) -> None:
         """ Updates the Q table given several parameters.
         """
         raise NotImplementedError("Update strategy not defined. Please define your __update function")
