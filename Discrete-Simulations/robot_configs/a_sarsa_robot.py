@@ -169,7 +169,7 @@ class Sarsa(Robot):
 
         new_state = SarsaState(self.pos[1], self.pos[0], self.__get_vision())
 
-        done = not (self.alive or self.battery_lvl > 0) or self.grid.is_cleaned()
+        done = not (self.alive and self.battery_lvl > 0) or self.grid.is_cleaned()
 
         return new_state, reward, done
 
