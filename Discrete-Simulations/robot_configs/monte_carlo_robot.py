@@ -9,7 +9,7 @@ import copy
 from helpers.label_based_reward import get_reward
 
 
-def robot_epoch(robot: Robot, gamma=0.99, max_episodes = 100, epsilon = 0.8):
+def robot_epoch(robot: Robot, gamma=0.99, max_episodes = 100, epsilon = 0.1):
     """ Initianlize the attributes needed for the Mote Carlo On Policy implementation
 
     :param max_episodes: the max number of episodes that we want to compute
@@ -31,6 +31,7 @@ def robot_epoch(robot: Robot, gamma=0.99, max_episodes = 100, epsilon = 0.8):
     Returns = {} # Returns(state, action)
     policy = {} # policy(state, action)
     all_possible_moves = []
+    possible_moves = {}
 
     for x in range(robot.grid.n_cols):
         for y in range(robot.grid.n_rows):
@@ -39,7 +40,7 @@ def robot_epoch(robot: Robot, gamma=0.99, max_episodes = 100, epsilon = 0.8):
                 continue
             #create a list with possible states
             all_possible_moves.append(tuple(np.array([y, x])))
-            possible_moves = []
+            possible_moves[(y,x)] = []
             number_of_cells += 1
             if robot.grid.cells[y][x] == 0:
                 count_clean += 1
@@ -48,10 +49,10 @@ def robot_epoch(robot: Robot, gamma=0.99, max_episodes = 100, epsilon = 0.8):
                 new_pos = tuple(np.array([y, x]) + move)
                 if -3 < robot.grid.cells[new_pos] < 0 or robot.grid.cells[new_pos] == 3:
                     continue
-                possible_moves.append(move)
+                possible_moves[(y,x)].append(move)
                 Returns[(y, x),move] = []
                 q_grid[(y, x), move] = 0
-            for move in possible_moves:
+            for move in possible_moves[(y,x)]:
                 #initialize the policy with equal probability for every action of a certain state
                 policy[(y, x), move] = 1 / len(possible_moves)
 
@@ -113,6 +114,7 @@ def robot_epoch(robot: Robot, gamma=0.99, max_episodes = 100, epsilon = 0.8):
 
         return episodes
 
+
     """Implementation"""
     for episode in range(max_episodes):
         # generate episodes
@@ -135,23 +137,25 @@ def robot_epoch(robot: Robot, gamma=0.99, max_episodes = 100, epsilon = 0.8):
                 max_value = -100
 
                 count_actions = 0
-                for state, action in q_grid.keys():
-                    if state == step[0]:
-                        count_actions += 1
-                        if q_grid[state, action] > max_value:
-                            best_action = action
-                            max_value = q_grid[state, action]
+                # q_grid_lst = list(q_grid)
+                for action in possible_moves[step[0]]:
+                    # if state == step[0]:
+                    count_actions += 1
+                    if q_grid[step[0], action] > max_value:
+                        best_action = action
+                        max_value = q_grid[step[0], action]
 
                 #update the policy matrix of the specific (state,action) pair
                 # based on e-soft policy
-                for state, action in q_grid.keys():  # enumerate action space
-                    if state == step[0]:
-                        if action == best_action:
-                            policy[state,action] = 1 - epsilon + epsilon / count_actions
-                        else:
-                            policy[state,action] =  epsilon / count_actions
+                for action in possible_moves[step[0]]: # enumerate action space
+                    # if state == step[0]:
+                    if action == best_action:
+                        policy[step[0],action] = 1 - epsilon + epsilon / count_actions
+                    else:
+                        policy[step[0],action] = epsilon / count_actions
 
-
+    # when the episodes iteration finishes
+    # choose the corresponding robot move based on the updated policy probabilities
     moves = []
     probs = []
     for state, action in policy.keys():
