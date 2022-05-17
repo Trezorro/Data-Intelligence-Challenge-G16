@@ -9,7 +9,7 @@ import copy
 from helpers.label_based_reward import get_reward
 
 
-def robot_epoch(robot: Robot, gamma=0.9, max_episodes = 100, epsilon = 0.1):
+def robot_epoch(robot: Robot, gamma=0.99, max_episodes = 200, epsilon = 0.2):
     """ Initianlize the attributes needed for the Mote Carlo On Policy implementation
 
     :param max_episodes: the max number of episodes that we want to compute
@@ -64,14 +64,14 @@ def robot_epoch(robot: Robot, gamma=0.9, max_episodes = 100, epsilon = 0.1):
 
         episodes= []
         # TODO random initial move ?
-        # position = random.choice(all_possible_moves)
-        position = tuple(np.array(temp_robot.pos))
+        position = random.choice(all_possible_moves)
+        # position = tuple(np.array(temp_robot.pos))
         not_end_episode = True
 
         found_clean = False
 
         step = 0
-        while not_end_episode:
+        while step < number_of_cells/3:
             moves = []
             probs = []
             for state, action in policy.keys():
@@ -102,6 +102,7 @@ def robot_epoch(robot: Robot, gamma=0.9, max_episodes = 100, epsilon = 0.1):
     """Implementation"""
     for episode in range(max_episodes):
         # generate episodes
+        epsilon *= 0.99
         single_episode = generate_episodes(policy)
         G = 0
         for idx, step in enumerate(single_episode[::-1]):
