@@ -68,14 +68,15 @@ class TDRobotBase(RobotBase):
         # Rotate bot in correct direction
         while action != self.orientation:
             self.rotate('r')
+        # Move robot
+        self.move()
 
         if DEBUG:
+            current_state = TDState(self.pos[1], self.pos[0], self.get_vision())
             for d in directions:
                 target_pos = tuple(np.array(self.pos) + np.array(self.dirs[d]))
                 self.debug_values[target_pos] = self.Q[current_state.get_index(d)]
 
-        # Move robot
-        self.move()
 
     def _step(self, action: str) -> Tuple[TDState, float, bool]:
         """ This function simulates a step of the algorithm given an action and the current state of the robot.

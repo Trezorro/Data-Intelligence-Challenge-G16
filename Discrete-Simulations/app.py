@@ -29,6 +29,8 @@ PATH = os.getcwd()
 
 import logging
 logging.basicConfig(level=logging.DEBUG, force=True)
+logging.getLogger('matplotlib').setLevel(logging.ERROR)
+
 
 def draw_grid(grid_to_draw: Grid):
     """'Helper function for creating a JSON payload which will be displayed in the browser."""

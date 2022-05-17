@@ -1,6 +1,7 @@
 import logging
 from tqdm import tqdm
 
+from environment import Grid
 from helpers.td_robot import TDRobotBase
 from helpers.td_state import TDState
 import numpy as np
@@ -10,6 +11,9 @@ logger = logging.getLogger(__name__)
 
 class Robot(TDRobotBase):
     """Q-Learning Robot"""
+
+    def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1, epsilon=0.99, gamma=0.7, lr=0.9, max_steps_per_episode=100, number_of_episodes=4000, train_instantly=True):
+        super().__init__(grid, pos, orientation, p_move, battery_drain_p, battery_drain_lam, vision, epsilon, gamma, lr, max_steps_per_episode, number_of_episodes, train_instantly)
     
     def train(self) -> None:
         """ Trains the robot according to the QAgent algorithm.
@@ -80,7 +84,7 @@ class Robot(TDRobotBase):
 
         return action
 
-    def _update_qtable(self, state_1, action_1, reward, max_next_q) -> None:
+    def _update_qtable(self, state, action, reward, max_next_q) -> None:
         """ Function updates the Q table given several parameters.
 
         Args:
@@ -89,7 +93,7 @@ class Robot(TDRobotBase):
             reward:     The reward obtained from doing action_1 in state_1.
             max_next_q: The max Q reachable from the state after the action
         """
-        current_state_idx = state_1.get_index(action_1)
+        current_state_idx = state.get_index(action)
 
         current_q = self.Q[current_state_idx]
         delta = reward + self.gamma * (max_next_q - current_q)
