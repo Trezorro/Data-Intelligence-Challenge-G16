@@ -4,7 +4,7 @@ from random import randint
 
 from helpers.globals import DEBUG
 from environment import RobotBase, Grid
-from helpers.reward_functions import get_label_and_battery_based_reward
+from helpers.reward_functions import get_label_and_battery_based_reward, get_reward_turning_off
 from helpers.td_state import TDState
 import numpy as np
 import copy
@@ -32,7 +32,7 @@ class TDRobotBase(RobotBase):
         self.starting_orientation = copy.copy(orientation)
 
         # Initialize Q table
-        self.Q = np.zeros((grid.n_rows, grid.n_cols, 2**4, 4))
+        self.Q = np.zeros((grid.n_rows, grid.n_cols, 2**4, 5))
 
         self.is_trained = False
         self.show_debug_values = DEBUG
@@ -59,24 +59,30 @@ class TDRobotBase(RobotBase):
             logger.warning("TD.do_move: Executing robot move without being trained!")
 
         # Get action according to TD policy
-        directions = ["n", "e", "s", "w"]
+        actions = ["n", "e", "s", "w", "off"]
         current_state = TDState(self.pos[1], self.pos[0], self.get_vision())
         y, x, z, _ = current_state.get_index(None)
         action_idx = np.argmax(self.Q[(y, x, z)])
-        action = directions[action_idx]
+        action = actions[action_idx]
 
-        # Rotate bot in correct direction
-        while action != self.orientation:
-            self.rotate('r')
+        if action == "off":
+            self.alive = False
+        else:
+            # Rotate bot in correct direction
+            while action != self.orientation:
+                self.rotate('r')
 
-        # Move robot
-        self.move()
+            # Move robot
+            self.move()
 
         if DEBUG:
             current_state = TDState(self.pos[1], self.pos[0], self.get_vision())
-            for d in directions:
-                target_pos = tuple(np.array(self.pos) + np.array(self.dirs[d]))
-                self.debug_values[target_pos] = self.Q[current_state.get_index(d)]
+            for a in actions:
+                if a == "off":
+                    continue
+
+                target_pos = tuple(np.array(self.pos) + np.array(self.dirs[a]))
+                self.debug_values[target_pos] = self.Q[current_state.get_index(a)]
 
     def _step(self, action: str) -> Tuple[TDState, float, bool]:
         """ This function simulates a step of the algorithm given an action and the current state of the robot.
@@ -91,6 +97,12 @@ class TDRobotBase(RobotBase):
                 done:       Whether the simulation is over, based on whether the robot is alive, there is battery left
                                 and whether the grid is cleaned.
         """
+        if action == "off":
+            reward = get_reward_turning_off(self)
+            self.alive = False
+            done = True
+            new_state = TDState(self.pos[1], self.pos[0], self.get_vision())
+            return new_state, reward, done
 
         # Rotate the bot in the correct direction it wants to move
         while action != self.orientation:

@@ -13,7 +13,7 @@ class Robot(TDRobotBase):
     """Q-Learning Robot"""
 
     def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
-                 epsilon=0.6, gamma=0.2, lr=0.6, max_steps_per_episode=800, number_of_episodes=6000,
+                 epsilon=0.99, gamma=0.2, lr=0.6, max_steps_per_episode=800, number_of_episodes=40000,
                  train_instantly=True, stop_lr=0.1, stop_eps=0):
         
         self.lr_decrease_factor = (stop_lr / lr) ** (1 / number_of_episodes)
@@ -31,7 +31,7 @@ class Robot(TDRobotBase):
 
         for _ in tqdm(range(self.number_of_episodes)):
             # Reset environment. There is a chance that it randomizes the starting position.
-            if np.random.binomial(1, 0.2) == 1:
+            if np.random.binomial(1, 0) == 1:
                 self.reset_env(self.get_random_start_pos())
             else:
                 self.reset_env()
@@ -79,15 +79,15 @@ class Robot(TDRobotBase):
             current_state: Current TDState object
 
         Returns:
-            The action to be taken from ['n', 'e', 's', 'w']
+            The action to be taken from ['n', 'e', 's', 'w', 'off']
         """
-        directions = ["n", "e", "s", "w"]
+        actions = ["n", "e", "s", "w", "off"]
         if not use_greedy_strategy and np.random.uniform(0, 1) < self.epsilon:
-            action = np.random.choice(directions)
+            action = np.random.choice(actions)
         else:
             y, x, z, _ = current_state.get_index(None)
             action_idx = np.argmax(self.Q[(y, x, z)])
-            action = directions[action_idx]
+            action = actions[action_idx]
 
         return action
 
