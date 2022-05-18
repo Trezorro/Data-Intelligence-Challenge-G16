@@ -21,8 +21,10 @@ class TDRobotBase(RobotBase):
 
         super().__init__(grid, pos, orientation, p_move, battery_drain_p, battery_drain_lam, vision)
 
+        self.initial_epsilon = epsilon
         self.epsilon = epsilon
         self.gamma = gamma
+        self.initial_learning_rate = lr
         self.lr = lr
         self.max_steps_per_episode = max_steps_per_episode
         self.number_of_episodes = number_of_episodes
@@ -30,6 +32,8 @@ class TDRobotBase(RobotBase):
         self.starting_pos = pos
         self.starting_grid = grid  # Grid linked to the visualization, so no deepcopy is made as its needed later
         self.starting_orientation = copy.copy(orientation)
+        self.starting_history = copy.deepcopy(self.history)
+        self.starting_battery_lvl = float(self.battery_lvl)
 
         # Initialize Q table
         self.Q = np.zeros((grid.n_rows, grid.n_cols, 2**4, 5))
@@ -50,6 +54,26 @@ class TDRobotBase(RobotBase):
         """
         raise NotImplementedError("Subclass and implement train() method!")
 
+    def retrain(self) -> None:
+        """ Retrains the robot from its current position and state from scratch (empty Q table)
+
+        Resets various parameters such that the training function can be reused.
+        """
+        self.Q = np.zeros_like(self.Q)
+        self.epsilon = self.initial_epsilon
+        self.lr = self.initial_learning_rate
+
+        self.number_of_episodes = 1000
+
+        self.starting_pos = copy.deepcopy(self.pos)
+        self.starting_grid = self.grid
+        self.starting_orientation = str(self.orientation)
+
+        self.starting_history = copy.deepcopy(self.history)
+        self.starting_battery_lvl = float(self.battery_lvl)
+
+        self.train()
+
     def do_move(self) -> None:
         """ Function executes a move according to the robot's Q_table
         """
@@ -57,6 +81,10 @@ class TDRobotBase(RobotBase):
         # Check if robot is trained.
         if not self.is_trained:
             logger.warning("TD.do_move: Executing robot move without being trained!")
+
+        # Retrain every 10 moves
+        if len(self.history[0]) % 10 == 0:
+            self.retrain()
 
         # Get action according to TD policy
         actions = ["n", "e", "s", "w", "off"]
@@ -154,9 +182,9 @@ class TDRobotBase(RobotBase):
 
         self.orientation = copy.copy(self.starting_orientation)
 
-        self.history = [[self.pos[0]], [self.pos[1]]]
+        self.history = copy.deepcopy(self.starting_history)
         self.alive = True
-        self.battery_lvl = 100
+        self.battery_lvl = float(self.starting_battery_lvl)
 
     def get_random_start_pos(self) -> Tuple[int, int]:
         """ Function generates a random starting position out of the clean and dirty squares in the current grid.
