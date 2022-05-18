@@ -13,7 +13,7 @@ class Robot(TDRobotBase):
     """Sarsa Robot"""
 
     def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
-                 epsilon=0.99, gamma=0.9, lr=0.99, max_steps_per_episode=800, number_of_episodes=1000,
+                 epsilon=0.99, gamma=0.8, lr=0.99, max_steps_per_episode=800, number_of_episodes=1000,
                  train_instantly=True, stop_lr=0.1, stop_eps=0.1):
 
         self.lr_decrease_factor = (stop_lr / lr) ** (1 / number_of_episodes)
@@ -76,15 +76,15 @@ class Robot(TDRobotBase):
             current_state: Current TDState object
 
         Returns:
-            The action to be taken from ['n', 'e', 's', 'w']
+            The action to be taken from ['n', 'e', 's', 'w', 'off]
         """
-        directions = ["n", "e", "s", "w"]
+        actions = ["n", "e", "s", "w", "off"]
         if np.random.uniform(0, 1) < self.epsilon:
-            action = np.random.choice(directions)
+            action = np.random.choice(actions)
         else:
             y, x, z, _ = current_state.get_index(None)
             action_idx = np.argmax(self.Q[(y, x, z)])
-            action = directions[action_idx]
+            action = actions[action_idx]
 
         return action
 

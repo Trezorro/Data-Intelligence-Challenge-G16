@@ -27,7 +27,8 @@ class TDState:
         action_map = {"n": 0,
                       "e": 1,
                       "s": 2,
-                      "w": 3}
+                      "w": 3,
+                      "off": 4}
         i = action_map[action] if action is not None else None
 
         return y, x, z, i
