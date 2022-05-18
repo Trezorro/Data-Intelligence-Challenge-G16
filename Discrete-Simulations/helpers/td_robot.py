@@ -53,6 +53,10 @@ class TDRobotBase(RobotBase):
         raise NotImplementedError("Subclass and implement train() method!")
 
     def retrain(self) -> None:
+        """ Retrains the robot from its current position and state from scratch (empty Q table)
+
+        Resets various parameters such that the training function can be reused.
+        """
         self.Q = np.zeros_like(self.Q)
         self.epsilon = 0.99
         self.lr = 0.99
@@ -75,6 +79,7 @@ class TDRobotBase(RobotBase):
         if not self.is_trained:
             logger.warning("TD.do_move: Executing robot move without being trained!")
 
+        # Retrain every 10 moves
         if len(self.history[0]) % 10 == 0:
             self.retrain()
 
