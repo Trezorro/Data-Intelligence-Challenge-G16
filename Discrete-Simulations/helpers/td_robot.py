@@ -21,8 +21,10 @@ class TDRobotBase(RobotBase):
 
         super().__init__(grid, pos, orientation, p_move, battery_drain_p, battery_drain_lam, vision)
 
+        self.initial_epsilon = epsilon
         self.epsilon = epsilon
         self.gamma = gamma
+        self.initial_learning_rate = lr
         self.lr = lr
         self.max_steps_per_episode = max_steps_per_episode
         self.number_of_episodes = number_of_episodes
@@ -58,8 +60,9 @@ class TDRobotBase(RobotBase):
         Resets various parameters such that the training function can be reused.
         """
         self.Q = np.zeros_like(self.Q)
-        self.epsilon = 0.99
-        self.lr = 0.99
+        self.epsilon = self.initial_epsilon
+        self.lr = self.initial_learning_rate
+
         self.number_of_episodes = 1000
 
         self.starting_pos = copy.deepcopy(self.pos)
