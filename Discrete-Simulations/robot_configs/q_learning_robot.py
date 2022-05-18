@@ -13,8 +13,8 @@ class Robot(TDRobotBase):
     """Q-Learning Robot"""
 
     def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
-                 epsilon=0.6, gamma=0.2, lr=0.6, max_steps_per_episode=800, number_of_episodes=6000, stop_lr=0.1,
-                 stop_eps=0, train_instantly=True):
+                 epsilon=0.6, gamma=0.2, lr=0.6, max_steps_per_episode=800, number_of_episodes=6000,
+                 train_instantly=True, stop_lr=0.1, stop_eps=0):
         super().__init__(grid, pos, orientation, p_move, battery_drain_p, battery_drain_lam, vision, epsilon, gamma, lr,
                          max_steps_per_episode, number_of_episodes, train_instantly)
 

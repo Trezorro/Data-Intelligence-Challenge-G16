@@ -13,8 +13,8 @@ class Robot(TDRobotBase):
     """Sarsa Robot"""
 
     def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
-                 epsilon=0.99, gamma=0.9, lr=0.99, max_steps_per_episode=800, number_of_episodes=5000, stop_lr=0.1,
-                 stop_eps=0.1, train_instantly=True):
+                 epsilon=0.99, gamma=0.9, lr=0.99, max_steps_per_episode=800, number_of_episodes=5000,
+                 train_instantly=True, stop_lr=0.1, stop_eps=0.1):
         super().__init__(grid, pos, orientation, p_move, battery_drain_p, battery_drain_lam, vision, epsilon, gamma, lr,
                          max_steps_per_episode, number_of_episodes, train_instantly)
 
