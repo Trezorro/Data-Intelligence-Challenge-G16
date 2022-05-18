@@ -15,7 +15,7 @@ class Robot(TDRobotBase):
     def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
                  epsilon=0.6, gamma=0.2, lr=0.6, max_steps_per_episode=800, number_of_episodes=6000,
                  train_instantly=True, stop_lr=0.1, stop_eps=0):
-        
+
         self.lr_decrease_factor = (stop_lr / lr) ** (1 / number_of_episodes)
         self.epsilon_decrease_factor = (stop_eps / epsilon) ** (1 / number_of_episodes)
 
