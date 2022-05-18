@@ -13,19 +13,23 @@ class Robot(TDRobotBase):
     def train(self) -> None:
         """ Trains the robot according to the Sarsa algorithm.
 
-        Uses the other methods and the given parameters upon initialization to train the robot using the Sarsa
-        algorithm with decreasing learning rate and epsilon exploration.
+        Uses the inherited methods and the given parameters upon initialization
+        to train the robot using the Sarsa algorithm with decreasing learning
+        rate and epsilon exploration.
         """
 
         for _ in tqdm(range(self.number_of_episodes)):
-            # Reset environment. There is a chance that it randomizes the starting position.
+            # Reset environment. There is a chance that it randomizes the
+            # starting position.
             if np.random.binomial(1, 0.2) == 1:
                 self.reset_env(self.get_random_start_pos())
             else:
                 self.reset_env()
 
             # Get initial state and action
-            state: TDState = TDState(self.pos[1], self.pos[0], self.get_vision())
+            state: TDState = TDState(self.pos[1],
+                                     self.pos[0],
+                                     self.get_vision())
             action = self._choose_action(state)
 
             for t in range(self.max_steps_per_episode):
@@ -36,11 +40,12 @@ class Robot(TDRobotBase):
                 new_action = self._choose_action(new_state)
 
                 # Update Q table
-                self._update_qtable(state, action, reward, new_state, new_action)
+                self._update_qtable(state, action, reward,
+                                    new_state, new_action)
 
                 # Copy over new state and new action for next iteration
-                state = new_state.make_copy()  # copy
-                action = str(new_action)  # copy
+                state = new_state.make_copy()
+                action = str(new_action)
 
                 # Break if simulation is finished
                 if done:
@@ -76,14 +81,16 @@ class Robot(TDRobotBase):
 
         return action
 
-    def _update_qtable(self, state_1, action_1, reward, state_2, action_2) -> None:
+    def _update_qtable(self, state_1, action_1,
+                       reward, state_2, action_2) -> None:
         """Function updates the Q table given several parameters.
 
         Args:
             state_1:    The first TDState object.
             action_1:   The action chosen from state_1 which was completed.
             reward:     The reward obtained from doing action_1 in state_1.
-            state_2:    The TDState that was obtained by doing action_1 in state_1.
+            state_2:    The TDState that was obtained by doing action_1 in
+                        state_1.
             action_2:   The action chosen from state_2.
         """
         index_1 = state_1.get_index(action_1)

@@ -8,18 +8,49 @@ from helpers.reward_functions import get_label_and_battery_based_reward
 from helpers.td_state import TDState
 import numpy as np
 import copy
+import abc
 
 logger = logging.getLogger(__name__)
 
 
 class TDRobotBase(RobotBase):
 
-    def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
-                 epsilon=0.99, gamma=0.95, lr=0.99, max_steps_per_episode=100, number_of_episodes=2000, train_instantly=True):
-        # NOTE: i have set the battery drain params here, but note that if you have the UI, those settings
-        # prevail (unless you comment them out in app.py line 187)
+    def __init__(self, grid: Grid, pos: Tuple[int, int], orientation: str,
+                 p_move: int = 0, battery_drain_p: int = 1,
+                 battery_drain_lam: float = 1, vision: int = 1,
+                 epsilon: float = 0.99, gamma: float = 0.95, lr: float = 0.99,
+                 max_steps_per_episode: int = 100,
+                 number_of_episodes: int = 2000, train_instantly: bool = True):
+        """Base class for time temporal difference based algorithms.
 
-        super().__init__(grid, pos, orientation, p_move, battery_drain_p, battery_drain_lam, vision)
+        Args:
+            grid: The grid the robot will move on.
+            pos: Current position as a tuple (y, x).
+            orientation: Current orientation of the robot. One of "n", "e", "s",
+                "w".
+            p_move: Probability of robot performing a random move instead of
+                listening to a given command.
+            battery_drain_p: Probability of a battery drain event happening at
+                each move.
+            battery_drain_lam: Amount (lambda) of battery drain (X) in
+                X ~ Exponential(lambda)
+            vision: Number of tiles in each of the 4 directions included in the
+                robots vision.
+            epsilon: epsilon parameter for the algorithm.
+            gamma: Gamma parameter for the algorithm.
+            lr: Learning rate for the algorithm.
+            max_steps_per_episode: Number of maximum steps to train for in one
+                episode.
+            number_of_episodes: Number of episodes to train for.
+            train_instantly: Whether to train immediately on placing the robot
+                on the grid/instantiation.
+        """
+        # NOTE: The battery drain params are set  here, but note that if you
+        # have the UI, those settings prevail (unless you comment them out in
+        # app.py line 187)
+
+        super().__init__(grid, pos, orientation, p_move, battery_drain_p,
+                         battery_drain_lam, vision)
 
         self.epsilon = epsilon
         self.gamma = gamma
@@ -28,7 +59,9 @@ class TDRobotBase(RobotBase):
         self.number_of_episodes = number_of_episodes
 
         self.starting_pos = pos
-        self.starting_grid = grid  # Grid linked to the visualization, so no deepcopy is made as its needed later
+        # Grid linked to the visualization, so no deepcopy is made as its
+        # needed later
+        self.starting_grid = grid
         self.starting_orientation = copy.copy(orientation)
 
         # Initialize Q table
@@ -42,11 +75,13 @@ class TDRobotBase(RobotBase):
     def robot_epoch(self):
         self.do_move()
 
+    @abc.abstractmethod
     def train(self) -> None:
         """ Trains the robot according to the specified TD algorithm.
 
-        Uses the other methods and the given parameters upon initialization to train the robot using the TD
-        algorithm with decreasing learning rate and epsilon exploration.
+        Uses the other methods and the given parameters upon initialization to
+        train the robot using the TD algorithm with decreasing learning rate and
+        epsilon exploration.
         """
         raise NotImplementedError("Subclass and implement train() method!")
 
@@ -56,7 +91,8 @@ class TDRobotBase(RobotBase):
 
         # Check if robot is trained.
         if not self.is_trained:
-            logger.warning("TD.do_move: Executing robot move without being trained!")
+            logger.warning("TD.do_move: Executing robot move without being "
+                           "trained!")
 
         # Get action according to TD policy
         directions = ["n", "e", "s", "w"]
@@ -76,10 +112,13 @@ class TDRobotBase(RobotBase):
             current_state = TDState(self.pos[1], self.pos[0], self.get_vision())
             for d in directions:
                 target_pos = tuple(np.array(self.pos) + np.array(self.dirs[d]))
-                self.debug_values[target_pos] = self.Q[current_state.get_index(d)]
+                q_idx = current_state.get_index(d)
+                self.debug_values[target_pos] = self.Q[q_idx]
 
     def _step(self, action: str) -> Tuple[TDState, float, bool]:
-        """ This function simulates a step of the algorithm given an action and the current state of the robot.
+        """ This function simulates a step of the algorithm.
+
+        This is done given an action and the current state of the robot.
 
         Args:
              action:    The action to be taken from ['n', 'e', 's', 'w']
@@ -88,28 +127,34 @@ class TDRobotBase(RobotBase):
             Tuple containing the following 3 items:
                 new_state:  The new TDState of the robot
                 reward:     The reward that was obtained for doing the move
-                done:       Whether the simulation is over, based on whether the robot is alive, there is battery left
-                                and whether the grid is cleaned.
+                done:       Whether the simulation is over, based on whether the
+                            robot is alive, there is battery left and whether
+                            the grid is cleaned.
         """
 
         # Rotate the bot in the correct direction it wants to move
         while action != self.orientation:
             self.rotate('r')
 
-        label_square_in_front = self.grid.get_c(tuple(np.array(self.pos) + np.array(self.dirs[action])))
+        label_square_in_front = self.grid.get_c((np.array(self.pos)
+                                                 + np.array(self.dirs[action])))
 
         _, drained_battery = self.move()
 
-        reward = get_label_and_battery_based_reward(label_square_in_front, drained_battery)
+        reward = get_label_and_battery_based_reward(label_square_in_front,
+                                                    drained_battery)
 
         new_state = TDState(self.pos[1], self.pos[0], self.get_vision())
 
-        done = not (self.alive and self.battery_lvl > 0) or self.grid.is_cleaned()
+        done = (not (self.alive and self.battery_lvl > 0)
+                or self.grid.is_cleaned())
 
         return new_state, reward, done
 
     def get_vision(self) -> Dict:
-        """ Function retrieves the current vision of the robot according to what the TDState object expects.
+        """ Function retrieves the current vision of the robot.
+
+        This is done according to what the TDState object expects.
 
         Returns:
             Dictionary according to the docs of TDState.
@@ -128,8 +173,9 @@ class TDRobotBase(RobotBase):
         """ Function resets the environment for the next simulation.
 
         Args:
-            starting_position: the new starting position of the robot. If not included, default starting position
-                                upon initialization is taken.
+            starting_position: the new starting position of the robot. If not
+                included, default starting position upon initialization is
+                taken.
         """
         self.grid = copy.deepcopy(self.starting_grid)
 
@@ -147,11 +193,14 @@ class TDRobotBase(RobotBase):
         self.battery_lvl = 100
 
     def get_random_start_pos(self) -> Tuple[int, int]:
-        """ Function generates a random starting position out of the clean and dirty squares in the current grid.
+        """ Function generates a random starting position.
+
+        The random starting position is out of the clean and dirty squares in
+        the current grid.
 
         Returns:
-            Tuple (y,x) representing a random starting position for the robot. This starting position is either
-            clean or dirty.
+            (y,x) representing a random starting position for the robot. This
+                starting position is either clean or dirty.
         """
         while True:
             rand_x = randint(1, self.grid.n_cols-1)
