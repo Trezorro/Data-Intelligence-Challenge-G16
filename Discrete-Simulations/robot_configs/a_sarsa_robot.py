@@ -1,6 +1,7 @@
 import logging
 from tqdm import tqdm
 
+from environment import Grid
 from helpers.td_robot import TDRobotBase
 from helpers.td_state import TDState
 import numpy as np
@@ -10,6 +11,10 @@ logger = logging.getLogger(__name__)
 
 class Robot(TDRobotBase):
     """Sarsa Robot"""
+    def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
+                 epsilon=0.99, gamma=0.9, lr=0.99, max_steps_per_episode=800, number_of_episodes=5000, train_instantly=True):
+        super().__init__(grid, pos, orientation, p_move, battery_drain_p, battery_drain_lam, vision, epsilon, gamma, lr, max_steps_per_episode, number_of_episodes, train_instantly)
+
     def train(self) -> None:
         """ Trains the robot according to the Sarsa algorithm.
 
