@@ -130,8 +130,13 @@ class RobotBase:
             second boolean indicates whether the battery was drained during the
             move.
         """
-        def move_and_remember_or_die():
+        def move_and_remember_or_die(pos, orient):
             """Used in both branches of movement so refactored here. """
+            # If the bot can move to that square, move the bot and adapt the
+            # grid.
+            tile_after_move = self.grid.cells[pos]
+            self.grid.cells[self.pos] = 0
+            self.grid.cells[new_pos] = self.orients[orient]
             self.pos = new_pos
             self.history[0].append(self.pos[0])
             self.history[1].append(self.pos[1])
@@ -168,39 +173,20 @@ class RobotBase:
             # the robot would supposedly end up on.
             moves = self.possible_tiles_after_move()
             random_move = random.choice([m for m in moves if moves[m] >= 0])
+            dirs_keys = list(self.dirs.keys())
+            random_move_index = list(self.dirs.values()).index(random_move)
             new_pos = tuple(np.array(self.pos) + random_move)
-
-            # If the bot can move to that square, move the bot and adapt the
-            # grid.
-            if self.grid.cells[new_pos] >= 0:
-                dirs_keys = list(self.dirs.keys())
-                random_move_index = list(self.dirs.values()).index(random_move)
-                new_orient = dirs_keys[random_move_index]
-                tile_after_move = self.grid.cells[new_pos]
-                self.grid.cells[self.pos] = 0
-                self.grid.cells[new_pos] = self.orients[new_orient]
-                return move_and_remember_or_die()
-
-            # If we cannot move, just stand still and leave the bot
-            else:
-                return False, do_battery_drain
-
-        # Else, execute the initially planned move
+            new_orient = dirs_keys[random_move_index]
         else:
-            # Calculate the new position that the bot will supposedly end on.
-            new_pos = tuple(np.array(self.pos) + self.dirs[self.orientation])
+            new_pos = (np.array(self.pos) + self.dirs[self.orientation])
+            new_orient = self.orientation
 
-            # If the bot can move to that square, move the bot and adapt the
-            # grid.
-            if self.grid.cells[new_pos] >= 0:
-                tile_after_move = self.grid.cells[new_pos]
-                self.grid.cells[self.pos] = 0
-                self.grid.cells[new_pos] = self.orients[self.orientation]
-                return move_and_remember_or_die()
+        if self.grid.cells[new_pos] >= 0:
+            return move_and_remember_or_die(new_pos, new_orient)
 
-            # If we cannot move, just stand still and leave the bot
-            else:
-                return False, do_battery_drain
+        # If we cannot move, just stand still and leave the bot
+        else:
+            return False, do_battery_drain
 
     def rotate(self, direction: str) -> None:
         """ Rotates the robot in a given direction either left 'l' or right 'r'.
