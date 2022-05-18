@@ -94,8 +94,8 @@ class Robot(TDRobotBase):
         """ Function updates the Q table given several parameters.
 
         Args:
-            state_1:    The first QAgentState object.
-            action_1:   The action chosen from state_1 which was completed.
+            state:    The first QAgentState object.
+            action:   The action chosen from state_1 which was completed.
             reward:     The reward obtained from doing action_1 in state_1.
             max_next_q: The max Q reachable from the state after the action
         """
