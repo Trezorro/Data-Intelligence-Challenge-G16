@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 class Robot(TDRobotBase):
     """Q-Learning Robot"""
 
-    def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1, epsilon=0.99, gamma=0.7, lr=0.9, max_steps_per_episode=100, number_of_episodes=4000, train_instantly=True):
+    def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1, epsilon=0.6, gamma=0.2, lr=0.6, max_steps_per_episode=800, number_of_episodes=6000, train_instantly=True):
         super().__init__(grid, pos, orientation, p_move, battery_drain_p, battery_drain_lam, vision, epsilon, gamma, lr, max_steps_per_episode, number_of_episodes, train_instantly)
     
     def train(self) -> None:
@@ -98,6 +98,6 @@ class Robot(TDRobotBase):
         current_q = self.Q[current_state_idx]
         delta = reward + self.gamma * (max_next_q - current_q)
         new_q = current_q + self.lr * delta
-        if new_q > 500:
+        if new_q > 1000:
             logger.debug("Q value of state %s is too high: %f", current_state_idx, new_q)
         self.Q[current_state_idx] = new_q

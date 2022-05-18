@@ -3,8 +3,8 @@ MATERIALS = {0: 'cell_clean', -1: 'cell_wall', -2: 'cell_obstacle', -3: 'cell_ro
 
 REWARD_MAP = {
     -3: 0,   # A robot position (so clean)
-    -2: -1,  # Obstacle (gray)
-    -1: -1,  # Wall (red)
+    -2: -10,  # Obstacle (gray)
+    -1: -10,  # Wall (red)
     0: 0,    # Clean (green)
     1: 4,     # Dirty (white)
     2: 1,     # Goal (orange)
