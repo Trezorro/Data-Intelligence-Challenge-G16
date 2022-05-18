@@ -9,43 +9,33 @@ import copy
 from helpers.label_based_reward import get_reward
 
 
-def generate_episodes(policy, robot:Robot, count_clean):
+def generate_episodes(policy, robot:Robot, number_of_tiles, possible_actions):
     """ Generate the episodes based on the policy-action probabilities stored in policy dict
 
     Returns a list called episodes that includes the state, the action and the reward of the next action i.e.
      [[(1, 1), (1, 0), 2], [(2, 1), (1, 0), -1], [(3, 1), (-1, 0), -1]]: the state (1,1) has next action (1,0)
      that gives 2 as reward, then, the state (2,1) has (1,0) as next action that gives -1 as reward etc.
     """
-    # create a deepcopy of robot object because in the simulation
-    # we will have an updated board which is the result of simulation and not the actual one
+    #create a deepcopy of robot object because in the simulation
+    #copy the current robot
     temp_robot = copy.deepcopy(robot)
 
-    # create a list to store the episodes
+    #create a list to store the episodes
     episodes = []
 
-    # choose a random position as starting point
     # position = random.choice(all_possible_tiles)
     # TODO Reaction this comment
     position = temp_robot.pos
 
-    # TODO Reaction, keep now for calibration
-    # flag for finding a dirty cell in an episode simulation
-    found_dirty = False
-
-    if count_clean < 20:
-        max_steps = 20
-    else:
-        max_steps = count_clean
-
     step = 0
     # step of the episodes to be proportional to the cleaned tiles
-    while step < max_steps:
+    while step < number_of_tiles/2:
         actions = []
         probs = []
-        for state, action in policy.keys():
-            if state == position:
-                actions.append(action)
-                probs.append(policy[state, action])
+        for action in possible_actions[position]:
+            # if state == position:
+            actions.append(action)
+            probs.append(policy[position, action])
         # choose randomly a action but based on action weights
         chosen_action = random.choices(actions, weights=probs, k=1)[0]
         episodes.append([position, chosen_action])
@@ -56,16 +46,6 @@ def generate_episodes(policy, robot:Robot, count_clean):
         episodes[step].append(reward)
 
         step += 1
-
-        # TODO reaction this , keep now for calibration
-
-        # if (get_reward(temp_robot.grid.cells[new_pos]) == 2):
-        #     found_dirty = True
-        #
-        #
-        # if (found_dirty and step > number_of_tiles/4) or step > count_clean:
-        # # if (found_clean) or step > count_clean:
-        #     not_end_episode = False
 
         # update position of the simulated robot
         position = new_pos
@@ -96,9 +76,11 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes = 10, epsilon = 0.99):
 
     for x in range(robot.grid.n_cols):
         for y in range(robot.grid.n_rows):
-            # ignore cells that are walls or obstacles
+
+            #ignore cells that are walls or obstacles
             if -3 < robot.grid.cells[y][x] < 0 or robot.grid.cells[y][x] == 3:
                 continue
+                
             #create a list with possible tiles
             all_possible_tiles.append(tuple(np.array([y, x])))
 
@@ -127,10 +109,11 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes = 10, epsilon = 0.99):
                 #initialize Returns and Q grid with empty list and 0 respectively for every state action combination
                 Returns[(y, x),action] = []
                 q_grid[(y, x), action] = 0
-
-            for action in possible_actions[(y,x)]:
-                #initialize the policy with equal probability for every action of a certain state
                 policy[(y, x), action] = 1 / len(possible_actions)
+
+            # for action in possible_actions[(y,x)]:
+            #     #initialize the policy with equal probability for every action of a certain state
+            #     policy[(y, x), action] = 1 / len(possible_actions)
 
     """ Monte Carlo On Policy implementation"""
 
@@ -144,7 +127,7 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes = 10, epsilon = 0.99):
 
         # gradually reduce the epsilon parameter cause we need less exploration and more exploitation as the episodes increase
         epsilon *= 0.99
-        single_episode = generate_episodes(policy, robot, count_clean)
+        single_episode = generate_episodes(policy, robot, number_of_tiles, possible_actions)
         G = 0
         for idx, step in enumerate(single_episode[::-1]):
             G = g * G + step[2]
