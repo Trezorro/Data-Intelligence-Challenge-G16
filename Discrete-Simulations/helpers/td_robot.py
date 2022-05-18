@@ -30,6 +30,8 @@ class TDRobotBase(RobotBase):
         self.starting_pos = pos
         self.starting_grid = grid  # Grid linked to the visualization, so no deepcopy is made as its needed later
         self.starting_orientation = copy.copy(orientation)
+        self.starting_history = copy.deepcopy(self.history)
+        self.starting_battery_lvl = float(self.battery_lvl)
 
         # Initialize Q table
         self.Q = np.zeros((grid.n_rows, grid.n_cols, 2**4, 4))
@@ -50,6 +52,21 @@ class TDRobotBase(RobotBase):
         """
         raise NotImplementedError("Subclass and implement train() method!")
 
+    def retrain(self) -> None:
+        self.Q = np.zeros_like(self.Q)
+        self.epsilon = 0.99
+        self.lr = 0.99
+        self.number_of_episodes = 1000
+
+        self.starting_pos = copy.deepcopy(self.pos)
+        self.starting_grid = self.grid
+        self.starting_orientation = str(self.orientation)
+
+        self.starting_history = copy.deepcopy(self.history)
+        self.starting_battery_lvl = float(self.battery_lvl)
+
+        self.train()
+
     def do_move(self) -> None:
         """ Function executes a move according to the robot's Q_table
         """
@@ -57,6 +74,9 @@ class TDRobotBase(RobotBase):
         # Check if robot is trained.
         if not self.is_trained:
             logger.warning("TD.do_move: Executing robot move without being trained!")
+
+        if len(self.history[0]) % 10 == 0:
+            self.retrain()
 
         # Get action according to TD policy
         directions = ["n", "e", "s", "w"]
@@ -142,9 +162,9 @@ class TDRobotBase(RobotBase):
 
         self.orientation = copy.copy(self.starting_orientation)
 
-        self.history = [[self.pos[0]], [self.pos[1]]]
+        self.history = copy.deepcopy(self.starting_history)
         self.alive = True
-        self.battery_lvl = 100
+        self.battery_lvl = float(self.starting_battery_lvl)
 
     def get_random_start_pos(self) -> Tuple[int, int]:
         """ Function generates a random starting position out of the clean and dirty squares in the current grid.
