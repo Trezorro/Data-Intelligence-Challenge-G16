@@ -11,9 +11,15 @@ logger = logging.getLogger(__name__)
 
 class Robot(TDRobotBase):
     """Sarsa Robot"""
+
     def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
-                 epsilon=0.99, gamma=0.9, lr=0.99, max_steps_per_episode=800, number_of_episodes=5000, train_instantly=True):
-        super().__init__(grid, pos, orientation, p_move, battery_drain_p, battery_drain_lam, vision, epsilon, gamma, lr, max_steps_per_episode, number_of_episodes, train_instantly)
+                 epsilon=0.99, gamma=0.9, lr=0.99, max_steps_per_episode=800, number_of_episodes=5000, stop_lr=0.1,
+                 stop_eps=0.1, train_instantly=True):
+        super().__init__(grid, pos, orientation, p_move, battery_drain_p, battery_drain_lam, vision, epsilon, gamma, lr,
+                         max_steps_per_episode, number_of_episodes, train_instantly)
+
+        self.lr_decrease_factor = (stop_lr / lr) ** (1 / number_of_episodes)
+        self.epsilon_decrease_factor = (stop_eps / epsilon) ** (1 / number_of_episodes)
 
     def train(self) -> None:
         """ Trains the robot according to the Sarsa algorithm.
@@ -52,8 +58,8 @@ class Robot(TDRobotBase):
                     break
 
             # Slowly lower the learning rate and epsilon exploration
-            self.epsilon *= 0.9995
-            self.lr *= 0.9995
+            self.lr *= self.lr_decrease_factor
+            self.epsilon *= self.epsilon_decrease_factor
 
         # Reset environment after training for simulation.
         self.reset_env()

@@ -12,9 +12,15 @@ logger = logging.getLogger(__name__)
 class Robot(TDRobotBase):
     """Q-Learning Robot"""
 
-    def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1, epsilon=0.6, gamma=0.2, lr=0.6, max_steps_per_episode=800, number_of_episodes=6000, train_instantly=True):
-        super().__init__(grid, pos, orientation, p_move, battery_drain_p, battery_drain_lam, vision, epsilon, gamma, lr, max_steps_per_episode, number_of_episodes, train_instantly)
-    
+    def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
+                 epsilon=0.6, gamma=0.2, lr=0.6, max_steps_per_episode=800, number_of_episodes=6000, stop_lr=0.1,
+                 stop_eps=0, train_instantly=True):
+        super().__init__(grid, pos, orientation, p_move, battery_drain_p, battery_drain_lam, vision, epsilon, gamma, lr,
+                         max_steps_per_episode, number_of_episodes, train_instantly)
+
+        self.lr_decrease_factor = (stop_lr / lr) ** (1 / number_of_episodes)
+        self.epsilon_decrease_factor = (stop_eps / epsilon) ** (1 / number_of_episodes)
+
     def train(self) -> None:
         """ Trains the robot according to the QAgent algorithm.
 
@@ -45,7 +51,7 @@ class Robot(TDRobotBase):
                     max_next_reward = self.Q[new_state.get_index(greedy_action)]
 
                 # Update Q table
-                self._update_qtable(state, action, reward, max_next_reward) # FIXME: possible bug
+                self._update_qtable(state, action, reward, max_next_reward)  # FIXME: possible bug
 
                 # Break if simulation is finished
                 if done:
@@ -55,8 +61,8 @@ class Robot(TDRobotBase):
                     state = new_state.make_copy()
 
             # Slowly lower the learning rate and epsilon exploration
-            self.epsilon *= 0.9995
-            self.lr *= 0.9995
+            self.epsilon *= self.epsilon_decrease_factor
+            self.lr *= self.lr_decrease_factor
 
         # Reset environment after training for simulation.
         self.reset_env()
