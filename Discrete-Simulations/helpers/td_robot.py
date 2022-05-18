@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class TDRobotBase(RobotBase):
 
     def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
-                 epsilon=0.99, gamma=0.95, lr=0.99, max_steps_per_episode=100, number_of_episodes=2000, train_instantly=True):
+                 epsilon=0.99, gamma=0.8, lr=0.99, max_steps_per_episode=100, number_of_episodes=2000, train_instantly=True):
         # NOTE: i have set the battery drain params here, but note that if you have the UI, those settings
         # prevail (unless you comment them out in app.py line 187)
 
@@ -83,7 +83,7 @@ class TDRobotBase(RobotBase):
             logger.warning("TD.do_move: Executing robot move without being trained!")
 
         # Retrain every 10 moves
-        if len(self.history[0]) % 10 == 0:
+        if len(self.history[0]) % 1 == 0:
             self.retrain()
 
         # Get action according to TD policy

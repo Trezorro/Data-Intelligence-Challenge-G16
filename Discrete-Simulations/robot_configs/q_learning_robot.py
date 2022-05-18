@@ -13,7 +13,7 @@ class Robot(TDRobotBase):
     """Q-Learning Robot"""
 
     def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
-                 epsilon=0.99, gamma=0.2, lr=0.6, max_steps_per_episode=800, number_of_episodes=40000,
+                 epsilon=0.99, gamma=0.8, lr=0.99, max_steps_per_episode=800, number_of_episodes=1000,
                  train_instantly=True, stop_lr=0.1, stop_eps=0):
 
         self.lr_decrease_factor = (stop_lr / lr) ** (1 / number_of_episodes)
