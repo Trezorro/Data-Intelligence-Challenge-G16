@@ -30,6 +30,7 @@ PATH = os.getcwd()
 import logging
 logging.basicConfig(level=logging.DEBUG, force=True)
 logging.getLogger('matplotlib').setLevel(logging.ERROR)
+logging.getLogger('werkzeug').setLevel('WARNING')
 
 
 def draw_grid(grid_to_draw: Grid):
