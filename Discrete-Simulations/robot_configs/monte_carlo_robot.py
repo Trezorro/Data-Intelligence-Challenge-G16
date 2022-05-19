@@ -52,7 +52,7 @@ def generate_episodes(policy: np.ndarray, robot: RobotBase):
     return episodes
 
 
-def robot_epoch(robot: RobotBase, g=0.6, max_episodes=1000, epsilon=0.99):
+def robot_epoch(robot: RobotBase, g=0.8, max_episodes=1000, epsilon=0.05):
     """ Monte Carlo On Policy implementation.
 
     Args:
@@ -72,7 +72,6 @@ def robot_epoch(robot: RobotBase, g=0.6, max_episodes=1000, epsilon=0.99):
     for _ in tqdm(range(max_episodes)):
         # gradually reduce the epsilon parameter cause we need less exploration
         # and more exploitation as the episodes increases
-        epsilon *= 0.99
         single_episode = generate_episodes(policy, robot)
         G = 0
 
