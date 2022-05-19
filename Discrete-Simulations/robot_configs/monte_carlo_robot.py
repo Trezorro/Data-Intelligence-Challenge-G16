@@ -36,10 +36,7 @@ def generate_episodes(policy: np.ndarray, robot: Robot):
 
         # update the reward in the simulated grid
         new_pos = tuple(np.asarray(position) + robot.dirs[ACTIONS[chosen_action]])
-        try:
-            reward = get_reward(temp_robot.grid.cells[new_pos])
-        except IndexError as e:
-            raise e
+        reward = get_reward(temp_robot.grid.cells[new_pos])
 
         episodes.append([position, chosen_action, reward])
 
@@ -62,12 +59,11 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=100, epsilon=0.99):
     max_episodes = max_episodes
 
     # Holds the actual q grid
-    q_grid = np.full((robot.grid.n_rows, robot.grid.n_cols, len(ACTIONS)), 0.)
+    q_grid = np.full((*robot.grid.cells.shape, len(ACTIONS)), 0.)
     # Holds sums of G value for every grid position, used to assign a value to q
-    g_sums = np.full((robot.grid.n_rows, robot.grid.n_cols, len(ACTIONS)), 0.)
+    g_sums = np.full((*robot.grid.cells.shape, len(ACTIONS)), 0.)
     # Policy values
-    policy = np.full((robot.grid.n_rows, robot.grid.n_cols, len(ACTIONS)),
-                     1. / len(ACTIONS))
+    policy = np.full((*robot.grid.cells.shape, len(ACTIONS)), 1. / len(ACTIONS))
 
     # generate episodes until reach the max number of episodes
     for _ in tqdm(range(max_episodes)):
