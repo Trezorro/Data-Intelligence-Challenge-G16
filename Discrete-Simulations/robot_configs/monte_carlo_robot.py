@@ -29,7 +29,7 @@ def generate_episodes(policy: np.ndarray, robot: RobotBase):
     episodes = []
 
     for step in range(100):
-        current_pos = tuple(robot.pos)
+        current_pos = tuple(temp_robot.pos)
         chosen_action_idx = random.choices(ACTIONS_IDX,
                                        weights=policy[current_pos[0], current_pos[1]],
                                        k=1)[0]
