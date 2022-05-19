@@ -24,11 +24,9 @@ RUN_NAME = 'experiment_run'
 
 ROBOT_MODULE_NAME = 'a_sarsa_robot'
 GRID_FILES = [
-    # 'example-random-house-0.grid',
-    # 'stay_off_my_grass.grid',
-    # 'snake.grid',
-    'snake.grid'
-        ]
+    'example-random-house-0.grid',
+    'stay_off_my_grass.grid',
+]
 P_MOVES = [0, 0.2]
 GAMMAS = [0.2, 0.5, 0.9]
 THETAS = [0.1, 0.01]

@@ -52,7 +52,7 @@ class Robot(TDRobotBase):
                     max_next_reward = self.Q[new_state.get_index(greedy_action)]
 
                 # Update Q table
-                self._update_qtable(state, action, reward, max_next_reward)  # FIXME: possible bug
+                self._update_qtable(state, action, reward, max_next_reward)
 
                 # Break if simulation is finished
                 if done:
