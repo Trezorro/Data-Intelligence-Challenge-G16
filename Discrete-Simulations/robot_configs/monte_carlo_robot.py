@@ -27,21 +27,20 @@ def generate_episodes(policy: np.ndarray, robot: RobotBase):
     temp_robot = copy.deepcopy(robot)
 
     episodes = []
-    position = temp_robot.pos
 
     for step in range(800):
         chosen_action = random.choices(ACTIONS_IDX,
-                                       weights=policy[position[0], position[1]],
+                                       weights=policy[temp_robot.pos[0], temp_robot.pos[1]],
                                        k=1)[0]
-        new_pos = tuple(np.asarray(position)
+        new_pos = tuple(np.asarray(temp_robot.pos)
                         + robot.dirs[ACTIONS[chosen_action]])
 
         label = temp_robot.grid.cells[tuple(new_pos)]
         reward = get_label_based_reward(label)
-        episodes.append([position, chosen_action, reward])
+        episodes.append([temp_robot.pos, chosen_action, reward])
 
         # update position of the simulated robot
-        while temp_robot.orientation != chosen_action:
+        while temp_robot.orientation != ACTIONS[chosen_action]:
             temp_robot.rotate("r")
         temp_robot.move()
         if not temp_robot.alive or temp_robot.grid.is_cleaned():
@@ -50,7 +49,7 @@ def generate_episodes(policy: np.ndarray, robot: RobotBase):
     return episodes
 
 
-def robot_epoch(robot: RobotBase, g=0.99, max_episodes=100, epsilon=0.99):
+def robot_epoch(robot: RobotBase, g=0.99, max_episodes=1000, epsilon=0.99):
     """ Monte Carlo On Policy implementation.
 
     Args:
@@ -84,7 +83,7 @@ def robot_epoch(robot: RobotBase, g=0.99, max_episodes=100, epsilon=0.99):
 
                 # update returns(state,action) & q_grid(state,action)
                 g_sums[step_y, step_x, episode_action_idx] += G
-                q_grid[step_y, step_x, episode_action_idx] = g_sums[step_x, step_x, episode_action_idx] / \
+                q_grid[step_y, step_x, episode_action_idx] = g_sums[step_y, step_x, episode_action_idx] / \
                                                                 (len(single_episode) - t)
 
                 # calculate the best action
@@ -93,7 +92,6 @@ def robot_epoch(robot: RobotBase, g=0.99, max_episodes=100, epsilon=0.99):
                 # update the policy matrix of the specific (state,action) pair
                 # based on e-soft policy
                 for action_idx in range(len(ACTIONS)):  # enumerate action space
-                    # if state == step[0]:
                     if action_idx == best_action_idx:
                         policy[step_y, step_x, action_idx] = 1 - epsilon + epsilon / len(ACTIONS)
                     else:
@@ -102,8 +100,7 @@ def robot_epoch(robot: RobotBase, g=0.99, max_episodes=100, epsilon=0.99):
     # when the episodes iteration finishes
     # choose the corresponding robot action based on the updated policy probabilities
     corresponding_orientation = random.choices(
-        ACTIONS, weights=policy[robot.pos[0], robot.pos[1]], k=1
-    )[0]
+        ACTIONS, weights=policy[robot.pos[0], robot.pos[1]], k=1)[0]
 
     while robot.orientation != corresponding_orientation:
         robot.rotate('r')
