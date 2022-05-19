@@ -8,8 +8,15 @@ from helpers.label_based_reward import get_reward
 from tqdm import tqdm
 
 
-def generate_episodes(policy, robot: Robot):
-    """ Generate the episodes based on the policy-action probabilities stored in policy dict
+ACTIONS = ("n", "e", "s", "w", "off")
+
+
+def generate_episodes(policy: np.ndarray, robot: Robot):
+    """ Generate the episodes based on the policy-action probabilities.
+
+    Args:
+        policy: The policy array to be used to generate episodes to train on.
+        robot: The robot object to be used.
 
     Returns a list called episodes that includes the state, the action and the reward of the next action i.e.
      [[(1, 1), (1, 0), 2], [(2, 1), (1, 0), -1], [(3, 1), (-1, 0), -1]]: the state (1,1) has next action (1,0)
@@ -27,7 +34,8 @@ def generate_episodes(policy, robot: Robot):
     # step of the episodes to be proportional to the cleaned tiles
     while step < 800:
         # choose randomly a action but based on action weights
-        chosen_action = random.choices(["n", "e", "s", "w", "off"], weights=policy[position[0], position[1]], k=1)[0]
+        chosen_action = random.choices(ACTIONS,
+                                       weights=policy[position[0], position[1]], k=1)[0]
 
         # update the reward in the simulated grid
         new_pos = tuple(np.asarray(position) + robot.dirs[chosen_action])
@@ -54,8 +62,6 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=100, epsilon=0.99):
         epsilon: Learning rate
     """
     max_episodes = max_episodes
-
-    actions = ("n", "e", "s", "w", "off")
 
     # Holds the actual q grid
     q_grid = np.array((robot.grid.n_rows, robot.grid.n_cols, len(actions)))
@@ -92,7 +98,6 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=100, epsilon=0.99):
                 q_grid[(y, x), action] = 0
                 policy[(y, x), action] = 1 / len(possible_actions)
 
-    """ Monte Carlo On Policy implementation"""
     # generate episodes until reach the max number of episodes
     for _ in tqdm(range(max_episodes)):
         # gradually reduce the epsilon parameter cause we need less exploration and more exploitation as the
