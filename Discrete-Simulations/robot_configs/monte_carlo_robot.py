@@ -3,8 +3,8 @@ import random
 
 import numpy as np
 
-from environment import Robot
-from helpers.label_based_reward import get_reward
+from environment import RobotBase
+from helpers.reward_functions import get_label_based_reward
 from tqdm import tqdm
 
 
@@ -12,7 +12,7 @@ ACTIONS = ("n", "e", "s", "w")
 ACTIONS_IDX = tuple([i for i in range(len(ACTIONS))])  # For future modularity
 
 
-def generate_episodes(policy: np.ndarray, robot: Robot):
+def generate_episodes(policy: np.ndarray, robot: RobotBase):
     """ Generate the episodes based on the policy-action probabilities.
 
     Args:
@@ -36,7 +36,7 @@ def generate_episodes(policy: np.ndarray, robot: Robot):
 
         # update the reward in the simulated grid
         new_pos = tuple(np.asarray(position) + robot.dirs[ACTIONS[chosen_action]])
-        reward = get_reward(temp_robot.grid.cells[new_pos])
+        reward = get_label_based_reward(temp_robot.grid.cells[new_pos])
 
         episodes.append([position, chosen_action, reward])
 
@@ -47,7 +47,7 @@ def generate_episodes(policy: np.ndarray, robot: Robot):
     return episodes
 
 
-def robot_epoch(robot: Robot, g=0.99, max_episodes=100, epsilon=0.99):
+def robot_epoch(robot: RobotBase, g=0.99, max_episodes=100, epsilon=0.99):
     """ Monte Carlo On Policy implementation.
 
     Args:
