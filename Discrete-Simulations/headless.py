@@ -139,6 +139,7 @@ try:
             efficiency = (100 * n_total_tiles) / (n_total_tiles + n_revisted_tiles)
         # Keep track of the last statistics for each simulation instance:
 
+
         recorded_values['efficiency'] = efficiency
         recorded_values['cleaned'] = clean_percent
         recorded_values['battery'] = robot.battery_lvl

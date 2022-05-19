@@ -63,8 +63,6 @@ class TDRobotBase(RobotBase):
         self.epsilon = self.initial_epsilon
         self.lr = self.initial_learning_rate
 
-        self.number_of_episodes = 1000
-
         self.starting_pos = copy.deepcopy(self.pos)
         self.starting_grid = self.grid
         self.starting_orientation = str(self.orientation)
