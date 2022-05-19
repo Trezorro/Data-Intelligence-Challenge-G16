@@ -6,7 +6,7 @@ import pickle
 import time
 from datetime import datetime
 from pathlib import Path
-from typing import Tuple, Type, Union
+from typing import Optional, Tuple, Type, Union
 from functools import partialmethod
 
 import pandas as pd
@@ -26,7 +26,7 @@ OUTPUT_FOLDER = 'output'
 RUN_NAME = 'experiment_run'
 N_WORKERS = 8 # None, or int in [1,63]
 
-ROBOT_MODULE_NAME = 'a_sarsa_robot'
+ROBOT_MODULE_NAME = 'q_learning_robot'
 GRID_FILES = [
     # 'example-random-house-0.grid',
     # 'stay_off_my_grass.grid',
@@ -59,7 +59,7 @@ if not (hasattr(robot_module, 'Robot') or hasattr(robot_module, 'robot_epoch')):
         raise ImportError(f"No Robot class or robot_epoch function found in {ROBOT_MODULE_NAME}!")
 RobotClass: Union[Type[RobotBase], Type[TDRobotBase]]  = getattr(robot_module, 'Robot', RobotBase)
 
-def run_experiment(parameter_tuple: tuple) -> Tuple[str,str]:
+def run_experiment(parameter_tuple: tuple, experiment_number: Optional[int] = None) -> Tuple[Optional[int],str,str]:
     global robot_module, RobotClass, INCLUDED_PARAMETERS, STOPPING_CRITERIA, OUTPUT_VALUE_NAMES
     parameters = dict(zip(INCLUDED_PARAMETERS.keys(), parameter_tuple))
     # Initialize statistics:
@@ -120,7 +120,6 @@ def run_experiment(parameter_tuple: tuple) -> Tuple[str,str]:
         u_moves = set(moves)
         n_revisted_tiles = len(moves) - len(u_moves)
         efficiency = (100 * n_total_tiles) / (n_total_tiles + n_revisted_tiles)
-        # Keep track of the last statistics for each simulation instance:
 
     recorded_values['efficiency'] = efficiency
     recorded_values['cleaned'] = clean_percent
@@ -133,7 +132,7 @@ def run_experiment(parameter_tuple: tuple) -> Tuple[str,str]:
     output_values= list(parameter_tuple) + [recorded_values[key] for key in OUTPUT_VALUE_NAMES]
     measurement_line = ','.join(repr(v) for v in output_values) + '\n'
     moves_line = ','.join(repr(v) for v in parameter_tuple) + ",'" + repr(moves) + "'\n"
-    return measurement_line, moves_line
+    return experiment_number, measurement_line, moves_line
 
 if __name__ == '__main__':
     run_filename=f'{datetime.now():%b-%d_%H-%M (%Ss)} - {RUN_NAME}.csv'
@@ -157,17 +156,18 @@ if __name__ == '__main__':
         with cf.ProcessPoolExecutor(N_WORKERS) as executor:
             # TODO: skip some tuples at random (random search)
             futures = []
-            for experiment, parameter_tuple in enumerate(itertools.product(*INCLUDED_PARAMETERS.values())):
-                print(f"Starting experiment {experiment:#>4} with parameters:  ", 
+            for exp_idx, parameter_tuple in enumerate(itertools.product(*INCLUDED_PARAMETERS.values())):
+                print(f"Starting experiment {exp_idx:#>4} with parameters:  ", 
                       str(dict(zip(INCLUDED_PARAMETERS.keys(), parameter_tuple))))
-                futures.append(executor.submit(run_experiment, parameter_tuple))
+                futures.append(executor.submit(run_experiment, parameter_tuple, exp_idx))
             for result in cf.as_completed(futures):
-                
-                measurement_line, moves_line = result.result()
+                exp_idx, measurement_line, moves_line = result.result()
                 with open(run_out_path, 'a') as f:
                     f.write(measurement_line)
                 with open(run_history_out_path, 'a') as f:
                     f.write(moves_line)
+                print(f"Finished experiment {exp_idx:#>4}!")
+                
     except (KeyboardInterrupt, SystemExit):
         print("Process interrupted!")
     except Exception as e:
