@@ -24,7 +24,7 @@ RUN_NAME = 'experiment_run'
 
 ROBOT_MODULE_NAME = 'a_sarsa_robot'
 GRID_FILES = [
-    'example-random-house-0.grid',
+    'experiment_house.grid',
     'stay_off_my_grass.grid',
 ]
 P_MOVES = [0, 0.2]
@@ -34,7 +34,7 @@ LEARNING_RATES = [0.99, 0.5]
 REPEATS = range(10)
 INCLUDED_PARAMETERS = dict(
     # parameter name: [iterable values]
-    # comment out what you dont need for the current robot type!
+    # comment out what you don't need for the current robot type!
     grid=GRID_FILES,
     p_move=P_MOVES,
     gamma=GAMMAS,
@@ -66,8 +66,8 @@ with open(run_history_out_path, 'a') as f:
 # Dynamically load correct bot class:
 robot_module = importlib.import_module('robot_configs.'+ROBOT_MODULE_NAME.split('.py')[0])
 if not (hasattr(robot_module, 'Robot') or hasattr(robot_module, 'robot_epoch')):
-        raise ImportError(f"No Robot class or robot_epoch function found in {ROBOT_MODULE_NAME}!")
-RobotClass: Union[Type[RobotBase], Type[TDRobotBase]]  = getattr(robot_module, 'Robot', RobotBase)
+            raise ImportError(f"No Robot class or robot_epoch function found in {ROBOT_MODULE_NAME}!")
+RobotClass: Union[Type[RobotBase], Type[TDRobotBase]] = getattr(robot_module, 'Robot', RobotBase)
 
 try:
     for parameter_tuple in itertools.product(*INCLUDED_PARAMETERS.values()):
