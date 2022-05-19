@@ -27,7 +27,7 @@ def generate_episodes(policy, robot: Robot, number_of_tiles, possible_actions):
 
     step = 0
     # step of the episodes to be proportional to the cleaned tiles
-    while step < number_of_tiles / 2:
+    while step < 800:
         actions = []
         probabilities = []
         for action in possible_actions[position]:
