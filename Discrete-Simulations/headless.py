@@ -138,7 +138,7 @@ try:
         recorded_values['efficiency'] = efficiency
         recorded_values['cleaned'] = clean_percent
         recorded_values['battery'] = robot.battery_lvl
-        recorded_values['dead'] = robot.alive
+        recorded_values['dead'] = dead
         recorded_values['n_moves'] = len(moves)
         recorded_values['time'] = round(time.time() - start_time, 2)
         recorded_values['error'] = 0 # experiment finished successfully
@@ -151,7 +151,7 @@ try:
 
         output_values= list(parameter_tuple) + [recorded_values[key] for key in OUTPUT_VALUE_NAMES]
         with open(run_out_path, 'a') as f:
-            f.write(','.join(str(v) for v in output_values) + '\n')
+            f.write(','.join(repr(v) for v in output_values) + '\n')
 except (KeyboardInterrupt, SystemExit):
     print("Process interrupted!")
 except Exception as e:
