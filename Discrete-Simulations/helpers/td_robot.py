@@ -105,10 +105,10 @@ class TDRobotBase(RobotBase):
             current_state = TDState(self.pos[1], self.pos[0], self.get_vision())
             for a in actions:
                 if a == "off":
-                    continue
-
-                target_pos = tuple(np.array(self.pos) + np.array(self.dirs[a]))
-                self.debug_values[target_pos] = self.Q[current_state.get_index(a)]
+                    target_square = self.pos
+                else:
+                    target_square = tuple(np.array(self.pos) + np.array(self.dirs[a]))
+                self.debug_values[target_square] = self.Q[current_state.get_index(a)]
 
     def _step(self, action: str) -> Tuple[TDState, float, bool]:
         """ This function simulates a step of the algorithm given an action and the current state of the robot.

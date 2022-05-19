@@ -29,7 +29,7 @@ class Robot(TDRobotBase):
         algorithm with decreasing learning rate and epsilon exploration.
         """
 
-        for _ in tqdm(range(self.number_of_episodes)):
+        for _ in tqdm(range(self.number_of_episodes), desc="Training", unit="episode"):
             # Reset environment. There is a chance that it randomizes the starting position.
             if np.random.binomial(1, 0) == 1:
                 self.reset_env(self.get_random_start_pos())

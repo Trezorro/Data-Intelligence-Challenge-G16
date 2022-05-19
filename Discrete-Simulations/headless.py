@@ -1,133 +1,198 @@
-# Import our robot algorithm to use in this simulation:
-from robot_configs.monte_carlo_robot import robot_epoch
-# from robot_configs.q_learning_robot import robot_epoch
+import concurrent.futures as cf
+import importlib
+import itertools
+import logging
 import pickle
-# from environment import Robot
-# from robot_configs.q_learning_robot import QAgent as Robot
-import pandas as pd
 import time
-import numpy as np
-from tqdm import tqdm
+from datetime import datetime
+from pathlib import Path
+from typing import Optional, Tuple, Type, Union
+from functools import partialmethod
 
-# Cleaned tile percentage at which the room is considered 'clean':
-stopping_criteria = 100
+import tqdm
 
-# Settings
+from environment import RobotBase
+from helpers.td_robot import TDRobotBase
+
+logging.basicConfig(level=logging.WARNING, force=True)
+logging.getLogger('matplotlib').setLevel(logging.ERROR)
+logging.getLogger('werkzeug').setLevel('WARNING')
+
+tqdm.tqdm.__init__ = partialmethod(tqdm.tqdm.__init__, disable=True)
+
+## ---------- Experiment Settings ---------- ##
+OUTPUT_FOLDER = 'output'
+RUN_NAME = 'experiment_run'
+N_WORKERS = 8  # None, or int in [1,63]
+
+"""
+ROBOT_MODULE_NAME, choose between
+    sarsa_robot,
+    monte_carlo_robot,
+    q_learning_robot 
+"""
+ROBOT_MODULE_NAME = 'sarsa_robot'
 GRID_FILES = [
-    # 'example-random-house-0.grid',
-    # 'stay_off_my_grass.grid',
-    # 'snake.grid',
-    'house.grid'
-        ]
-GAMMAS = [0.2, 0.5, 0.9]
-THETAS = [0.1, 0.01]
-P_MOVES = [0, 0.2]
+    # 'experiment_house.grid'
+    'stay_off_my_grass.grid'
+]
 
-cleaned_means = []
-cleaned_variances = []
-efficiencies_means = []
-efficiencies_variances = []
-experiments = []
+P_MOVES = [0]
+GAMMAS = [0.6, 0.75, 0.9]
+EPSILONS_SARSA_Q = [0.6, 0.7, 0.8, 0.9]
+EPSILONS_MONTE_CARLO = [0.05, 0.1, 0.15, 0.2]
+LEARNING_RATES = [0.8, 0.9]
+REPEATS = range(5)
+INCLUDED_PARAMETERS = dict(
+    # parameter name: [iterable values]
+    # comment out what you dont need for the current robot type!
+    grid=GRID_FILES,
+    p_move=P_MOVES,
+    gamma=GAMMAS,
+    lr=LEARNING_RATES,
+    repeat=REPEATS
+)
 
-# Run 100 times:
-big_df = pd.DataFrame(columns=['Clean', 'Efficiency', 'Experiment'])
+if ROBOT_MODULE_NAME == "monte_carlo_robot":
+    INCLUDED_PARAMETERS['epsilon'] = EPSILONS_MONTE_CARLO
+else:
+    INCLUDED_PARAMETERS['epsilon'] = EPSILONS_SARSA_Q
 
-try:
-    for grid_file in GRID_FILES:
-        for p_move_param in P_MOVES:
-            for theta in THETAS:
-                for gamma in GAMMAS:
-                    # Keep track of some statistics:
-                    efficiencies = []
-                    n_moves = []
-                    deaths = 0
-                    cleaned = []
-                    experiment_str = 'THETA ' + str(theta) + ' | GAMMA ' + str(gamma) + ' | p_move ' + str(p_move_param) \
-                                    + ' | GRID_FILE ' + grid_file
+STOPPING_CRITERIA = 100  # tile percentage at which the room is considered 'clean'
 
-                    time_tracker = pd.DataFrame(columns=["Simulation", "Percent", "Time"])
-                    cnt = 0
-                    experiment = []
+OUTPUT_VALUE_NAMES = ['efficiency', 'cleaned', 'battery', 'dead', 'n_moves', 'time', 'error']
 
-                    print(grid_file, theta, gamma)
-                    for i in tqdm(range(10)):
-                        # Open the grid file.
-                        # (You can create one yourself using the provided editor).
-                        with open(f'grid_configs/{grid_file}', 'rb') as f:
-                            grid = pickle.load(f)
+# Dynamically load correct bot class:
+robot_module = importlib.import_module('robot_configs.' + ROBOT_MODULE_NAME.split('.py')[0])
+if not (hasattr(robot_module, 'Robot') or hasattr(robot_module, 'robot_epoch')):
+    raise ImportError(f"No Robot class or robot_epoch function found in {ROBOT_MODULE_NAME}!")
+RobotClass: Union[Type[RobotBase], Type[TDRobotBase]] = getattr(robot_module, 'Robot', RobotBase)
 
-                        # Calculate the total visitable tiles:
-                        n_total_tiles = (grid.cells >= 0).sum()
 
-                        # Spawn the robot at (1,1) facing north with battery drainage enabled:
-                        robot = Robot(grid, (1, 1), orientation='n', battery_drain_p=1, battery_drain_lam=2,
-                                    p_move=p_move_param)
+def run_experiment(parameter_tuple: tuple, experiment_number: Optional[int] = None) -> Tuple[Optional[int], str, str]:
+    global robot_module, RobotClass, INCLUDED_PARAMETERS, STOPPING_CRITERIA, OUTPUT_VALUE_NAMES
+    parameters = dict(zip(INCLUDED_PARAMETERS.keys(), parameter_tuple))
+    # Initialize statistics:
+    recorded_values = {}
+    efficiency = None
+    clean_percent = None
+    moves = []
+    dead = 0
 
-                        # Keep track of the number of robot decision epochs:
-                        n_epochs = 0
-                        while True:
-                            start_time = time.time()
-                            n_epochs += 1
-                            # Do a robot epoch (basically call the robot algorithm once):
-                            robot_epoch(robot, gamma)
-                            # Stop this simulation instance if robot died :( :
-                            if not robot.alive:
-                                deaths += 1
-                                break
-                            # Calculate some statistics:
-                            clean = (grid.cells == 0).sum()
-                            dirty = (grid.cells == 1).sum() # edited to only include actual dirty cells
-                            goal = (grid.cells == 2).sum()
-                            # Calculate the cleaned percentage:
-                            clean_percent = (clean / (dirty + clean)) * 100
-                            if int(clean_percent) % 10 == 0 and int(clean_percent) != 0:
-                                cnt += 1
-                                time_tracker.loc[cnt, "Simulation"] = i + 1
-                                time_tracker.loc[cnt, "Percent"] = int(clean_percent)
-                                time_tracker.loc[cnt, "Time"] = round(time.time() - start_time, 2)
-                            # See if the room can be considered clean, if so, stop the simulaiton instance:
-                            if clean_percent >= stopping_criteria and goal == 0:
-                                break
-                            # Calculate the effiency score:
-                            moves = [(x, y) for (x, y) in zip(robot.history[0], robot.history[1])]
-                            u_moves = set(moves)
-                            n_revisted_tiles = len(moves) - len(u_moves)
-                            efficiency = (100 * n_total_tiles) / (n_total_tiles + n_revisted_tiles)
-                        # Keep track of the last statistics for each simulation instance:
-                        efficiencies.append(float(efficiency))
-                        n_moves.append(len(robot.history[0]))
-                        cleaned.append(clean_percent)
-                        # Change according to the current experiment
-                        experiment.append(experiment_str)
+    # Open the grid file.
+    with open(f"grid_configs/{parameters['grid']}", 'rb') as f:
+        grid = pickle.load(f)
+    if not hasattr(grid, 'transposed_version'):  # adapt to new grid format
+        grid.cells = grid.cells.T
 
-                        grouped_time = time_tracker[["Percent", "Time"]].groupby("Percent")
+        # Calculate the total visitable tiles:
+    n_total_tiles = (grid.cells >= 0).sum()
 
-                        mean_time = grouped_time.mean()
+    # Spawn the robot at (1,1) facing north with battery drainage enabled:
+    robot = RobotClass(grid, (1, 1),
+                       orientation='e',
+                       battery_drain_p=1,
+                       battery_drain_lam=1,
+                       p_move=parameters['p_move'],
+                       gamma=parameters['gamma'],
+                       epsilon=parameters['epsilon'],
+                       lr=parameters['lr'],
+                       number_of_episodes=1000,
+                       max_steps_per_episode=70,
+                       train_instantly=False
+                       )
 
-                        mean_time = mean_time.reset_index()
+    if not getattr(robot, 'is_trained', True):
+        # If this robot can, and should, be trained:
+        robot.train()
 
-                    df = pd.DataFrame(columns=['Clean', 'Efficiency', 'Experiment'])
-                    df['Clean'] = cleaned
-                    df['Efficiency'] = efficiencies
-                    df['Experiment'] = experiment
+    # Keep track of the number of robot decision epochs:
+    n_epochs = 0
+    start_time = time.time()
 
-                    cleaned_means.append(np.mean(cleaned))
-                    cleaned_variances.append(np.var(cleaned))
-                    efficiencies_means.append(np.mean(efficiencies))
-                    efficiencies_variances.append(np.var(efficiencies))
-                    experiments.append(experiment_str)
+    while True:
+        if not robot.alive:
+            if robot.battery_lvl <= 0:
+                dead = 1  # record empty battery death
+            break
 
-                    big_df = pd.concat([big_df, df])
+        n_epochs += 1
+        # Advance a time step and try to make the robot move:
+        if hasattr(robot_module, 'robot_epoch'):
+            # Use legacy robot_epoch function if available:
+            getattr(robot_module, 'robot_epoch')(robot)
+        else:
+            robot.robot_epoch()  # Use class method otherwise
+            # TODO phase this out, pass all parameters to Robot initalization
 
-finally:
-    big_df.to_excel(f"policy_iteration_experiment_more_drain_{GRID_FILES[0]}.xlsx", index=False)
+        # Calculate some statistics:
+        clean = (grid.cells == 0).sum()
+        dirty = (grid.cells == 1).sum()
+        goal = (grid.cells == 2).sum()
+        clean_percent = (clean / (dirty + clean)) * 100
+        # See if the room can be considered clean, if so, stop the simulaiton instance:
+        if clean_percent >= STOPPING_CRITERIA and goal == 0:
+            break
 
-    average_df = pd.DataFrame(
-        columns=['Clean mean', 'Clean variance', 'Efficiency mean', 'Efficiency variance', 'Experiment'])
-    average_df['Clean mean'] = cleaned_means
-    average_df['Clean variance'] = cleaned_variances
-    average_df['Efficiency mean'] = efficiencies_means
-    average_df['Efficiency variance'] = efficiencies_variances
-    average_df['Experiment'] = experiments
+        # Calculate the effiency score:
+        moves = [(x, y) for (x, y) in zip(robot.history[0], robot.history[1])]
+        u_moves = set(moves)
+        n_revisted_tiles = len(moves) - len(u_moves)
+        efficiency = (100 * n_total_tiles) / (n_total_tiles + n_revisted_tiles)
 
-    average_df.to_excel(f"Overview_policy_iteration_experiment_aggregated_more_drain_{GRID_FILES[0]}.xlsx", index=False)
+    recorded_values['efficiency'] = efficiency
+    recorded_values['cleaned'] = clean_percent
+    recorded_values['battery'] = robot.battery_lvl
+    recorded_values['dead'] = dead
+    recorded_values['n_moves'] = len(moves)
+    recorded_values['time'] = round(time.time() - start_time, 2)
+    recorded_values['error'] = 0  # experiment finished successfully
+
+    output_values = list(parameter_tuple) + [recorded_values[key] for key in OUTPUT_VALUE_NAMES]
+    measurement_line = ','.join(repr(v) for v in output_values) + '\n'
+    moves_line = ','.join(repr(v) for v in parameter_tuple) + ",'" + repr(moves) + "'\n"
+    return experiment_number, measurement_line, moves_line
+
+if __name__ == '__main__':
+    run_filename = f'{datetime.now():%b-%d_%H-%M (%Ss)} - {RUN_NAME}.csv'
+    run_out_path = Path(OUTPUT_FOLDER, run_filename)
+    run_history_out_path = Path(OUTPUT_FOLDER, 'histories', run_filename)
+    if run_out_path.exists():
+        raise FileExistsError(f'{run_out_path} already exists!')
+    else:
+        run_out_path.parent.mkdir(parents=True, exist_ok=True)
+        run_history_out_path.parent.mkdir(parents=True, exist_ok=True)
+        run_out_path.touch()
+        run_history_out_path.touch()
+
+    with open(run_out_path, 'a') as f:
+        f.write(','.join(list(INCLUDED_PARAMETERS.keys()) + OUTPUT_VALUE_NAMES) + '\n')
+    with open(run_history_out_path, 'a') as f:
+        f.write(','.join(list(INCLUDED_PARAMETERS.keys())) + ",moves_list\n")
+
+    print("Firing up the pool of workers...")
+    try:
+        with cf.ProcessPoolExecutor(N_WORKERS) as executor:
+            # TODO: skip some tuples at random (random search)
+            futures = []
+            for exp_idx, parameter_tuple in enumerate(itertools.product(*INCLUDED_PARAMETERS.values())):
+                print(f"Starting experiment {exp_idx:#>4} with parameters:  ",
+                      str(dict(zip(INCLUDED_PARAMETERS.keys(), parameter_tuple))))
+                futures.append(executor.submit(run_experiment, parameter_tuple, exp_idx))
+            for result in cf.as_completed(futures):
+                exp_idx, measurement_line, moves_line = result.result()
+                with open(run_out_path, 'a') as f:
+                    f.write(measurement_line)
+                with open(run_history_out_path, 'a') as f:
+                    f.write(moves_line)
+                print(f"Finished experiment {exp_idx:#>4}!")
+
+    except (KeyboardInterrupt, SystemExit):
+        print("Process interrupted!")
+    except Exception as e:
+        print('Exception:', e)
+        raise
+    else:
+        print('Successfully completed all experiments.')
+    finally:
+        print("Writting results to file...")

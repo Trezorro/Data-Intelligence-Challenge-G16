@@ -29,7 +29,7 @@ class Robot(TDRobotBase):
         algorithm with decreasing learning rate and epsilon exploration.
         """
 
-        for _ in tqdm(range(self.number_of_episodes)):
+        for _ in tqdm(range(self.number_of_episodes), desc="Training", unit="episode"):
             # Reset environment. There is a chance that it randomizes the starting position.
             if np.random.binomial(1, 0) == 1:
                 self.reset_env(self.get_random_start_pos())
@@ -52,7 +52,7 @@ class Robot(TDRobotBase):
                     max_next_reward = self.Q[new_state.get_index(greedy_action)]
 
                 # Update Q table
-                self._update_qtable(state, action, reward, max_next_reward)  # FIXME: possible bug
+                self._update_qtable(state, action, reward, max_next_reward)
 
                 # Break if simulation is finished
                 if done:
