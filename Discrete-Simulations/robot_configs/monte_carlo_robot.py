@@ -56,8 +56,6 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=100, epsilon=0.99):
         max_episodes: Max episodes to train for.
         epsilon: Learning rate
     """
-    max_episodes = max_episodes
-
     # Holds the actual q grid
     q_grid = np.full((*robot.grid.cells.shape, len(ACTIONS)), 0.)
     # Holds sums of G value for every grid position, used to assign a value to q
