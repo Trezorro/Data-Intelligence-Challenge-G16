@@ -35,7 +35,7 @@ def generate_episodes(policy: np.ndarray, robot: Robot):
                                        k=1)[0]
 
         # update the reward in the simulated grid
-        new_pos = tuple(np.asarray(position) + robot.dirs[chosen_action])
+        new_pos = tuple(np.asarray(position) + robot.dirs[ACTIONS[chosen_action]])
         reward = get_reward(temp_robot.grid.cells[new_pos])
 
         episodes.append([position, chosen_action, reward])
@@ -43,7 +43,6 @@ def generate_episodes(policy: np.ndarray, robot: Robot):
         # update position of the simulated robot
         position = new_pos
         temp_robot.pos = position
-
 
     return episodes
 
@@ -72,38 +71,38 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=100, epsilon=0.99):
         # gradually reduce the epsilon parameter cause we need less exploration and more exploitation as the
         # episodes increase
         epsilon *= 0.99
-        single_episode = generate_episodes(policy, robot, possible_actions)
+        single_episode = generate_episodes(policy, robot)
         G = 0
-        for idx, step in enumerate(single_episode[::-1]):
+        for idx, step in reversed(list(enumerate(single_episode[::-1]))):
             G = g * G + step[2]
-            # first-visit
-            if (step[0], step[1]) not in np.array(single_episode[::-1])[:, :2][idx + 1:]:
+
+            step_y = step[0][0]
+            step_x = step[0][1]
+            episode_action_idx = step[1]
+
+            if (step[0], episode_action_idx) not in np.array(single_episode)[:, :2][idx + 1:]:
 
                 # update returns(state,action) & q_grid(state,action)
-                returns[step[0], step[1]].append(G)
-                q_grid[step[0], step[1]] = np.mean(returns[step[0], step[1]])
+                g_sums[step_y, step_x, episode_action_idx] += G
+                q_grid[step_y, step_x, episode_action_idx] = g_sums[step_x, step_x, episode_action_idx] / idx
 
                 # calculate the best action
-                best_action = (0, 0)
-                max_value = -100
+                best_action_idx = -1
+                max_value = -100000
 
-                count_actions = 0
-                # q_grid_lst = list(q_grid)
-                for action in possible_actions[step[0]]:
-                    # if state == step[0]:
-                    count_actions += 1
-                    if q_grid[step[0], action] > max_value:
-                        best_action = action
-                        max_value = q_grid[step[0], action]
+                for action_idx in range(len(ACTIONS)):
+                    if q_grid[step_y, step_x, action_idx] > max_value:
+                        best_action_idx = action_idx
+                        max_value = q_grid[step_y, step_x, action_idx]
 
                 # update the policy matrix of the specific (state,action) pair
                 # based on e-soft policy
-                for action in possible_actions[step[0]]:  # enumerate action space
+                for action_idx in range(len(ACTIONS)):  # enumerate action space
                     # if state == step[0]:
-                    if action == best_action:
-                        policy[step[0], action] = 1 - epsilon + epsilon / count_actions
+                    if action_idx == best_action_idx:
+                        policy[step_y, step_x, action_idx] = 1 - epsilon + epsilon / len(ACTIONS)
                     else:
-                        policy[step[0], action] = epsilon / count_actions
+                        policy[step_y, step_x, action_idx] = epsilon / len(ACTIONS)
 
     # when the episodes iteration finishes
     # choose the corresponding robot action based on the updated policy probabilities
