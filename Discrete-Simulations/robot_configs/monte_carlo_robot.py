@@ -9,6 +9,7 @@ from tqdm import tqdm
 
 
 ACTIONS = ("n", "e", "s", "w", "off")
+ACTIONS_IDX = (0, 1, 2, 3, 4)
 
 
 def generate_episodes(policy: np.ndarray, robot: Robot):
@@ -22,20 +23,16 @@ def generate_episodes(policy: np.ndarray, robot: Robot):
      [[(1, 1), (1, 0), 2], [(2, 1), (1, 0), -1], [(3, 1), (-1, 0), -1]]: the state (1,1) has next action (1,0)
      that gives 2 as reward, then, the state (2,1) has (1,0) as next action that gives -1 as reward etc.
     """
-
-    # create a deepcopy of robot object because in the simulation
-    # copy the current robot
+    # create a deepcopy of robot object to run in the simulations
     temp_robot = copy.deepcopy(robot)
 
     episodes = []
     position = temp_robot.pos
 
-    step = 0
-    # step of the episodes to be proportional to the cleaned tiles
-    while step < 800:
-        # choose randomly a action but based on action weights
-        chosen_action = random.choices(ACTIONS,
-                                       weights=policy[position[0], position[1]], k=1)[0]
+    for step in range(800):
+        chosen_action = random.choices(ACTIONS_IDX,
+                                       weights=policy[position[0], position[1]],
+                                       k=1)[0]
 
         # update the reward in the simulated grid
         new_pos = tuple(np.asarray(position) + robot.dirs[chosen_action])
@@ -43,11 +40,10 @@ def generate_episodes(policy: np.ndarray, robot: Robot):
 
         episodes.append([position, chosen_action, reward])
 
-        step += 1
-
         # update position of the simulated robot
         position = new_pos
         temp_robot.pos = position
+
 
     return episodes
 
@@ -64,39 +60,12 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=100, epsilon=0.99):
     max_episodes = max_episodes
 
     # Holds the actual q grid
-    q_grid = np.array((robot.grid.n_rows, robot.grid.n_cols, len(actions)))
+    q_grid = np.full((robot.grid.n_rows, robot.grid.n_cols, len(ACTIONS), 0.))
     # Holds sums of G value for every grid position, used to assign a value to q
-    g_sums = np.array((robot.grid.n_rows, robot.grid.n_cols, len(actions)))
+    g_sums = np.full((robot.grid.n_rows, robot.grid.n_cols, len(ACTIONS)), 0.)
     # Policy values
-    policy = np.array((robot.grid.n_rows, robot.grid.n_cols, len(actions)))
-    possible_actions = {}
-
-    for x in range(robot.grid.n_cols):
-        for y in range(robot.grid.n_rows):
-
-            # ignore cells that are walls or obstacles
-            if -3 < robot.grid.cells[y][x] < 0 or robot.grid.cells[y][x] == 3:
-                continue
-
-            # create a list with possible tiles
-
-            # create a list with all the possible actions of each state
-            possible_actions[(y, x)] = []
-
-            for action in actions:
-                # calculate the new position the robot would be in after the action
-                new_pos = tuple(np.array([y, x]) + action)
-
-                # ignore tiles that are either death or walls or obstacles
-                if -3 < robot.grid.cells[new_pos] < 0 or robot.grid.cells[new_pos] == 3:
-                    continue
-
-                # keep track of the possible actions of a state
-                possible_actions[(y, x)].append(action)
-
-                # initialize returns and Q grid with empty list and 0 respectively for every state action combination
-                q_grid[(y, x), action] = 0
-                policy[(y, x), action] = 1 / len(possible_actions)
+    policy = np.full((robot.grid.n_rows, robot.grid.n_cols, len(ACTIONS)),
+                     1. / len(ACTIONS))
 
     # generate episodes until reach the max number of episodes
     for _ in tqdm(range(max_episodes)):
