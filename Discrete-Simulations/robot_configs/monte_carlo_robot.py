@@ -33,16 +33,19 @@ def generate_episodes(policy: np.ndarray, robot: RobotBase):
         chosen_action = random.choices(ACTIONS_IDX,
                                        weights=policy[position[0], position[1]],
                                        k=1)[0]
+        new_pos = tuple(np.asarray(position)
+                        + robot.dirs[ACTIONS[chosen_action]])
 
-        # update the reward in the simulated grid
-        new_pos = tuple(np.asarray(position) + robot.dirs[ACTIONS[chosen_action]])
-        reward = get_label_based_reward(temp_robot.grid.cells[new_pos])
-
+        label = temp_robot.grid.cells[tuple(new_pos)]
+        reward = get_label_based_reward(label)
         episodes.append([position, chosen_action, reward])
 
         # update position of the simulated robot
-        position = new_pos
-        temp_robot.pos = position
+        while temp_robot.orientation != chosen_action:
+            temp_robot.rotate("r")
+        temp_robot.move()
+        if not temp_robot.alive or temp_robot.grid.is_cleaned():
+            break
 
     return episodes
 
@@ -98,7 +101,9 @@ def robot_epoch(robot: RobotBase, g=0.99, max_episodes=100, epsilon=0.99):
 
     # when the episodes iteration finishes
     # choose the corresponding robot action based on the updated policy probabilities
-    corresponding_orientation = random.choices(ACTIONS, weights=policy[robot.pos[0], robot.pos[1]], k=1)[0]
+    corresponding_orientation = random.choices(
+        ACTIONS, weights=policy[robot.pos[0], robot.pos[1]], k=1
+    )[0]
 
     while robot.orientation != corresponding_orientation:
         robot.rotate('r')
