@@ -5,6 +5,7 @@ import numpy as np
 
 from environment import Robot
 from helpers.label_based_reward import get_reward
+from tqdm import tqdm
 
 
 def generate_episodes(policy, robot: Robot, number_of_tiles, possible_actions):
@@ -51,19 +52,16 @@ def generate_episodes(policy, robot: Robot, number_of_tiles, possible_actions):
     return episodes
 
 
-def robot_epoch(robot: Robot, g=0.99, max_episodes=10, epsilon=0.99):
+def robot_epoch(robot: Robot, g=0.99, max_episodes=100, epsilon=0.99):
     """ Initialize the attributes needed for the Monte Carlo On Policy implementation"""
     max_episodes = max_episodes
-
-    # count the clean tiles
-    count_clean = np.count_nonzero(robot.grid.cells == 0)
 
     # number of non wall or obstacle tiles
     number_of_tiles = ((robot.grid.cells >= 0) & (robot.grid.cells <= 2)).sum()
 
-    q_grid = {}
-    epsilon = epsilon
     actions = list(robot.dirs.values())
+
+    q_grid = {}
     returns = {}  # returns(state, action)
     policy = {}  # policy(state, action)
     all_possible_tiles = []
@@ -99,13 +97,9 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=10, epsilon=0.99):
                 policy[(y, x), action] = 1 / len(possible_actions)
 
     """ Monte Carlo On Policy implementation"""
-    if (number_of_tiles - count_clean) < 20:
-        max_episodes *= 10
-    else:
-        max_episodes = max_episodes * (number_of_tiles - count_clean)
 
     # generate episodes until reach the max number of episodes
-    for episode in range(max_episodes):
+    for _ in tqdm(range(max_episodes)):
         # gradually reduce the epsilon parameter cause we need less exploration and more exploitation as the
         # episodes increase
         epsilon *= 0.99
