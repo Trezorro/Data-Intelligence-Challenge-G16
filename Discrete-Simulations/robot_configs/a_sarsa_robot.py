@@ -76,7 +76,7 @@ class Robot(TDRobotBase):
             current_state: Current TDState object
 
         Returns:
-            The action to be taken from ['n', 'e', 's', 'w', 'off]
+            The action to be taken from ['n', 'e', 's', 'w', 'off']
         """
         actions = ["n", "e", "s", "w", "off"]
         if np.random.uniform(0, 1) < self.epsilon:
