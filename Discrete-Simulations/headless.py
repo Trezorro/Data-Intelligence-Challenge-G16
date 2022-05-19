@@ -49,15 +49,21 @@ STOPPING_CRITERIA = 100  # tile percentage at which the room is considered 'clea
 OUTPUT_VALUE_NAMES = ['efficiency', 'cleaned', 'battery', 'dead', 'n_moves', 'time', 'error']
 
 # Initialize csv:
-run_out_path = Path(OUTPUT_FOLDER, f'{datetime.now():%b-%d_%H-%M (%Ss)} - {RUN_NAME}.csv')
+run_filename=f'{datetime.now():%b-%d_%H-%M (%Ss)} - {RUN_NAME}.csv'
+run_out_path = Path(OUTPUT_FOLDER, run_filename)
+run_history_out_path = Path(OUTPUT_FOLDER, 'histories', run_filename)
 if run_out_path.exists():
     raise FileExistsError(f'{run_out_path} already exists!')
 else:
     run_out_path.parent.mkdir(parents=True, exist_ok=True)
+    run_history_out_path.parent.mkdir(parents=True, exist_ok=True)
     run_out_path.touch()
+    run_history_out_path.touch()
 
 with open(run_out_path, 'a') as f:
     f.write(','.join(list(INCLUDED_PARAMETERS.keys()) + OUTPUT_VALUE_NAMES ) + '\n')
+with open(run_history_out_path, 'a') as f:
+    f.write(','.join(list(INCLUDED_PARAMETERS.keys()))+ ",moves_list\n")
 
 # Dynamically load correct bot class:
 robot_module = importlib.import_module('robot_configs.'+ROBOT_MODULE_NAME.split('.py')[0])
@@ -152,6 +158,8 @@ try:
         output_values= list(parameter_tuple) + [recorded_values[key] for key in OUTPUT_VALUE_NAMES]
         with open(run_out_path, 'a') as f:
             f.write(','.join(repr(v) for v in output_values) + '\n')
+        with open(run_history_out_path, 'a') as f:
+            f.write(','.join(repr(v) for v in parameter_tuple) + ",'" + repr(moves) + "'\n")
 except (KeyboardInterrupt, SystemExit):
     print("Process interrupted!")
 except Exception as e:
