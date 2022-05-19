@@ -8,37 +8,29 @@ from helpers.label_based_reward import get_reward
 from tqdm import tqdm
 
 
-def generate_episodes(policy, robot: Robot, possible_actions):
+def generate_episodes(policy, robot: Robot):
     """ Generate the episodes based on the policy-action probabilities stored in policy dict
 
     Returns a list called episodes that includes the state, the action and the reward of the next action i.e.
      [[(1, 1), (1, 0), 2], [(2, 1), (1, 0), -1], [(3, 1), (-1, 0), -1]]: the state (1,1) has next action (1,0)
      that gives 2 as reward, then, the state (2,1) has (1,0) as next action that gives -1 as reward etc.
     """
+
     # create a deepcopy of robot object because in the simulation
     # copy the current robot
     temp_robot = copy.deepcopy(robot)
 
-    # create a list to store the episodes
     episodes = []
-
-    # TODO Reaction this comment
     position = temp_robot.pos
 
     step = 0
     # step of the episodes to be proportional to the cleaned tiles
     while step < 800:
-        actions = []
-        probabilities = []
-        for action in possible_actions[position]:
-            actions.append(action)
-            probabilities.append(policy[position, action])
-
         # choose randomly a action but based on action weights
-        chosen_action = random.choices(actions, weights=probabilities, k=1)[0]
+        chosen_action = random.choices(["n", "e", "s", "w", "off"], weights=policy[position[0], position[1]], k=1)[0]
 
         # update the reward in the simulated grid
-        new_pos = tuple(np.asarray(position) + chosen_action)
+        new_pos = tuple(np.asarray(position) + robot.dirs[chosen_action])
         reward = get_reward(temp_robot.grid.cells[new_pos])
 
         episodes.append([position, chosen_action, reward])
