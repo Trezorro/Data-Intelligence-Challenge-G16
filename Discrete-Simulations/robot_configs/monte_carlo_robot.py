@@ -36,12 +36,12 @@ def generate_episodes(policy, robot: Robot, possible_actions):
 
         # choose randomly a action but based on action weights
         chosen_action = random.choices(actions, weights=probabilities, k=1)[0]
-        episodes.append([position, chosen_action])
-        new_pos = tuple(np.asarray(position) + chosen_action)
 
         # update the reward in the simulated grid
+        new_pos = tuple(np.asarray(position) + chosen_action)
         reward = get_reward(temp_robot.grid.cells[new_pos])
-        episodes[step].append(reward)
+
+        episodes.append([position, chosen_action, reward])
 
         step += 1
 
