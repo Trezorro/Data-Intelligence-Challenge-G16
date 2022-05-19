@@ -5,7 +5,7 @@ import random
 
 
 class RobotBase:
-    def __init__(self, grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=0, vision=1):
+    def __init__(self, grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=0, vision=1, **kwargs):
         if grid.cells[pos[0], pos[1]] != 1:
             raise ValueError
 
