@@ -4,7 +4,7 @@ import random
 import numpy as np
 
 from environment import RobotBase
-from helpers.reward_functions import get_label_based_reward
+from helpers.reward_functions import get_label_and_battery_based_reward
 from tqdm import tqdm
 
 
@@ -28,21 +28,24 @@ def generate_episodes(policy: np.ndarray, robot: RobotBase):
 
     episodes = []
 
-    for step in range(800):
-        chosen_action = random.choices(ACTIONS_IDX,
-                                       weights=policy[temp_robot.pos[0], temp_robot.pos[1]],
+    for step in range(100):
+        current_pos = tuple(robot.pos)
+        chosen_action_idx = random.choices(ACTIONS_IDX,
+                                       weights=policy[current_pos[0], current_pos[1]],
                                        k=1)[0]
-        new_pos = tuple(np.asarray(temp_robot.pos)
-                        + robot.dirs[ACTIONS[chosen_action]])
-
+        new_pos = tuple(np.asarray(current_pos)
+                        + robot.dirs[ACTIONS[chosen_action_idx]])
         label = temp_robot.grid.get_c(new_pos)
-        reward = get_label_based_reward(label)
-        episodes.append([temp_robot.pos, chosen_action, reward])
 
         # update position of the simulated robot
-        while temp_robot.orientation != ACTIONS[chosen_action]:
+        while temp_robot.orientation != ACTIONS[chosen_action_idx]:
             temp_robot.rotate("r")
-        temp_robot.move()
+
+        _, battery_drained = temp_robot.move()
+
+        reward = get_label_and_battery_based_reward(label, battery_drained)
+        episodes.append([current_pos, chosen_action_idx, reward])
+
         if not temp_robot.alive or temp_robot.grid.is_cleaned():
             break
 
