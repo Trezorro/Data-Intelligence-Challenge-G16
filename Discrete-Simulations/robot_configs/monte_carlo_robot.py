@@ -56,9 +56,6 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=100, epsilon=0.99):
     """ Initialize the attributes needed for the Monte Carlo On Policy implementation"""
     max_episodes = max_episodes
 
-    # number of non wall or obstacle tiles
-    number_of_tiles = ((robot.grid.cells >= 0) & (robot.grid.cells <= 2)).sum()
-
     actions = list(robot.dirs.values())
 
     q_grid = {}
@@ -102,7 +99,7 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=100, epsilon=0.99):
         # gradually reduce the epsilon parameter cause we need less exploration and more exploitation as the
         # episodes increase
         epsilon *= 0.99
-        single_episode = generate_episodes(policy, robot, number_of_tiles, possible_actions)
+        single_episode = generate_episodes(policy, robot, possible_actions)
         G = 0
         for idx, step in enumerate(single_episode[::-1]):
             G = g * G + step[2]
