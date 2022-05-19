@@ -56,10 +56,10 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=10, epsilon=0.99):
     max_episodes = max_episodes
 
     # count the clean tiles
-    count_clean = 0
+    count_clean = np.count_nonzero(robot.grid.cells == 0)
 
     # number of non wall or obstacle tiles
-    number_of_tiles = 0
+    number_of_tiles = ((robot.grid.cells >= 0) & (robot.grid.cells <= 2)).sum()
 
     q_grid = {}
     epsilon = epsilon
@@ -81,14 +81,6 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=10, epsilon=0.99):
 
             # create a list with all the possible actions of each state
             possible_actions[(y, x)] = []
-
-            # count the number of tiles
-            number_of_tiles += 1
-
-            # TODO reaction, keep for calibration
-            # count number of clean tiles
-            if robot.grid.cells[y][x] == 0:
-                count_clean += 1
 
             for action in actions:
                 # calculate the new position the robot would be in after the action
