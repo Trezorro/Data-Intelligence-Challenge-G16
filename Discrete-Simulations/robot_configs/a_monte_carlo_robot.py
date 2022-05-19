@@ -17,7 +17,7 @@ class Robot(TDRobotBase):
     """ Monte Carlo Robot """
 
     def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
-                 epsilon=0.1, gamma=0.8, lr=None, max_steps_per_episode=100, number_of_episodes=1000,
+                 epsilon=0.1, gamma=0.8, lr=None, max_steps_per_episode=50, number_of_episodes=2000,
                  train_instantly=False):
 
         self.policy = np.full((*grid.cells.shape, len(ACTIONS)), 1. / len(ACTIONS))
@@ -26,7 +26,7 @@ class Robot(TDRobotBase):
                          max_steps_per_episode, number_of_episodes, train_instantly)
 
     def robot_epoch(self):
-        move = random.choices(ACTIONS, weights=self.policy[self.pos[0], self.pos[1]], k=1)[0]
+        move = ACTIONS[np.argmax(self.policy[self.pos[0], self.pos[1]])]
 
         while self.orientation != move:
             self.rotate('r')
