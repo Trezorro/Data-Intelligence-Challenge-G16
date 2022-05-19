@@ -1,15 +1,16 @@
-from datetime import datetime
+import concurrent.futures as cf
 import importlib
 import itertools
 import logging
 import pickle
 import time
-from typing import Tuple, Type, Union
+from datetime import datetime
 from pathlib import Path
-import concurrent.futures as cf
+from typing import Tuple, Type, Union
+from functools import partialmethod
 
 import pandas as pd
-from tqdm import tqdm
+import tqdm
 
 from environment import RobotBase
 from helpers.td_robot import TDRobotBase
@@ -17,6 +18,8 @@ from helpers.td_robot import TDRobotBase
 logging.basicConfig(level=logging.WARNING, force=True)
 logging.getLogger('matplotlib').setLevel(logging.ERROR)
 logging.getLogger('werkzeug').setLevel('WARNING')
+
+tqdm.tqdm.__init__ = partialmethod(tqdm.tqdm.__init__, disable=True)
 
 ## ---------- Experiment Settings ---------- ##
 OUTPUT_FOLDER = 'output'
@@ -59,7 +62,6 @@ RobotClass: Union[Type[RobotBase], Type[TDRobotBase]]  = getattr(robot_module, '
 def run_experiment(parameter_tuple: tuple) -> Tuple[str,str]:
     global robot_module, RobotClass, INCLUDED_PARAMETERS, STOPPING_CRITERIA, OUTPUT_VALUE_NAMES
     parameters = dict(zip(INCLUDED_PARAMETERS.keys(), parameter_tuple))
-    # print("Starting experiment with parameters:\n", str(parameters).replace(',',',\n'))
     # Initialize statistics:
     recorded_values = {}
     efficiency = None
@@ -82,7 +84,7 @@ def run_experiment(parameter_tuple: tuple) -> Tuple[str,str]:
                             p_move=parameters['p_move'],
                             gamma=parameters['gamma'],
                             lr=parameters['lr'],
-                            number_of_episodes=100
+                            number_of_episodes=1000
                             )
     if not getattr(robot, 'is_trained', True):
             # If this robot can, and should, be trained:
@@ -154,9 +156,13 @@ if __name__ == '__main__':
     try:
         with cf.ProcessPoolExecutor(N_WORKERS) as executor:
             # TODO: skip some tuples at random (random search)
-            results = [executor.submit(run_experiment, parameter_tuple) 
-                       for parameter_tuple in itertools.product(*INCLUDED_PARAMETERS.values())]
-            for result in cf.as_completed(results):
+            futures = []
+            for experiment, parameter_tuple in enumerate(itertools.product(*INCLUDED_PARAMETERS.values())):
+                print(f"Starting experiment {experiment:#>4} with parameters:  ", 
+                      str(dict(zip(INCLUDED_PARAMETERS.keys(), parameter_tuple))))
+                futures.append(executor.submit(run_experiment, parameter_tuple))
+            for result in cf.as_completed(futures):
+                
                 measurement_line, moves_line = result.result()
                 with open(run_out_path, 'a') as f:
                     f.write(measurement_line)
