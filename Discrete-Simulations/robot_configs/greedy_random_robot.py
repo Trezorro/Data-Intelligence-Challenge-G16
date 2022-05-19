@@ -1,9 +1,9 @@
 import random
 
-from environment import Robot
+from environment import RobotBase
 
 
-def robot_epoch(robot: Robot):
+def robot_epoch(robot: RobotBase):
     # Get the possible values (dirty/clean) of the tiles we can end up at after a move:
     possible_tiles = robot.possible_tiles_after_move()
     # Get rid of any tiles outside a 1 step range (we don't care about our vision for this algorithm):
@@ -30,7 +30,7 @@ def robot_epoch(robot: Robot):
     # If we cannot reach a dirty tile:
     else:
         # If we can no longer move:
-        while not robot.move():
+        while not robot.move()[0]:
             # Check if we died to avoid endless looping:
             if not robot.alive:
                 break
