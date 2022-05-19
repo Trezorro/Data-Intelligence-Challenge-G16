@@ -7,7 +7,6 @@ from environment import Robot
 from helpers.label_based_reward import get_reward
 from tqdm import tqdm
 
-
 ACTIONS = ("n", "e", "s", "w", "off")
 ACTIONS_IDX = tuple([i for i in range(len(ACTIONS))])  # For future modularity
 
@@ -73,27 +72,22 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=100, epsilon=0.99):
         epsilon *= 0.99
         single_episode = generate_episodes(policy, robot)
         G = 0
-        for idx, step in reversed(list(enumerate(single_episode[::-1]))):
+        for t, step in reversed(list(enumerate(single_episode[::-1]))):
             G = g * G + step[2]
 
             step_y = step[0][0]
             step_x = step[0][1]
             episode_action_idx = step[1]
 
-            if (step[0], episode_action_idx) not in np.array(single_episode)[:, :2][idx + 1:]:
+            if (step[0], episode_action_idx) not in np.array(single_episode)[:, :2][:t - 1]:
 
                 # update returns(state,action) & q_grid(state,action)
                 g_sums[step_y, step_x, episode_action_idx] += G
-                q_grid[step_y, step_x, episode_action_idx] = g_sums[step_x, step_x, episode_action_idx] / idx
+                q_grid[step_y, step_x, episode_action_idx] = g_sums[step_x, step_x, episode_action_idx] / \
+                                                                (len(single_episode) - t)
 
                 # calculate the best action
-                best_action_idx = -1
-                max_value = -100000
-
-                for action_idx in range(len(ACTIONS)):
-                    if q_grid[step_y, step_x, action_idx] > max_value:
-                        best_action_idx = action_idx
-                        max_value = q_grid[step_y, step_x, action_idx]
+                best_action_idx = np.argmax(q_grid[step_y, step_x])
 
                 # update the policy matrix of the specific (state,action) pair
                 # based on e-soft policy
