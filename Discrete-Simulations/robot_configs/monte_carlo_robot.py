@@ -75,19 +75,19 @@ def robot_epoch(robot: RobotBase, g=0.99, max_episodes=1000, epsilon=0.99):
         epsilon *= 0.99
         single_episode = generate_episodes(policy, robot)
         G = 0
-        for t, step in reversed(list(enumerate(single_episode[::-1]))):
+
+        for t, step in enumerate(reversed(single_episode)):
             G = g * G + step[2]
 
             step_y = step[0][0]
             step_x = step[0][1]
             episode_action_idx = step[1]
 
-            if (step[0], episode_action_idx) not in np.array(single_episode)[:, :2][:t - 1]:
+            if (step[0], episode_action_idx) not in np.array(single_episode)[:, :2][:len(single_episode) - t - 1]:
 
                 # update returns(state,action) & q_grid(state,action)
                 g_sums[step_y, step_x, episode_action_idx] += G
-                q_grid[step_y, step_x, episode_action_idx] = g_sums[step_y, step_x, episode_action_idx] / \
-                                                                (len(single_episode) - t)
+                q_grid[step_y, step_x, episode_action_idx] = g_sums[step_y, step_x, episode_action_idx] / t
 
                 # calculate the best action
                 best_action_idx = np.argmax(q_grid[step_y, step_x])
