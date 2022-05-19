@@ -100,18 +100,9 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=100, epsilon=0.99):
 
     # when the episodes iteration finishes
     # choose the corresponding robot action based on the updated policy probabilities
-    actions = []
-    probabilities = []
-    current_state = robot.pos
-    for action in possible_actions[current_state]:
-        actions.append(action)
-        probabilities.append(policy[current_state, action])
-    corresponding_action = random.choices(actions, weights=probabilities, k=1)[0]
+    corresponding_orientation = random.choices(ACTIONS, weights=policy[robot.pos[0], robot.pos[1]], k=1)[0]
 
-    current_direction = robot.dirs[robot.orientation]
-
-    while current_direction != corresponding_action:
+    while robot.orientation != corresponding_orientation:
         robot.rotate('r')
-        current_direction = robot.dirs[robot.orientation]
 
     robot.move()
