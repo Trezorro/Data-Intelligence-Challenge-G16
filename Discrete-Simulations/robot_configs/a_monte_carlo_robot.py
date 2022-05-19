@@ -45,15 +45,15 @@ class Robot(TDRobotBase):
 
         # generate episodes until reach the max number of episodes
         for _ in tqdm(range(self.number_of_episodes)):
-            # gradually reduce the epsilon parameter cause we need less exploration
+            # gradually reduce the epsilon parameter because we need less exploration
             # and more exploitation as the episodes increases
             single_episode = self.generate_episodes()
-            G = 0
+            g = 0
 
             states_and_actions = [[x[0][0], x[0][1], x[1]] for x in single_episode]
 
             for t, step in enumerate(reversed(single_episode)):
-                G = self.gamma * G + step[2]
+                g = self.gamma * g + step[2]
 
                 step_y = step[0][0]
                 step_x = step[0][1]
@@ -64,7 +64,7 @@ class Robot(TDRobotBase):
                 if [step_y, step_x, episode_action_idx] not in before_step:
 
                     # update returns(state,action) & q_grid(state,action)
-                    g_sums[step_y, step_x, episode_action_idx] += G
+                    g_sums[step_y, step_x, episode_action_idx] += g
                     self.Q[step_y, step_x, episode_action_idx] = g_sums[step_y, step_x, episode_action_idx] / (t + 1)
 
                     # calculate the best action
