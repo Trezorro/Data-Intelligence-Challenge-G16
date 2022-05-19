@@ -1,5 +1,5 @@
 # Import our robot algorithm to use in this simulation:
-from robot_configs.policy_iteration_robot import robot_epoch
+from robot_configs.monte_carlo_robot import robot_epoch
 import pickle
 from environment import Robot
 import pandas as pd
@@ -67,7 +67,7 @@ try:
                             start_time = time.time()
                             n_epochs += 1
                             # Do a robot epoch (basically call the robot algorithm once):
-                            robot_epoch(robot, gamma, theta)
+                            robot_epoch(robot, gamma)
                             # Stop this simulation instance if robot died :( :
                             if not robot.alive:
                                 deaths += 1

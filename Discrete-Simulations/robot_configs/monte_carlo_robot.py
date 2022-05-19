@@ -45,15 +45,24 @@ def generate_episodes(policy, robot: Robot):
 
 
 def robot_epoch(robot: Robot, g=0.99, max_episodes=100, epsilon=0.99):
-    """ Initialize the attributes needed for the Monte Carlo On Policy implementation"""
+    """ Monte Carlo On Policy implementation.
+
+    Args:
+        robot: The robot object to act on.
+        g: Gamma value.
+        max_episodes: Max episodes to train for.
+        epsilon: Learning rate
+    """
     max_episodes = max_episodes
 
-    actions = list(robot.dirs.values())
+    actions = ("n", "e", "s", "w", "off")
 
-    q_grid = {}
-    returns = {}  # returns(state, action)
-    policy = {}  # policy(state, action)
-    all_possible_tiles = []
+    # Holds the actual q grid
+    q_grid = np.array((robot.grid.n_rows, robot.grid.n_cols, len(actions)))
+    # Holds sums of G value for every grid position, used to assign a value to q
+    g_sums = np.array((robot.grid.n_rows, robot.grid.n_cols, len(actions)))
+    # Policy values
+    policy = np.array((robot.grid.n_rows, robot.grid.n_cols, len(actions)))
     possible_actions = {}
 
     for x in range(robot.grid.n_cols):
@@ -64,7 +73,6 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=100, epsilon=0.99):
                 continue
 
             # create a list with possible tiles
-            all_possible_tiles.append(tuple(np.array([y, x])))
 
             # create a list with all the possible actions of each state
             possible_actions[(y, x)] = []
@@ -81,7 +89,6 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=100, epsilon=0.99):
                 possible_actions[(y, x)].append(action)
 
                 # initialize returns and Q grid with empty list and 0 respectively for every state action combination
-                returns[(y, x), action] = []
                 q_grid[(y, x), action] = 0
                 policy[(y, x), action] = 1 / len(possible_actions)
 
