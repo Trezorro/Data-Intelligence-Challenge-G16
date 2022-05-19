@@ -7,7 +7,8 @@ from environment import Robot
 from helpers.label_based_reward import get_reward
 from tqdm import tqdm
 
-ACTIONS = ("n", "e", "s", "w", "off")
+
+ACTIONS = ("n", "e", "s", "w")
 ACTIONS_IDX = tuple([i for i in range(len(ACTIONS))])  # For future modularity
 
 
@@ -35,7 +36,10 @@ def generate_episodes(policy: np.ndarray, robot: Robot):
 
         # update the reward in the simulated grid
         new_pos = tuple(np.asarray(position) + robot.dirs[ACTIONS[chosen_action]])
-        reward = get_reward(temp_robot.grid.cells[new_pos])
+        try:
+            reward = get_reward(temp_robot.grid.cells[new_pos])
+        except IndexError as e:
+            raise e
 
         episodes.append([position, chosen_action, reward])
 
@@ -58,7 +62,7 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=100, epsilon=0.99):
     max_episodes = max_episodes
 
     # Holds the actual q grid
-    q_grid = np.full((robot.grid.n_rows, robot.grid.n_cols, len(ACTIONS), 0.))
+    q_grid = np.full((robot.grid.n_rows, robot.grid.n_cols, len(ACTIONS)), 0.)
     # Holds sums of G value for every grid position, used to assign a value to q
     g_sums = np.full((robot.grid.n_rows, robot.grid.n_cols, len(ACTIONS)), 0.)
     # Policy values
@@ -67,8 +71,8 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=100, epsilon=0.99):
 
     # generate episodes until reach the max number of episodes
     for _ in tqdm(range(max_episodes)):
-        # gradually reduce the epsilon parameter cause we need less exploration and more exploitation as the
-        # episodes increase
+        # gradually reduce the epsilon parameter cause we need less exploration
+        # and more exploitation as the episodes increases
         epsilon *= 0.99
         single_episode = generate_episodes(policy, robot)
         G = 0
