@@ -29,13 +29,13 @@ def generate_episodes(policy, robot: Robot, number_of_tiles, possible_actions):
     # step of the episodes to be proportional to the cleaned tiles
     while step < number_of_tiles / 2:
         actions = []
-        probs = []
+        probabilities = []
         for action in possible_actions[position]:
             # if state == position:
             actions.append(action)
-            probs.append(policy[position, action])
+            probabilities.append(policy[position, action])
         # choose randomly a action but based on action weights
-        chosen_action = random.choices(actions, weights=probs, k=1)[0]
+        chosen_action = random.choices(actions, weights=probabilities, k=1)[0]
         episodes.append([position, chosen_action])
         new_pos = tuple(np.asarray(position) + chosen_action)
 
