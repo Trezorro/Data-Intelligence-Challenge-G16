@@ -5,11 +5,11 @@ from tqdm import tqdm
 import numpy as np
 
 from environment import Grid
-from helpers.reward_functions import get_label_and_battery_based_reward
+from helpers.reward_functions import get_label_and_battery_based_reward, get_reward_turning_off
 from helpers.td_robot import TDRobotBase
 
 
-ACTIONS = ("n", "e", "s", "w")
+ACTIONS = ("n", "e", "s", "w", "off")
 ACTIONS_IDX = tuple([i for i in range(len(ACTIONS))])  # For future modularity
 
 
@@ -28,10 +28,21 @@ class Robot(TDRobotBase):
     def robot_epoch(self):
         move = ACTIONS[np.argmax(self.policy[self.pos[0], self.pos[1]])]
 
-        while self.orientation != move:
-            self.rotate('r')
+        if move == "off":
+            self.alive = False
+        else:
+            while self.orientation != move:
+                self.rotate('r')
 
-        self.move()
+            self.move()
+
+        if self.show_debug_values:
+            for action_idx in range(len(ACTIONS)):
+                if ACTIONS[action_idx] == "off":
+                    continue
+
+                target_pos = tuple(np.array(self.pos) + np.array(self.dirs[ACTIONS[action_idx]]))
+                self.debug_values[target_pos] = self.Q[self.pos[0], self.pos[1], action_idx]
 
     def train(self) -> None:
         """ Monte Carlo On Policy implementation."""
@@ -95,6 +106,12 @@ class Robot(TDRobotBase):
             chosen_action_idx = random.choices(ACTIONS_IDX,
                                                weights=self.policy[current_pos[0], current_pos[1]],
                                                k=1)[0]
+
+            if ACTIONS[chosen_action_idx] == "off":
+                reward = get_reward_turning_off(temp_robot)
+                episodes.append([current_pos, chosen_action_idx, reward])
+                break
+
             new_pos = tuple(np.asarray(current_pos)
                             + self.dirs[ACTIONS[chosen_action_idx]])
             label = temp_robot.grid.get_c(new_pos)
