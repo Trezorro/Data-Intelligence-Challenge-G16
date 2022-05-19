@@ -29,9 +29,9 @@ N_WORKERS = 8 # None, or int in [1,63]
 ROBOT_MODULE_NAME = 'q_learning_robot'
 GRID_FILES = [
     # 'example-random-house-0.grid',
-    # 'stay_off_my_grass.grid',
+    'stay_off_my_grass.grid',
     # 'snake.grid',
-    'snake.grid'
+    # 'snake.grid'
         ]
 P_MOVES = [0, 0.2]
 GAMMAS = [0.2, 0.5, 0.9]
@@ -72,6 +72,8 @@ def run_experiment(parameter_tuple: tuple, experiment_number: Optional[int] = No
     # Open the grid file.
     with open(f"grid_configs/{parameters['grid']}", 'rb') as f:
         grid = pickle.load(f)
+    if not hasattr(grid, 'transposed_version'): # adapt to new grid format
+        grid.cells = grid.cells.T
 
         # Calculate the total visitable tiles:
     n_total_tiles = (grid.cells >= 0).sum()
