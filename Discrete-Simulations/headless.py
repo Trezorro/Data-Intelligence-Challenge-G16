@@ -37,8 +37,8 @@ GRID_FILES = [
     'stay_off_my_grass.grid'
 ]
 
-P_MOVES = [0, 0.2]
-GAMMAS = [0.2, 0.5, 0.9]
+P_MOVES = [0]
+GAMMAS = [0.6, 0.75, 0.9]
 EPSILONS_SARSA_Q = [0.6, 0.7, 0.8, 0.9]
 EPSILONS_MONTE_CARLO = [0.05, 0.1, 0.15, 0.2]
 LEARNING_RATES = [0.8, 0.9]
