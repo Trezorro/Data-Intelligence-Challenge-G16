@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 
 ACTIONS = ("n", "e", "s", "w", "off")
-ACTIONS_IDX = (0, 1, 2, 3, 4)
+ACTIONS_IDX = tuple([i for i in range(len(ACTIONS))])  # For future modularity
 
 
 def generate_episodes(policy: np.ndarray, robot: Robot):
