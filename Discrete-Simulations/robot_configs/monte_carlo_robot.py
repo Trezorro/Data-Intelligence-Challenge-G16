@@ -21,7 +21,6 @@ def generate_episodes(policy, robot: Robot, number_of_tiles, possible_actions):
     # create a list to store the episodes
     episodes = []
 
-    # position = random.choice(all_possible_tiles)
     # TODO Reaction this comment
     position = temp_robot.pos
 
@@ -31,9 +30,9 @@ def generate_episodes(policy, robot: Robot, number_of_tiles, possible_actions):
         actions = []
         probabilities = []
         for action in possible_actions[position]:
-            # if state == position:
             actions.append(action)
             probabilities.append(policy[position, action])
+
         # choose randomly a action but based on action weights
         chosen_action = random.choices(actions, weights=probabilities, k=1)[0]
         episodes.append([position, chosen_action])
@@ -65,7 +64,7 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=10, epsilon=0.99):
     q_grid = {}
     epsilon = epsilon
     actions = list(robot.dirs.values())
-    Returns = {}  # Returns(state, action)
+    returns = {}  # returns(state, action)
     policy = {}  # policy(state, action)
     all_possible_tiles = []
     possible_actions = {}
@@ -102,8 +101,8 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=10, epsilon=0.99):
                 # keep track of the possible actions of a state
                 possible_actions[(y, x)].append(action)
 
-                # initialize Returns and Q grid with empty list and 0 respectively for every state action combination
-                Returns[(y, x), action] = []
+                # initialize returns and Q grid with empty list and 0 respectively for every state action combination
+                returns[(y, x), action] = []
                 q_grid[(y, x), action] = 0
                 policy[(y, x), action] = 1 / len(possible_actions)
 
@@ -125,9 +124,9 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=10, epsilon=0.99):
             # first-visit
             if (step[0], step[1]) not in np.array(single_episode[::-1])[:, :2][idx + 1:]:
 
-                # update Returns(state,action) & q_grid(state,action)
-                Returns[step[0], step[1]].append(G)
-                q_grid[step[0], step[1]] = np.mean(Returns[step[0], step[1]])
+                # update returns(state,action) & q_grid(state,action)
+                returns[step[0], step[1]].append(G)
+                q_grid[step[0], step[1]] = np.mean(returns[step[0], step[1]])
 
                 # calculate the best action
                 best_action = (0, 0)
