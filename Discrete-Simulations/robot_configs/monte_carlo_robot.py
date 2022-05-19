@@ -8,7 +8,7 @@ from helpers.label_based_reward import get_reward
 from tqdm import tqdm
 
 
-def generate_episodes(policy, robot: Robot, number_of_tiles, possible_actions):
+def generate_episodes(policy, robot: Robot, possible_actions):
     """ Generate the episodes based on the policy-action probabilities stored in policy dict
 
     Returns a list called episodes that includes the state, the action and the reward of the next action i.e.
@@ -97,7 +97,6 @@ def robot_epoch(robot: Robot, g=0.99, max_episodes=100, epsilon=0.99):
                 policy[(y, x), action] = 1 / len(possible_actions)
 
     """ Monte Carlo On Policy implementation"""
-
     # generate episodes until reach the max number of episodes
     for _ in tqdm(range(max_episodes)):
         # gradually reduce the epsilon parameter cause we need less exploration and more exploitation as the
