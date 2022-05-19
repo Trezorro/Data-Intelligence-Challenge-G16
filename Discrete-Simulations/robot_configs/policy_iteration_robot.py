@@ -1,17 +1,16 @@
 from typing import Union
 import numpy as np
-from environment import Robot
+from environment import RobotBase
 import logging
 
 # Logging settings
-from helpers.label_based_reward import get_reward
+from helpers.reward_functions import get_label_based_reward
 
-logging.basicConfig(level=logging.INFO, force=True)
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.WARNING) # change to INFO or DEBUG for more detailed output
 
-def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
+def robot_epoch(robot: RobotBase, gamma=0.2, min_delta=0.1):
     """Policy iteration epoch."""
     values = np.zeros_like(robot.grid.cells)
     robot.debug_values = np.zeros_like(robot.grid.cells) # these are visualized in the GUI
@@ -49,7 +48,7 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
                                 (0 <= target_state[1] < robot.grid.n_cols)):
                             continue
 
-                        reward = get_reward(robot.grid.cells.item(target_state))
+                        reward = get_label_based_reward(robot.grid.cells.item(target_state))
                         target_value = clipper(values[target_state]) # clipping is used to prevent overflow
                         coefficient = clipper((reward + gamma * target_value))
                         if move == policy_move:
@@ -90,7 +89,7 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
                         q_values.append(np.NINF)
                         continue
 
-                    reward = get_reward(robot.grid.cells[target_state])
+                    reward = get_label_based_reward(robot.grid.cells[target_state])
                     target_value = clipper(values[target_state])
                     
                     # Here we omit the summation over the possible s' states, given action a,
@@ -120,7 +119,7 @@ def robot_epoch(robot: Robot, gamma=0.2, min_delta=0.1):
         robot.rotate('r')
     logger.info(f"LET'S MOVE!\n")
 
-    if not robot.move():
+    if not robot.move()[0]:
         logger.warning("We hit a wall! Dummy!")
 
 

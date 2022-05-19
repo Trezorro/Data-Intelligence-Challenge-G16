@@ -1,7 +1,9 @@
 # Import our robot algorithm to use in this simulation:
-from robot_configs.policy_iteration_robot import robot_epoch
+from robot_configs.monte_carlo_robot import robot_epoch
+# from robot_configs.q_learning_robot import robot_epoch
 import pickle
-from environment import Robot
+# from environment import Robot
+# from robot_configs.q_learning_robot import QAgent as Robot
 import pandas as pd
 import time
 import numpy as np
@@ -12,10 +14,10 @@ stopping_criteria = 100
 
 # Settings
 GRID_FILES = [
-    'example-random-house-0.grid',
+    # 'example-random-house-0.grid',
     # 'stay_off_my_grass.grid',
     # 'snake.grid',
-    # 'house.grid'
+    'house.grid'
         ]
 GAMMAS = [0.2, 0.5, 0.9]
 THETAS = [0.1, 0.01]
@@ -67,7 +69,7 @@ try:
                             start_time = time.time()
                             n_epochs += 1
                             # Do a robot epoch (basically call the robot algorithm once):
-                            robot_epoch(robot, gamma, theta)
+                            robot_epoch(robot, gamma)
                             # Stop this simulation instance if robot died :( :
                             if not robot.alive:
                                 deaths += 1
