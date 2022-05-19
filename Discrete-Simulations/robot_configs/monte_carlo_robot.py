@@ -35,7 +35,7 @@ def generate_episodes(policy: np.ndarray, robot: RobotBase):
         new_pos = tuple(np.asarray(temp_robot.pos)
                         + robot.dirs[ACTIONS[chosen_action]])
 
-        label = temp_robot.grid.cells[tuple(new_pos)]
+        label = temp_robot.grid.get_c(new_pos)
         reward = get_label_based_reward(label)
         episodes.append([temp_robot.pos, chosen_action, reward])
 
