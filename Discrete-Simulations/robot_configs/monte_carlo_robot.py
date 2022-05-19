@@ -26,6 +26,8 @@ class Robot(TDRobotBase):
                          max_steps_per_episode, number_of_episodes, train_instantly)
 
     def robot_epoch(self):
+        self.train()
+
         move = ACTIONS[np.argmax(self.policy[self.pos[0], self.pos[1]])]
 
         if move == "off":
