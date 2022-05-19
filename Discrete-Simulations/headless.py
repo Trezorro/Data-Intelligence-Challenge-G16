@@ -1,22 +1,30 @@
 # Import our robot algorithm to use in this simulation:
-from robot_configs.q_learning_robot import robot_epoch
+import importlib
+from typing import Type
 import pickle
-# from environment import Robot
-from robot_configs.q_learning_robot import QAgent as Robot
+from environment import RobotBase
 import pandas as pd
 import time
 import numpy as np
 from tqdm import tqdm
 
-# Cleaned tile percentage at which the room is considered 'clean':
-stopping_criteria = 100
+
+import logging
+logging.basicConfig(level=logging.WARNING, force=True)
+logging.getLogger('matplotlib').setLevel(logging.ERROR)
+logging.getLogger('werkzeug').setLevel('WARNING')
+
+# TODO: use product for grid search
+# TODO: specify n-cores in command
 
 # Settings
+STOPPING_CRITERIA = 100  # tile percentage at which the room is considered 'clean'
+ROBOT_MODULE_NAME = 'a_sarsa_robot'
 GRID_FILES = [
     # 'example-random-house-0.grid',
     # 'stay_off_my_grass.grid',
     # 'snake.grid',
-    'house.grid'
+    'snake.grid'
         ]
 GAMMAS = [0.2, 0.5, 0.9]
 THETAS = [0.1, 0.01]
@@ -27,6 +35,13 @@ cleaned_variances = []
 efficiencies_means = []
 efficiencies_variances = []
 experiments = []
+
+# Dynamically load correct bot class:
+
+robot_module = importlib.import_module('robot_configs.'+ROBOT_MODULE_NAME.split('.py')[0])
+if not (hasattr(robot_module, 'Robot') or hasattr(robot_module, 'robot_epoch')):
+        raise ImportError(f"No Robot class or robot_epoch function found in {ROBOT_MODULE_NAME}!")
+RobotClass: Type[RobotBase] = getattr(robot_module, 'Robot', RobotBase)
 
 # Run 100 times:
 big_df = pd.DataFrame(columns=['Clean', 'Efficiency', 'Experiment'])
@@ -59,25 +74,35 @@ try:
                         n_total_tiles = (grid.cells >= 0).sum()
 
                         # Spawn the robot at (1,1) facing north with battery drainage enabled:
-                        robot = Robot(grid, (1, 1), orientation='n', battery_drain_p=1, battery_drain_lam=2,
-                                    p_move=p_move_param)
+                        robot = RobotClass(grid, (1, 1),
+                                           orientation='e',
+                                           battery_drain_p=1,
+                                           battery_drain_lam=2,
+                                           p_move=p_move_param)
+                        if not getattr(robot, 'is_trained', True):
+                            # If this robot can, and should, be trained:
+                            robot.train()
 
                         # Keep track of the number of robot decision epochs:
                         n_epochs = 0
                         while True:
+                            if not robot.alive:
+                                if robot.battery_lvl <= 0:
+                                    deaths += 1 # record empty battery death
+                                break
                             start_time = time.time()
                             n_epochs += 1
-                            # Do a robot epoch (basically call the robot algorithm once):
-                            robot_epoch(robot) # Gamma and theta not allowed to change (yet)
-                            # Stop this simulation instance if robot died :( :
-                            if not robot.alive:
-                                deaths += 1
-                                break
+                            # Advance a time step and try to make the robot move:
+                            if hasattr(robot_module, 'robot_epoch'):
+                                # Use legacy robot_epoch function if available:
+                                getattr(robot_module, 'robot_epoch')(robot)
+                            else:
+                                robot.robot_epoch()  # Use class method otherwise
+
                             # Calculate some statistics:
                             clean = (grid.cells == 0).sum()
-                            dirty = (grid.cells == 1).sum() # edited to only include actual dirty cells
+                            dirty = (grid.cells == 1).sum()
                             goal = (grid.cells == 2).sum()
-                            # Calculate the cleaned percentage:
                             clean_percent = (clean / (dirty + clean)) * 100
                             if int(clean_percent) % 10 == 0 and int(clean_percent) != 0:
                                 cnt += 1
@@ -85,7 +110,7 @@ try:
                                 time_tracker.loc[cnt, "Percent"] = int(clean_percent)
                                 time_tracker.loc[cnt, "Time"] = round(time.time() - start_time, 2)
                             # See if the room can be considered clean, if so, stop the simulaiton instance:
-                            if clean_percent >= stopping_criteria and goal == 0:
+                            if clean_percent >= STOPPING_CRITERIA and goal == 0:
                                 break
                             # Calculate the effiency score:
                             moves = [(x, y) for (x, y) in zip(robot.history[0], robot.history[1])]
@@ -117,8 +142,15 @@ try:
                     experiments.append(experiment_str)
 
                     big_df = pd.concat([big_df, df])
-
+except (KeyboardInterrupt, SystemExit):
+    print("Process interrupted!")
+except Exception as e:
+    print('Exception:', e)
+    raise
+else:
+    print('Successfully completed all experiments.')
 finally:
+    print("Writting results to file...")
     big_df.to_excel(f"policy_iteration_experiment_more_drain_{GRID_FILES[0]}.xlsx", index=False)
 
     average_df = pd.DataFrame(
