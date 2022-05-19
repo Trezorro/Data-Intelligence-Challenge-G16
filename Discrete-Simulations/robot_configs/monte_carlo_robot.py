@@ -52,7 +52,7 @@ def generate_episodes(policy: np.ndarray, robot: RobotBase):
     return episodes
 
 
-def robot_epoch(robot: RobotBase, g=0.99, max_episodes=1000, epsilon=0.99):
+def robot_epoch(robot: RobotBase, g=0.6, max_episodes=1000, epsilon=0.99):
     """ Monte Carlo On Policy implementation.
 
     Args:
