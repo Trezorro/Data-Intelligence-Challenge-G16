@@ -1,8 +1,7 @@
-"""Box Plots.
+"""Box Plot.
 
 Creates box plots of the data from the experiments.
 """
-import plotly.express as px
 from Visualization import *
 import pandas as pd
 from plotly.subplots import make_subplots
