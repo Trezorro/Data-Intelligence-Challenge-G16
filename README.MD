@@ -26,14 +26,3 @@ This script intends to simulate the Monte Carlo, Sarsa, QLearning algorithms and
 3. Go to lines 35 - 38 and uncomment only the grid that you want to include in your simulations, either the 'experiment_house.grid' or the 'stay_off_my_grass.grid'.
 4. Note that in line 26, the number of workers is indicated. You can increase or decrease it based on your computer's capacity. 
 5. Save the changes and run the code to see the results (approximately 2 hours for every simulation for a '4 cores and 8 threads' computer).
-
-## Notes
-
-Cel material | Label
--------------|-------
-Obstacle (gray)    | -2
-Wall (red)         | -1
-Clean (green)      |  0
-Dirty (white)      |  1
-Goal (orange)      |  2
-Death (red cross)  |  3
