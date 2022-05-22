@@ -220,9 +220,6 @@ def handle_browser_update(json):
         for robot in robots:
             # Don't update dead robots:
             if robot.alive:
-                if not getattr(robot, 'is_trained', True):  # If this robot can and should be trained
-                    robot.train()
-
                 # Call the robot epoch method of the selected robot config file:
                 if hasattr(robot_module, 'robot_epoch'):  # Try legacy robot_epoch function
                     getattr(robot_module, 'robot_epoch')(robot)

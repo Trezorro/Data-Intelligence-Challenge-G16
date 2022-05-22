@@ -15,9 +15,8 @@ logger = logging.getLogger(__name__)
 class TDRobotBase(RobotBase):
 
     def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
-                 epsilon=0.99, gamma=0.8, lr=0.99, max_steps_per_episode=100, number_of_episodes=2000, train_instantly=True):
-        # NOTE: i have set the battery drain params here, but note that if you have the UI, those settings
-        # prevail (unless you comment them out in app.py line 187)
+                 epsilon=0.99, gamma=0.8, lr=0.99, max_steps_per_episode=100, number_of_episodes=2000,
+                 train_instantly=False):
 
         super().__init__(grid, pos, orientation, p_move, battery_drain_p, battery_drain_lam, vision)
 
@@ -80,7 +79,7 @@ class TDRobotBase(RobotBase):
         if not self.is_trained:
             logger.warning("TD.do_move: Executing robot move without being trained!")
 
-        # Retrain every 10 moves
+        # Retrain every 1 move
         if len(self.history[0]) % 1 == 0:
             self.retrain()
 
@@ -101,6 +100,7 @@ class TDRobotBase(RobotBase):
             # Move robot
             self.move()
 
+        # Visualize debug values in GUI if DEBUG (from globals) is true
         if DEBUG:
             current_state = TDState(self.pos[1], self.pos[0], self.get_vision())
             for a in actions:
@@ -114,7 +114,7 @@ class TDRobotBase(RobotBase):
         """ This function simulates a step of the algorithm given an action and the current state of the robot.
 
         Args:
-             action:    The action to be taken from ['n', 'e', 's', 'w']
+             action:    The action to be taken from ['n', 'e', 's', 'w', 'off']
 
         Returns:
             Tuple containing the following 3 items:
@@ -123,23 +123,30 @@ class TDRobotBase(RobotBase):
                 done:       Whether the simulation is over, based on whether the robot is alive, there is battery left
                                 and whether the grid is cleaned.
         """
+
+        # If action is off, get reward, turn robot off and return
         if action == "off":
-            reward = get_reward_turning_off(self)
+            reward = get_reward_turning_off()
             self.alive = False
             done = True
             new_state = TDState(self.pos[1], self.pos[0], self.get_vision())
             return new_state, reward, done
 
+        # If action is moving, simulate movement
         # Rotate the bot in the correct direction it wants to move
         while action != self.orientation:
             self.rotate('r')
 
+        # Get the square in front of the robot (which the bot will move towards)
         label_square_in_front = self.grid.get_c(tuple(np.array(self.pos) + np.array(self.dirs[action])))
 
+        # Simulate the move
         _, drained_battery = self.move()
 
+        # Get the reward
         reward = get_label_and_battery_based_reward(label_square_in_front, drained_battery)
 
+        # Get the new TDState
         new_state = TDState(self.pos[1], self.pos[0], self.get_vision())
 
         done = not (self.alive and self.battery_lvl > 0) or self.grid.is_cleaned()

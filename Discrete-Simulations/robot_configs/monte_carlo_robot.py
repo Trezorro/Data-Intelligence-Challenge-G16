@@ -10,7 +10,7 @@ from helpers.td_robot import TDRobotBase
 
 
 ACTIONS = ("n", "e", "s", "w", "off")
-ACTIONS_IDX = tuple([i for i in range(len(ACTIONS))])  # For future modularity
+ACTIONS_IDX = tuple([i for i in range(len(ACTIONS))])
 
 
 class Robot(TDRobotBase):
@@ -28,16 +28,18 @@ class Robot(TDRobotBase):
     def robot_epoch(self):
         self.train()
 
-        move = ACTIONS[np.argmax(self.policy[self.pos[0], self.pos[1]])]
+        move = ACTIONS[int(np.argmax(self.policy[self.pos[0], self.pos[1]]))]
 
+        # If action is 'off', turn the robot off
         if move == "off":
             self.alive = False
-        else:
+        else:  # Otherwise, simulate action
             while self.orientation != move:
                 self.rotate('r')
 
             self.move()
 
+        # Show debug values in wanted
         if self.show_debug_values:
             for action_idx in range(len(ACTIONS)):
                 if ACTIONS[action_idx] == "off":
@@ -58,13 +60,16 @@ class Robot(TDRobotBase):
 
         # generate episodes until reach the max number of episodes
         for _ in tqdm(range(self.number_of_episodes)):
-            # gradually reduce the epsilon parameter because we need less exploration
-            # and more exploitation as the episodes increases
+            # Generate a simulation
             single_episode = self.generate_episodes()
+
+            # Initialize g
             g = 0
 
+            # Get states and actions for if statement later on
             states_and_actions = [[x[0][0], x[0][1], x[1]] for x in single_episode]
 
+            # Loop over generated simulation backwards
             for t, step in enumerate(reversed(single_episode)):
                 g = self.gamma * g + step[2]
 
@@ -98,7 +103,7 @@ class Robot(TDRobotBase):
          [[(1, 1), (1, 0), 2], [(2, 1), (1, 0), -1], [(3, 1), (-1, 0), -1]]: the state (1,1) has next action (1,0)
          that gives 2 as reward, then, the state (2,1) has (1,0) as next action that gives -1 as reward etc.
         """
-        # create a deepcopy of robot object to run in the simulations
+        # create a deepcopy of robot object to run the simulations
         temp_robot = copy.deepcopy(self)
 
         episodes = []
@@ -109,8 +114,10 @@ class Robot(TDRobotBase):
                                                weights=self.policy[current_pos[0], current_pos[1]],
                                                k=1)[0]
 
+            # Simulate chosen action in current position
+
             if ACTIONS[chosen_action_idx] == "off":
-                reward = get_reward_turning_off(temp_robot)
+                reward = get_reward_turning_off()
                 episodes.append([current_pos, chosen_action_idx, reward])
                 break
 

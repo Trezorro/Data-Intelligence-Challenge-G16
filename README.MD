@@ -18,17 +18,18 @@ Note, that the C++ build tools on your system are required for using this projec
 ## Headless
 
 The `/Discrete-Simulations/headless.py` script allows for running many simulations without the use of the UI.
-This script is not suited for testing the greedy-bot, but is intended for simulating the policy-iteration and value-iteration algorithms.
-One can change between policy-iteration and value-iteration by changing the import in line 2. In addition, parameter settings can be specified such as which grids to simulate on and which gamma, theta and p_move values to test on.
-In the end, an overview excel file will be generated with semi aggregated results, as well as an excel file with the results of all individual runs.
+This script intends to simulate the Monte Carlo, Sarsa, QLearning algorithms and it includes two grid options to apply the algorithms, the 'stay-off-my-grass' grid and the 'experiment-house' grid. One can run the simulations by following the steps shown below.  After running each simulation, a folder named 'output' is generated in the same path as the `headless.py` file. The folder includes 1 excel file for every simulation that is named after the time and date the simulation started running and it consist of the results of the simulation. This folder also includes another folder named 'history' that consist of the path that the robot followed in every simulation and helps in generating the heatmap graph described in the report.
 
-## Notes
+### Steps for running simulations:
+1. Open the `headless.py` file
+2. Go to line 34 and change the value of `ROBOT_MODULE_NAME` with one of the values sarsa_robot, monte_carlo_robot, q_learning_robot based on which robot you want to use.
+3. Go to lines 35 - 38 and uncomment only the grid that you want to include in your simulations, either the 'experiment_house.grid' or the 'stay_off_my_grass.grid'.
+4. Note that in line 26, the number of workers is indicated. You can increase or decrease it based on your computer's capacity. 
+5. Save the changes and run the code to see the results (approximately 2 hours for every simulation for a '4 cores and 8 threads' computer).
 
-Cel material | Label
--------------|-------
-Obstacle (gray)    | -2
-Wall (red)         | -1
-Clean (green)      |  0
-Dirty (white)      |  1
-Goal (orange)      |  2
-Death (red cross)  |  3
+## Environment
+
+The environment and UI were changed with respect to the previous version. To start, the grid object was transposed. 
+Therefore, all calls to the numpy array inside the grid objects are now indexed first on rows (y) and then on column (x). 
+The visualization was also changed to match the stored numpy array as to have an identical visualization to what is stored in memory (and can be seen in debug mode).
+As the grid (and visualization) we're changed, the directions corresponding to the robot orientations were also changed. 
