@@ -26,3 +26,10 @@ This script intends to simulate the Monte Carlo, Sarsa, QLearning algorithms and
 3. Go to lines 35 - 38 and uncomment only the grid that you want to include in your simulations, either the 'experiment_house.grid' or the 'stay_off_my_grass.grid'.
 4. Note that in line 26, the number of workers is indicated. You can increase or decrease it based on your computer's capacity. 
 5. Save the changes and run the code to see the results (approximately 2 hours for every simulation for a '4 cores and 8 threads' computer).
+
+## Environment
+
+The environment and UI were changed with respect to the previous version. To start, the grid object was transposed. 
+Therefore, all calls to the numpy array inside the grid objects are now indexed first on rows (y) and then on column (x). 
+The visualization was also changed to match the stored numpy array as to have an identical visualization to what is stored in memory (and can be seen in debug mode).
+As the grid (and visualization) we're changed, the directions corresponding to the robot orientations were also changed. 

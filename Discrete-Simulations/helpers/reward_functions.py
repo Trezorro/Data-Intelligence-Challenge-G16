@@ -1,14 +1,13 @@
-from environment import Grid, RobotBase
-import numpy as np
+from environment import RobotBase
 
 MATERIALS = {0: 'cell_clean', -1: 'cell_wall', -2: 'cell_obstacle', -3: 'cell_robot_e', -4: 'cell_robot_s',
              -5: 'cell_robot_w', -6: 'cell_robot_n', 1: 'cell_dirty', 2: 'cell_goal', 3: 'cell_death'}
 
 REWARD_MAP = {
-    -3: 0,   # A robot position (so clean)
+    -3: 0,    # A robot position (so clean)
     -2: -10,  # Obstacle (gray)
     -1: -10,  # Wall (red)
-    0: 0,    # Clean (green)
+    0: 0,     # Clean (green)
     1: 4,     # Dirty (white)
     2: 1,     # Goal (orange)
     3: -50,   # Death (red cross)
@@ -58,6 +57,6 @@ def get_label_and_battery_based_reward(square_label: int, battery_drained: bool)
     return reward
 
 
-def get_reward_turning_off(robot: RobotBase):
-
+def get_reward_turning_off():
+    """ Function returns reward for turning off the robot """
     return -10

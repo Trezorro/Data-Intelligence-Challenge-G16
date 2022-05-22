@@ -20,7 +20,7 @@ logging.getLogger('werkzeug').setLevel('WARNING')
 
 tqdm.tqdm.__init__ = partialmethod(tqdm.tqdm.__init__, disable=True)
 
-## ---------- Experiment Settings ---------- ##
+# ---------- Experiment Settings ---------- #
 OUTPUT_FOLDER = 'output'
 RUN_NAME = 'experiment_run'
 N_WORKERS = 8  # None, or int in [1,63]
@@ -45,7 +45,7 @@ LEARNING_RATES = [0.8, 0.9]
 REPEATS = range(5)
 INCLUDED_PARAMETERS = dict(
     # parameter name: [iterable values]
-    # comment out what you dont need for the current robot type!
+    # comment out what you don't need for the current robot type!
     grid=GRID_FILES,
     p_move=P_MOVES,
     gamma=GAMMAS,
@@ -123,22 +123,21 @@ def run_experiment(parameter_tuple: tuple, experiment_number: Optional[int] = No
             getattr(robot_module, 'robot_epoch')(robot)
         else:
             robot.robot_epoch()  # Use class method otherwise
-            # TODO phase this out, pass all parameters to Robot initalization
 
         # Calculate some statistics:
         clean = (grid.cells == 0).sum()
         dirty = (grid.cells == 1).sum()
         goal = (grid.cells == 2).sum()
         clean_percent = (clean / (dirty + clean)) * 100
-        # See if the room can be considered clean, if so, stop the simulaiton instance:
+        # See if the room can be considered clean, if so, stop the simulation instance:
         if clean_percent >= STOPPING_CRITERIA and goal == 0:
             break
 
-        # Calculate the effiency score:
+        # Calculate the efficiency score:
         moves = [(x, y) for (x, y) in zip(robot.history[0], robot.history[1])]
         u_moves = set(moves)
-        n_revisted_tiles = len(moves) - len(u_moves)
-        efficiency = (100 * n_total_tiles) / (n_total_tiles + n_revisted_tiles)
+        n_revisited_tiles = len(moves) - len(u_moves)
+        efficiency = (100 * n_total_tiles) / (n_total_tiles + n_revisited_tiles)
 
     recorded_values['efficiency'] = efficiency
     recorded_values['cleaned'] = clean_percent
@@ -152,6 +151,7 @@ def run_experiment(parameter_tuple: tuple, experiment_number: Optional[int] = No
     measurement_line = ','.join(repr(v) for v in output_values) + '\n'
     moves_line = ','.join(repr(v) for v in parameter_tuple) + ",'" + repr(moves) + "'\n"
     return experiment_number, measurement_line, moves_line
+
 
 if __name__ == '__main__':
     run_filename = f'{datetime.now():%b-%d_%H-%M (%Ss)} - {RUN_NAME}.csv'
@@ -173,7 +173,6 @@ if __name__ == '__main__':
     print("Firing up the pool of workers...")
     try:
         with cf.ProcessPoolExecutor(N_WORKERS) as executor:
-            # TODO: skip some tuples at random (random search)
             futures = []
             for exp_idx, parameter_tuple in enumerate(itertools.product(*INCLUDED_PARAMETERS.values())):
                 print(f"Starting experiment {exp_idx:#>4} with parameters:  ",
@@ -195,4 +194,4 @@ if __name__ == '__main__':
     else:
         print('Successfully completed all experiments.')
     finally:
-        print("Writting results to file...")
+        print("Writing results to file...")

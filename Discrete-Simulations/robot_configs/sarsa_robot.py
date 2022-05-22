@@ -14,8 +14,9 @@ class Robot(TDRobotBase):
 
     def __init__(self, grid: Grid, pos, orientation, p_move=0, battery_drain_p=1, battery_drain_lam=1, vision=1,
                  epsilon=0.99, gamma=0.8, lr=0.99, max_steps_per_episode=800, number_of_episodes=1000,
-                 train_instantly=True, stop_lr=0.1, stop_eps=0.1):
+                 train_instantly=False, stop_lr=0.1, stop_eps=0.1):
 
+        # Calculate decrease factor for learning rate and epsilon based on the given parameters
         self.lr_decrease_factor = (stop_lr / lr) ** (1 / number_of_episodes)
         self.epsilon_decrease_factor = (stop_eps / epsilon) ** (1 / number_of_episodes)
 
@@ -31,6 +32,7 @@ class Robot(TDRobotBase):
 
         for _ in tqdm(range(self.number_of_episodes), desc="Training", unit="episode"):
             # Reset environment. There is a chance that it randomizes the starting position.
+            # Did not work very well, so not used in experiments.
             if np.random.binomial(1, 0) == 1:
                 self.reset_env(self.get_random_start_pos())
             else:

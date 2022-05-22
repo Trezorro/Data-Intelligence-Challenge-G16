@@ -34,4 +34,5 @@ class TDState:
         return y, x, z, i
 
     def make_copy(self):
+        """ Creates a copy of the state and returns it """
         return TDState(self.pos_x, self.pos_y, self.vision)
