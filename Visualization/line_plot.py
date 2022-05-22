@@ -19,20 +19,15 @@ def main():
     algorithms = ("Monte Carlo", "Q Learning", "Sarsa")
     colors = ("red", "green", "blue")
 
-    subplot_titles = []
+    subplot_titles = ["Effect of epsilon on metric", "Effect of gamma on metric"]
 
-    # Make subplot titles:
-    for var in variables:
-        for metric in metrics:
-            subplot_titles.append(f"{metric} vs. {var}")
-
-    fig = make_subplots(rows=2, cols=3,
+    fig = make_subplots(rows=3, cols=2,
                         subplot_titles=subplot_titles,
-                        horizontal_spacing=0.1,
-                        vertical_spacing=0.12)
+                        horizontal_spacing=0.12,
+                        vertical_spacing=0.05)
 
-    for row, (var, df) in enumerate(zip(variables, [eps_df, gamma_df])):
-        for col, metric in enumerate(metrics):
+    for col, (var, df) in enumerate(zip(variables, [eps_df, gamma_df])):
+        for row, metric in enumerate(metrics):
             for color, algorithm in zip(colors, algorithms):
                 algo_df = df[df["Algorithm"] == algorithm]
                 showlegend = col == 0 and row == 0
@@ -47,23 +42,11 @@ def main():
     fig.update_yaxes(range=[-5, 100])
 
     # Change x axis title
-    for row, var in enumerate(variables):
-        fig.update_xaxes(title_text=var, row=row + 1)
+    fig.update_xaxes(title_text=variables[0], row=3, col=1)
+    fig.update_xaxes(title_text=variables[1], row=3, col=2)
 
+    fig = layout_fig_legend_titles(fig)
 
-    # Change y axis title
-    for col, metric in enumerate(metrics):
-        fig.update_yaxes(title_text=f"{metric} (%)", col=col + 1)
-
-    fig.update_layout(
-        legend={"x": 0.5,
-                "y": -0.1,
-                "xanchor": "center",
-                "yanchor": "top",
-                "orientation": "h"},
-        height=800,
-        width=1200
-    )
     write_figure(fig, output_path / "line_plots.pdf")
 
 

@@ -7,7 +7,7 @@ from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 import numpy as np
 import pickle
-
+from PIL import Image
 
 
 def main():
@@ -71,20 +71,58 @@ def main():
                         horizontal_spacing=0.1,
                         vertical_spacing=0)
 
+    img_pos = [[{"x": 0, "y": 0.955}, {"x": 0.3665, "y": 0.955},
+               {"x": 0.733, "y": 0.955}],
+               [{"x": -0.001, "y": 0.458}, {"x": 0.3664, "y": 0.458},
+               {"x": 0.733, "y": 0.458}]]
+    img_scale = {"stay_off_my_grass.grid": {"x": 0.265, "y": 0.408},
+                 "experiment_house.grid": {"x": 0.266, "y": 0.414}}
+
     for row, grid_name in enumerate(grid_names):
+        if grid_name == "stay_off_my_grass.grid":
+            image_path = f"{output_path / 'grass_overlay.png'}"
+        else:
+            image_path = f"{output_path / 'house_overlay.png'}"
+        image = Image.open(image_path)
         for col, algorithm in enumerate(algorithms):
             arr = histories[grid_name][algorithm]
 
+            # Add
             fig.add_trace(
                 go.Heatmap(z=arr, xgap=1, ygap=1),
                 row=row + 1, col=col + 1
             )
+            fig.add_layout_image({"source": image,
+                                  "x": img_pos[row][col]["x"],
+                                  "y": img_pos[row][col]["y"],
+                                  "sizex": img_scale[grid_name]["x"],
+                                  "sizey": img_scale[grid_name]["y"],
+                                  "sizing": "stretch",
+                                  "xanchor": "left", "yanchor": "top"})
+
+    # Add overlay image
+    # image = Image.open(output_path / "house_overlay.png")
+    # fig.add_layout_image(
+    #     {"source": image,
+    #      "x": 0.733, "y": 0.458,
+    #      "sizex": 0.266, "sizey": 0.414,
+    #      "sizing": "stretch",
+    #      "xanchor": "left", "yanchor": "top"
+    #      }
+    # )
     fig.update_layout(
-        height=700,
+        height=600,
         width=1200,
         paper_bgcolor="rgba(0, 0, 0, 0)",
-        plot_bgcolor="rgba(0, 0, 0, 0)"
+        plot_bgcolor="rgba(0, 0, 0, 0)",
     )
+    # Move titles:
+    count = 0
+    for annotation in fig["layout"]["annotations"]:
+        standoff = 0.46 if count > 2 else 0.96
+        annotation["y"] = standoff
+        count += 1
+
     fig.update_xaxes(showticklabels=False,
                      dtick=1,
                      gridcolor="white")
