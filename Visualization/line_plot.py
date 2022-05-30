@@ -32,9 +32,12 @@ def main():
                 algo_df = df[df["Algorithm"] == algorithm]
                 showlegend = col == 0 and row == 0
 
+                algo_name = algorithm if algorithm != "Q Learning" \
+                    else "Q-Learning"
+
                 fig.add_trace(
                     go.Scatter(x=algo_df[var], y=algo_df[metric],
-                               name=algorithm, legendgroup=algorithm,
+                               name=algo_name, legendgroup=algo_name,
                                marker={"color": color}, showlegend=showlegend),
                     row=row + 1, col=col + 1
                 )

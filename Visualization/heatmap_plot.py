@@ -64,7 +64,9 @@ def main():
     subplot_titles = []
     for grid_name in grid_names:
         for algorithm in algorithms:
-            subplot_titles.append(f"{algorithm} on\n{grid_name}")
+            algo_name = algorithm if algorithm != "Q Learning" \
+                else "Q-Learning"
+            subplot_titles.append(f"{algo_name} on\n{grid_name}")
 
     fig = make_subplots(rows=2, cols=3,
                         subplot_titles=subplot_titles,

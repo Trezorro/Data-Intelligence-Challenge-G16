@@ -33,13 +33,16 @@ def main():
                 algo_df = df[df["Algorithm"] == algorithm]
                 showlegend = col == 0 and row == 0
 
+                algo_name = algorithm if algorithm != "Q Learning" \
+                    else "Q-Learning"
+
                 fig.add_trace(
                     go.Box(y=algo_df[df["grid"] == grid][metric],
                            boxpoints="all",
                            jitter=0.3,
                            pointpos=-1.5,
-                           name=algorithm,
-                           legendgroup=algorithm,
+                           name=algo_name,
+                           legendgroup=algo_name,
                            marker={"color": color,
                                    "size": 3},
                            showlegend=showlegend),
