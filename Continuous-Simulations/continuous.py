@@ -197,4 +197,4 @@ while True:
             if not robot.move(p_random=0.05):
                 robot.direction_vector = (0.1, 0.1)
 grid.plot_grid()
-time.sleep(3)
+time.sleep(0.1)
