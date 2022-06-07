@@ -5,7 +5,7 @@ Provides a way to visualize what the robot is doing in a web browser.
 from dash import Dash, html, dcc
 import plotly.graph_objects as go
 import pandas as pd
-import robot_configs
+import agent_configs
 from pathlib import Path
 from typing import Optional
 
@@ -115,7 +115,7 @@ def main():
                                 style=label_style
                             ),  # Robot Selection label
                             dcc.Dropdown(
-                                robot_configs.__all__,
+                                agent_configs.__all__,
                                 searchable=False
                             ),  # Robot selection dropdown
                             dcc.Input(

@@ -36,7 +36,8 @@ class GridBuilder:
     def generate_grid(self):
         for room in range(self.n_rooms):
             self.place_room_randomly(self.room_sizes[room])
-        print(self.grid)
+        self.grid = self.grid.astype(dtype=np.uint8)
+        return self.grid
 
     def place_room_randomly(self, room_size: tuple):
         """ Finds possible top left corners and randomly selects one,
@@ -64,6 +65,7 @@ class GridBuilder:
             self.grid[room_x + room_size[0], room_y:room_y + room_size[1] + 1] = 1
 
 
-GridBuilder(16).generate_grid()
+grid = GridBuilder(16).generate_grid()
+print(grid)
 
             

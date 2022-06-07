@@ -63,7 +63,7 @@ STOPPING_CRITERIA = 100  # tile percentage at which the room is considered 'clea
 OUTPUT_VALUE_NAMES = ['efficiency', 'cleaned', 'battery', 'dead', 'n_moves', 'time', 'error']
 
 # Dynamically load correct bot class:
-robot_module = importlib.import_module('robot_configs.' + ROBOT_MODULE_NAME.split('.py')[0])
+robot_module = importlib.import_module('agent_configs.' + ROBOT_MODULE_NAME.split('.py')[0])
 if not (hasattr(robot_module, 'Robot') or hasattr(robot_module, 'robot_epoch')):
     raise ImportError(f"No Robot class or robot_epoch function found in {ROBOT_MODULE_NAME}!")
 RobotClass: Union[Type[RobotBase], Type[TDRobotBase]] = getattr(robot_module, 'Robot', RobotBase)

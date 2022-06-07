@@ -84,7 +84,7 @@ def draw_grid(grid_to_draw: Grid):
 @app.route('/')
 def home():
     return render_template('home_page.html', files=os.listdir(PATH + '/grid_configs'),
-                           rfiles=[i for i in os.listdir(PATH + '/robot_configs') if '__' not in i])
+                           rfiles=[i for i in os.listdir(PATH + '/agent_configs') if '__' not in i])
 
 
 @app.route('/editor')
@@ -184,7 +184,7 @@ def handle_browser_spawn_robot(json):
     vision = int(json['vision'])
     n_robots = int(json['n_robots'])
     # Dynamically load correct bot class:
-    robot_module = importlib.import_module('robot_configs.'+json['robot_file'].split('.py')[0])
+    robot_module = importlib.import_module('agent_configs.'+json['robot_file'].split('.py')[0])
     RobotClass: Type[RobotBase] = getattr(robot_module, 'Robot', RobotBase)
     try:
         robots = [
@@ -211,7 +211,7 @@ def handle_browser_update(json):
     global occupied
     global grid
     robot_alg = json['robot_file'].split('.py')[0]
-    robot_module = importlib.import_module('robot_configs.'+robot_alg)
+    robot_module = importlib.import_module('agent_configs.'+robot_alg)
     if not (hasattr(robot_module, 'Robot') or hasattr(robot_module, 'robot_epoch')):
         raise ImportError(f"No Robot class or robot_epoch function found in {robot_alg}.py!")
     
