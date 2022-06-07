@@ -65,7 +65,6 @@ class GridBuilder:
             self.grid[room_x + room_size[0], room_y:room_y + room_size[1] + 1] = 1
 
 
-grid = GridBuilder(16).generate_grid()
-print(grid)
-
-            
+if __name__ == '__main__':
+    grid = GridBuilder(16).generate_grid()
+    print(grid)
