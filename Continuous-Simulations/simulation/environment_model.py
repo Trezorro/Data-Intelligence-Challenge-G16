@@ -38,6 +38,7 @@ class EnvironmentModel:
         self.battery_drain = battery_drain
         self.grid = grid
         self.grid_size = grid.shape[0]
+        self.world_size = self.grid_size * self.cell_size
 
         self.floor_rects: List[Rect] = self._grid_to_rects(grid, 0)
         self.wall_rects: List[Rect] = self._grid_to_rects(self.grid, 1)
@@ -270,10 +271,13 @@ class EnvironmentModel:
             "hit_death": hit_death,
             "is_alive": self.agent_is_alive
         }
-        # TODO Implement world observation code
+        # TODO: maintain fog of war and obstacle channels
+        # add visible cells to fog of war 
+        # add visible obstacles to obstacle channel
+        
         return events, None
 
-    def cell_visible(self, cell_x, cell_y, ) -> bool:
+    def _cell_visible(self, cell_x, cell_y, ) -> bool:
         """Checks if the cell is visible to the agent.
 
         Args:
@@ -282,7 +286,9 @@ class EnvironmentModel:
         Returns:
             True if the cell is visible, False otherwise.
         """
-        # TODO Implement visibility code
+        agent_angle_rad = self.agent_angle * np.pi / 180
+        agent_direction_vec = np.array([np.cos(agent_angle_rad), np.sin(agent_angle_rad)])
+
         # Figure out cell side positions
         cell_rect = self._cell_to_rect((cell_x, cell_y))
         sides = [
@@ -292,14 +298,14 @@ class EnvironmentModel:
             np.array(cell_rect.midright),
         ]
         for side_center in sides:
-            angle_vector = side_center - np.array(self.agent_rect.center)
-            if angle_vector == np.zeros(2):  # Agent is exactly on the side
+            line_of_sight_vec = side_center - np.array(self.agent_rect.center)
+            if line_of_sight_vec == np.zeros(2):  # Agent is exactly on the side
                 return True
-            norm = np.sqrt(angle_vector.dot(angle_vector))
-            angle_vector = angle_vector / norm
-            
-            
-        
-        # for each side, check if its center is in view cone (vector angle between it and agent)
-        # if not other wall rectangles are in between (collision with ray) return true
-        return True
+            norm = np.sqrt(line_of_sight_vec @ line_of_sight_vec)
+            if agent_direction_vec @ (line_of_sight_vec / norm) < 0.7: # Outside view cone of +-90 degrees
+                break
+            for wall_rect in self.wall_rects:
+                if wall_rect.clipline(self.agent_rect.center, side_center) != tuple():
+                    break  # line of sight blocked by a wall
+            return True
+        return False
