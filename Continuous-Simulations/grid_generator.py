@@ -57,7 +57,7 @@ class GridBuilder:
             room_y = random_idx[1]
 
             for idx in all_possible_idx:
-                self.grid[(idx[0], idx[1])] = 0 if self.grid[(idx[0], idx[1])] == 2 else 1
+                self.grid[(idx[0], idx[1])] -= 2
                 # Some walls are allowed to overlap, but we don't want to clear out the wall of another room accidentaly
             self.grid[room_x:room_x + room_size[0] + 1, room_y] = 1
             self.grid[room_x, room_y:room_y + room_size[1] + 1] = 1
