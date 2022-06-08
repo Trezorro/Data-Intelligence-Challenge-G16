@@ -2,11 +2,12 @@
 
 The internal environment used to maintain an awareness of where everything is.
 """
-from typing import List, Dict, Tuple, Union
-from pygame import Rect
+import math
+from random import random
+from typing import List, Dict, Tuple
 
 import numpy as np
-from random import random
+from pygame import Rect
 
 
 class EnvironmentModel:
@@ -25,10 +26,11 @@ class EnvironmentModel:
         the size of the provided grid.
 
         Args:
-            grid: A (usually) 24x24 array containing where walls are. Rows is x, cols is y.
+            grid: A (usually) 24x24 array containing where walls are. Rows is x,
+                cols is y.
             num_obstacles: The number of obstacles to place.
             num_dirt: The number of dirt particles to place.
-            scalar: The amount to scale the grid by for the actual world
+            cell_size: The size of each grid cell in number of pixels
             battery_drain: The amount of battery drained with every step for
                 the agent.
             agent_width: The width of the agent on the world.
@@ -42,7 +44,7 @@ class EnvironmentModel:
 
         self.floor_rects: List[Rect] = self._grid_to_rects(grid, 0)
         self.wall_rects: List[Rect] = self._grid_to_rects(self.grid, 1)
-        self.death_rects: List[Rect] = self._grid_to_rects(self.grid, 2)
+        self.death_rects: List[Rect] = self._grid_to_rects(self.grid, 3)
 
         self.obstacle_rects: List[Rect] = []
         self.dirt_rects: List[Rect] = []
@@ -52,6 +54,8 @@ class EnvironmentModel:
         self.agent_battery = 100.0
         self.agent_is_alive: bool = True
         self.agent_width = agent_width
+
+        self.previous_observation = None
 
         self._place_obstacles(num_obstacles)
         self._place_dirt(num_dirt)
@@ -126,8 +130,8 @@ class EnvironmentModel:
             num_obstacles: The number of obstacles to be placed.
         """
         for _ in range(num_obstacles):
-            width = (random() * 3.) + 0.5
-            height = (random() * 3.) + 0.5
+            width = (random() * 3. * self.cell_size) + 0.5
+            height = (random() * 3. * self.cell_size) + 0.5
 
             self.obstacle_rects.append(self._place_thing(width, height))
 
@@ -179,7 +183,7 @@ class EnvironmentModel:
             If the agent is still alive or not after the battery drain.
         """
         self.agent_battery -= self.battery_drain
-        return self.agent_battery <= 0
+        return self.agent_battery > 0
 
     def rotate_agent(self, angle: int):
         """Rotates the agent but the desired amount.
@@ -188,9 +192,10 @@ class EnvironmentModel:
             angle: How much to rotate the agent by. NOT the new angle of the
                 agent
         """
-        self.agent_angle = (self.agent_angle + angle) % 360
+        if self.agent_is_alive:
+            self.agent_angle = (self.agent_angle + angle) % 360
 
-    def move_agent(self, distance: int) -> Tuple[dict,np.ndarray]:
+    def move_agent(self, distance: int) -> Tuple[dict, np.ndarray]:
         """Moves the agent by the given distance and checks for colisions.
 
         Sets the observation dict which is a dictionary containing keys
@@ -200,8 +205,8 @@ class EnvironmentModel:
 
         The world observation is returned as a grid array with 3-dimensions
         where each z axis contains 0 or 1 values. Each z axis represents a
-        different types of object in the world. A value of 1 means that something
-        of that object type exists in that grid square.
+        different types of object in the world. A value of 1 means that
+        something of that object type exists in that grid square.
             0: Walls
             1: Death
             2: Obstacles
@@ -221,47 +226,50 @@ class EnvironmentModel:
         hit_dirt = 0
         hit_death = False
 
-        # Moves the agent by the given distance respecting its current angle
-        heading = np.array([np.cos(self.agent_angle * np.pi),
-                            np.sin(self.agent_angle * np.pi)])
-        move_by = (heading * distance).astype(int)
-        move_by = (int(move_by[0]), int(move_by[1]))
-        self.agent_rect.move(move_by[0], move_by[1])
+        if self.agent_is_alive:
+            # Moves the agent by the given distance respecting its current angle
+            heading = np.array([math.cos(self.agent_angle / 180 * math.pi),
+                                math.sin(self.agent_angle / 180 * math.pi)])
+            move_by = (heading * distance).astype(int)
+            move_by = (int(move_by[0]), int(move_by[1]))
+            self.agent_rect = self.agent_rect.move(move_by[0], move_by[1])
 
-        # Check if agent is still alive after draining the battery. Every move
-        # should drain the battery since even if a robot bumps into a wall, it's
-        # still expending energy to do so.
-        self.agent_is_alive = self._drain_battery()
+            # Check if agent is still alive after draining the battery. Every
+            # move should drain the battery since even if a robot bumps into a
+            # wall, it's still expending energy to do so.
+            self.agent_is_alive = self._drain_battery()
 
-        # Check for colisions
-        collisions = self._check_colisions(self.agent_rect)
+            # Check for colisions
+            collisions = self._check_colisions(self.agent_rect)
 
-        # Check if we hit a wall
-        if len(collisions["walls"]) > 0:
-            self.agent_rect.move(-move_by[0], -move_by[1])
+            # Check if we hit a wall
+            if len(collisions["walls"]) > 0:
+                move_succeeded = False
+                hit_wall = True
+
+            # check if we hit an obstacle
+            elif len(collisions["obstacles"]) > 0:
+                move_succeeded = False
+                hit_obstacle = True
+
+            # Check if we hit a death tile
+            elif len(collisions["death"]) > 0:
+                move_succeeded = False
+                hit_death = True
+                self.agent_is_alive = False
+
+            if move_succeeded:
+                hit_dirt = len(collisions["dirt"])
+                if hit_dirt > 0:
+                    # Remove vacuumed up dirt
+                    new_dirt_rects = [dirt
+                                      for i, dirt in enumerate(self.dirt_rects)
+                                      if i not in collisions["dirt"]]
+                    self.dirt_rects = new_dirt_rects
+            else:
+                self.agent_rect = self.agent_rect.move(-move_by[0], -move_by[1])
+        else:
             move_succeeded = False
-            hit_wall = True
-
-        # check if we hit an obstacle
-        elif len(collisions["obstacles"]) > 0:
-            self.agent_rect.move(-move_by[0], -move_by[1])
-            move_succeeded = False
-            hit_obstacle = True
-
-        # Check if we hit a death tile
-        elif len(collisions["death"]) > 0:
-            self.agent_rect.move(-move_by[0], -move_by[1])
-            move_succeeded = False
-            hit_death = True
-            self.agent_is_alive = False
-
-        if move_succeeded:
-            hit_dirt = len(collisions["dirt"])
-            if hit_dirt > 0:
-                # Remove vacuumed up dirt
-                new_dirt_rects = [dirt for i, dirt in enumerate(self.dirt_rects)
-                                  if i not in collisions["dirt"]]
-                self.dirt_rects = new_dirt_rects
 
         events = {
             "move_succeeded": move_succeeded,
@@ -274,8 +282,11 @@ class EnvironmentModel:
         # TODO: maintain fog of war and obstacle channels
         # add visible cells to fog of war 
         # add visible obstacles to obstacle channel
-        
-        return events, None
+        world_observation = None
+
+        self.previous_observation = events, world_observation
+
+        return events, world_observation
 
     def _cell_visible(self, cell_x: int, cell_y: int) -> bool:
         """Checks if the cell is visible to the agent.
@@ -286,8 +297,9 @@ class EnvironmentModel:
         Returns:
             True if the cell is visible, False otherwise.
         """
-        agent_angle_rad = self.agent_angle * np.pi / 180
-        agent_direction_vec = np.array([np.cos(agent_angle_rad), np.sin(agent_angle_rad)])
+        agent_angle_rad = self.agent_angle * math.pi / 180
+        agent_direction_vec = np.array([math.cos(agent_angle_rad),
+                                        math.sin(agent_angle_rad)])
 
         # Figure out cell side positions
         cell_rect = self._cell_to_rect((cell_x, cell_y))
@@ -302,10 +314,12 @@ class EnvironmentModel:
             if line_of_sight_vec == np.zeros(2):  # Agent is exactly on the side
                 return True
             norm = np.sqrt(line_of_sight_vec @ line_of_sight_vec)
-            if agent_direction_vec @ (line_of_sight_vec / norm) < 0.7: # Outside view cone of +-90 degrees
-                break
+            if agent_direction_vec @ (
+                    line_of_sight_vec / norm) < 0.7:  # Outside view cone of +-90 degrees
+                continue
             for wall_rect in self.wall_rects:
-                if wall_rect.clipline(self.agent_rect.center, side_center) != tuple():
+                if wall_rect.clipline(self.agent_rect.center,
+                                      side_center) != tuple():
                     break  # line of sight blocked by a wall
             return True
         return False

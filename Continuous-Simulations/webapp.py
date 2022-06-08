@@ -146,7 +146,7 @@ def main():
                                 style=label_style
                             ),
                             dcc.Slider(
-                                id="simulation-speed",
+                                id="simulation-agent_speed",
                                 min=1,
                                 max=5,
                                 step=1,

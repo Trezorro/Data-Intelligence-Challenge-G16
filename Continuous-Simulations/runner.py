@@ -1,6 +1,6 @@
-from simulation.environment import ContinuousEnv
-from gym.envs.registration import register
 import gym
+from gym.envs.registration import register
+from tqdm import trange
 
 register(
     id="ContinuousWorld-v0",
@@ -8,11 +8,15 @@ register(
 )
 
 if __name__ == '__main__':
+    render_mode = "human"
     env = gym.make("ContinuousWorld-v0")
-    env.reset(seed=42)
-    for _ in range(500):
+    observation, info = env.reset(seed=42, return_info=True)
+    for _ in trange(500):
+        env.render(mode=render_mode)
         # WIP FIX YVAN reset and step give observation
-        action = env.action_space.sample() # TODO: Give agent the state and ask for move
-        env.step(action=action)
-        env.render()
+        action = env.action_space.sample()
+        observation, reward, done, info = env.step(action=action)
+
+        if done:
+            observation, info = env.reset(seed=42, return_info=True)
     env.close()
