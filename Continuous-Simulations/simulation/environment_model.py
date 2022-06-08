@@ -51,8 +51,6 @@ class EnvironmentModel:
         self.agent_is_alive = True
         self.agent_width = agent_width
 
-        self.observation_dict = {"move_succeeded"}
-
         self._place_obstacles(num_obstacles)
         self._place_dirt(num_dirt)
         self._place_agent()
@@ -175,14 +173,27 @@ class EnvironmentModel:
     def move_agent(self, distance: int):
         """Moves the agent by the given distance and checks for colisions.
 
-        Also sets the observation dict which is a dictionary containing keys
+        Sets the observation dict which is a dictionary containing keys
         [move_succeeded, hit_wall, hit_obstacle, hit_dirt, hit_death, is_alive].
         `hit_dirt` is an int representing the number of dirt objects hit during
         the move. Every other key has a value of a bool.
 
+        The world observation is returned as a grid array with 3-dimensions
+        where each z axis contains 0 or 1 values. Each z axis represents a
+        different types of object in the world. A value of 1 means that something
+        of that object type exists in that grid square.
+            0: Walls
+            1: Death
+            2: Obstacles
+            3: Dirt
+            4: Visited
+            5: Fog of war
+
         Args:
             distance: The distance to move the agent by.
 
+        Returns:
+            The observation dict and the world observation.
         """
         move_succeeded = True
         hit_wall = False
@@ -232,29 +243,13 @@ class EnvironmentModel:
                                   if i not in collisions["dirt"]]
                 self.dirt_rects = new_dirt_rects
 
-        self.observation_dict = {
+        observation_dict = {
             "move_succeeded": move_succeeded,
             "hit_wall": hit_wall,
             "hit_obstacle": hit_obstacle,
             "hit_dirt": hit_dirt,
-            "hit_death": hit_death
+            "hit_death": hit_death,
+            "is_alive": is_alive
         }
-
-    def get_world_observation(self) -> Tuple[dict, np.ndarray]:
-        """Gets the world observation as an 3-dimensional grid array.
-
-        The world observation is returned as a grid array with 3-dimensions
-        where each z axis contains 0 or 1 values. Each z axis represents a
-        different types of object in the world. A value of 1 means that something
-        of that object type exists in that grid square.
-            0: Walls
-            1: Death
-            2: Obstacles
-            3: Dirt
-            4: Visited
-            5: Fog of war
-
-        Returns:
-            The observation dict and a 3-dimensional grid array.
-        """
-        raise NotImplementedError
+        # TODO Implement world observation code
+        return observation_dict, None
