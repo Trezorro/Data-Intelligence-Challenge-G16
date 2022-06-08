@@ -1,3 +1,4 @@
+"""Baseline provided by the course."""
 import numpy as np
 import matplotlib
 
