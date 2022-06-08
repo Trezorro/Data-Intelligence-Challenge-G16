@@ -17,30 +17,32 @@ import pygame
 class ContinuousEnv(gym.Env):
     metadata = {"render_modes": ["human"], "render_fps": 10}
 
-    def __init__(self, grid_params: dict = None,
-                 render_mode: Optional[str] = "human"):
+    def __init__(self, render_mode: Optional[str] = "human"):
         """Creates a continuous environment to run simulations in.
 
         Args:
-            grid_params: Parameters for the Grid Builder as a dictionary.
             render_mode: The render mode to use for rendering. Choices are
                 "human" or None.
         """
-        try:
-            self.grid_size = grid_params["grid_size"]
-            grid_builder = GridBuilder(**grid_params)
-        except (KeyError, TypeError):
-            self.grid_size = 24
-            grid_builder = GridBuilder(self.grid_size)
-
-        self.map = grid_builder.generate_grid()
+        self.grid = None
         self.world = None
-        self.window_size = self.grid_size * 32  # Pygame window size.
+        self.window_size = 768  # Pygame window size.
 
         # Set up the observation space
-        self.observation_space = Box(low=0.,
-                                     high=1.0,
-                                     shape=(self.grid_size, self.grid_size, 5))
+        # All observations with Discrete(2) represent booleans. 0 for False and
+        # 1 for True.
+        self.observation_space = Dict({
+            "move_succeeded": Discrete(2),
+            "hit_wall": Discrete(2),
+            "hit_obstacle": Discrete(2),
+            "hit_dirt": Box(low=0, high=2048, shape=(1,), dtype=int),
+            "hit_death": Discrete(2),
+            "is_alive": Discrete(2),
+            "world": Box(low=0.,
+                         high=1.0,
+                         shape=(24, 24, 6))
+        })
+        # `move` is a represents a boolean. 0 is False, 1 is True.
         self.action_space = Dict({"direction": Box(low=-1.,
                                                    high=1.,
                                                    shape=(1,)),
@@ -58,13 +60,45 @@ class ContinuousEnv(gym.Env):
             self.prev_render_rects = []
 
     def reset(self, seed=None, return_info=False, options=None):
-        """Resets the environment."""
-        super().reset(seed=seed)
+        """Resets the environment.
 
-        self.world = EnvironmentModel(self.map, randint(4, 30), randint(4, 30))
+        Args:
+            seed: The random seed to use.
+            return_info: Whether or not to return info from the environment.
+            options: An optional dictionary containing run parameters. It can
+                contain the following keys
+                {"grid_size": int,
+                 "num_rooms": int,
+                 "num_obstacles": int,
+                 "num_dirt": int,
+                 "scalar": int,
+                 "battery_drain": float,
+                 "agent_width": int}
+
+        """
+        super().reset(seed=seed)
+        # First set defaults
+        params = {
+            "grid_size": 24,
+            "num_rooms": 5,
+            "num_obstacles": randint(4, 30),
+            "num_dirt": randint(50, 600),
+            "scalar": 64,
+            "battery_drain": 0.25,
+            "agent_width": 48
+        }
+
+        self.world = EnvironmentModel(grid = self.grid,
+                                      num_obstacles=randint(4, 30),
+                                      num_dirt=randint(50, 600),)
         self._initial_render()
 
     def step(self, action):
+        # Asks agent for a move
+        # Applies move to the world
+        # Asks environment_model for observation
+        # Calculate reward from move
+        # Provide reward and observation back to agent
         pass
 
     def _get_obs(self):
@@ -82,15 +116,16 @@ class ContinuousEnv(gym.Env):
         background.fill((250, 250, 250))
 
         # Draw rectangles at every point where there is an object on the grid
+        # self.
 
-        for pos in wall_idxs:
-            x0 = pos[0] * self.world.scalar
-            y0 = pos[1] * self.world.scalar
-            pygame.draw.rect(
-                surface=background,
-                color=(10, 10, 10),
-                rect=[x0, y0, self.world.scalar, self.world.scalar]
-            )
+        # for pos in wall_idxs:
+        #     x0 = pos[0] * self.world.scalar
+        #     y0 = pos[1] * self.world.scalar
+        #     pygame.draw.rect(
+        #         surface=background,
+        #         color=(10, 10, 10),
+        #         rect=[x0, y0, self.world.scalar, self.world.scalar]
+        #     )
 
         # Update the actual display
         update_rect = self.window.blit(background, background.get_rect())
