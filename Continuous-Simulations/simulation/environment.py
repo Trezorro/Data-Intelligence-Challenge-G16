@@ -10,6 +10,7 @@ from grid_generator import GridBuilder
 from simulation.environment_model import EnvironmentModel
 
 import gym
+from gym.spaces import Box, Dict, Discrete
 import pygame
 
 
@@ -37,8 +38,13 @@ class ContinuousEnv(gym.Env):
         self.window_size = self.grid_size * 32  # Pygame window size.
 
         # Set up the observation space
-        self.observation_space = None
-        self.action_space = None
+        self.observation_space = Box(low=0.,
+                                     high=1.0,
+                                     shape=(self.grid_size, self.grid_size, 5))
+        self.action_space = Dict({"direction": Box(low=-1.,
+                                                   high=1.,
+                                                   shape=(1,)),
+                                  "move": Discrete(2)})
 
         self.should_render = render_mode == "human"
 
