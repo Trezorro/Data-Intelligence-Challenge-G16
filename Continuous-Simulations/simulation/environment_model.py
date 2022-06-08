@@ -49,7 +49,7 @@ class EnvironmentModel:
         self.agent_rect = Rect(0, 0, 0, 0)  # Initialize with a dummy value
         self.agent_angle = 0  # Angle of agent in degrees, 0 being north
         self.agent_battery = 100.0
-        self.agent_is_alive = True
+        self.agent_is_alive: bool = True
         self.agent_width = agent_width
 
         self._place_obstacles(num_obstacles)
@@ -65,10 +65,10 @@ class EnvironmentModel:
         Returns:
             A rectangle representing the cell.
         """
-        return Rect(left=cell[0] * self.cell_size,
-                    top=cell[1] * self.cell_size,
-                    width=self.cell_size,
-                    height=self.cell_size)
+        return Rect(int(cell[0] * self.cell_size),
+                    int(cell[1] * self.cell_size),
+                    self.cell_size,
+                    self.cell_size)
 
     def _grid_to_rects(self, grid: np.ndarray, val) -> List[Rect]:
         """Places walls and death tiles as a list of Rect objects.
@@ -153,7 +153,7 @@ class EnvironmentModel:
         self.agent_rect = self._place_thing(width=self.cell_size / 2,
                                             height=self.cell_size / 2)
 
-    def _check_colisions(self, rect: Rect) -> Dict[str: list]:
+    def _check_colisions(self, rect: Rect) -> Dict[str, list]:
         """Tests if the provided rectangle collides with anything in the world.
 
         Args:
