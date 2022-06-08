@@ -81,8 +81,8 @@ class GridBuilder:
                 self.grid[top_left_corner_x + room_size[0], top_left_corner_y:top_left_corner_y + room_size[1] + 1] = 1
             else:
                 self.grid[
-                    top_left_corner_x:top_left_corner_x + room_size[0],
-                    top_left_corner_y:top_left_corner_y + room_size[1]
+                    max(top_left_corner_x, 1):min(max(top_left_corner_x, 1) + room_size[0], len(self.grid) - 2),
+                    max(top_left_corner_y, 1):min(max(top_left_corner_y, 1) + room_size[1], len(self.grid) - 2)
                 ] = 3
 
             # Create doors
