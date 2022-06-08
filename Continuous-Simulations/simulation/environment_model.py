@@ -22,7 +22,7 @@ class EnvironmentModel:
         """A very simple environment model which holds data about the world.
 
         The world is represented as a continuous grid with the size based on
-        the size of the provided map.
+        the size of the provided grid.
 
         Args:
             grid: A (usually) 24x24 array containing where walls are.
@@ -49,12 +49,10 @@ class EnvironmentModel:
         self.agent_angle = 0  # Angle of agent in degrees, 0 being north
         self.agent_battery = 100.0
         self.agent_is_alive = True
-        self.agent_width = 24
+        self.agent_width = agent_width
 
         self.observation_dict = {"move_succeeded"}
 
-        self._place_walls()
-        self._place_death()
         self._place_obstacles(num_obstacles)
         self._place_dirt(num_dirt)
         self._place_agent()
