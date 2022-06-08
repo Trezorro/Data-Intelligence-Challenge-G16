@@ -104,7 +104,7 @@ class EnvironmentModel:
         thing_placed = False
         while not thing_placed:
             # Keep trying until a position that is not a wall is found.
-            position = np.random.random(2) * self.grid_size
+            position = np.random.random(2) * self.grid_size * self.cell_size
             rect = Rect(position[0], position[1], width, height)
 
             # Check for collisions
