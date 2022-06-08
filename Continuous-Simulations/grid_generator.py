@@ -1,3 +1,5 @@
+from typing import Optional, Union
+
 import numpy as np
 import random
 
@@ -14,6 +16,12 @@ def get_grid_with_corridor(grid_size: int):
     corridor_len = random.randint(4, grid_size-4)
     grid[corridor_len:grid_size, corridor_start] = 1
     grid[corridor_len:grid_size, corridor_end] = 1
+    # Add borders of 1 to grid
+    grid[0, :] = 1
+    grid[grid_size-1, :] = 1
+    grid[:, 0] = 1
+    grid[:, grid_size-1] = 1
+    grid[grid_size-1, corridor_start+1:corridor_end] = 0  # Open up the corridor
     return grid
 
 
@@ -21,27 +29,35 @@ class GridBuilder:
     def __init__(
             self, 
             grid_size: int = 24, 
-            n_rooms: int = 5, 
-            room_sizes: tuple = ((8, 8), (8, 4), (4, 2), (4, 8), (3, 2))
+            room_sizes: Union[tuple, list] = ((8, 7), (7, 6), (6, 5), (5, 4), (5, 4), (4, 2), (3, 2), (2, 1), (2, 1)),
     ):
         """The GridBuilder can generate grids with specified rooms 
         allocated randomly within the allocated space. 
         Default setting: grid 24x24, 5 rooms - living room, kitchen, toilet, bedroom, garden exit 
         """
         self.size = grid_size
-        self.n_rooms = n_rooms
-        self.room_sizes = room_sizes
         self.grid = get_grid_with_corridor(grid_size)
+        self.room_sizes = room_sizes
         
-    def generate_grid(self):
-        for room in range(self.n_rooms):
-            self.place_room_randomly(self.room_sizes[room])
+    def generate_grid(self, room_sizes: Optional[list] = None):
+        """Generates a grid with specified rooms allocated randomly within the allocated space.
+        :param: room_sizes: list of room sizes, if not specified, default sizes are used
+        """
+        if room_sizes is None:
+            room_sizes = self.room_sizes
+
+        for room in room_sizes:
+            if room[0] > 4:
+                self.place_room_randomly(room, death_room=False)
+            else:
+                self.place_room_randomly(room, death_room=True)
+
         self.grid = self.grid.astype(dtype=np.uint8)
         return self.grid
 
-    def place_room_randomly(self, room_size: tuple):
-        """ Finds possible top left corners and randomly selects one,
-        adding the borders to grid as walls
+    def place_room_randomly(self, room_size: tuple, death_room: bool = False):
+        """ Finds possible top left corners for a room with given size
+        and randomly selects one, adding the borders to grid as walls
         """
         for h in range(self.grid.shape[0]):
             for w in range(self.grid.shape[1]):
@@ -53,18 +69,46 @@ class GridBuilder:
         all_possible_idx = np.argwhere(self.grid > 1)
         if len(all_possible_idx) > 0:
             random_idx = random.choice(all_possible_idx)
-            room_x = random_idx[0]
-            room_y = random_idx[1]
+            top_left_corner_x = random_idx[0]
+            top_left_corner_y = random_idx[1]
 
             for idx in all_possible_idx:
                 self.grid[(idx[0], idx[1])] -= 2
-                # Some walls are allowed to overlap, but we don't want to clear out the wall of another room accidentaly
-            self.grid[room_x:room_x + room_size[0] + 1, room_y] = 1
-            self.grid[room_x, room_y:room_y + room_size[1] + 1] = 1
-            self.grid[room_x:room_x + room_size[0] + 1, room_y + room_size[1]] = 1
-            self.grid[room_x + room_size[0], room_y:room_y + room_size[1] + 1] = 1
+            if not death_room:
+                self.grid[top_left_corner_x:top_left_corner_x + room_size[0] + 1, top_left_corner_y] = 1
+                self.grid[top_left_corner_x, top_left_corner_y:top_left_corner_y + room_size[1] + 1] = 1
+                self.grid[top_left_corner_x:top_left_corner_x + room_size[0] + 1, top_left_corner_y + room_size[1]] = 1
+                self.grid[top_left_corner_x + room_size[0], top_left_corner_y:top_left_corner_y + room_size[1] + 1] = 1
+            else:
+                self.grid[
+                    top_left_corner_x:top_left_corner_x + room_size[0],
+                    top_left_corner_y:top_left_corner_y + room_size[1]
+                ] = 2
+
+            # Create doors
+            if not death_room:
+                self.grid[top_left_corner_x + room_size[0] // 2,  max(top_left_corner_y, 1)] = 0
+                self.grid[top_left_corner_x + room_size[0] // 2 + 1, max(top_left_corner_y, 1)] = 0
+                self.grid[max(top_left_corner_x, 1), top_left_corner_y + room_size[1] // 2] = 0
+                self.grid[max(top_left_corner_x, 1), top_left_corner_y + room_size[1] // 2 + 1] = 0
+                self.grid[
+                    min(top_left_corner_x + room_size[0], len(self.grid) - 2),
+                    top_left_corner_y + room_size[1] // 2
+                ] = 0
+                self.grid[
+                    min(top_left_corner_x + room_size[0], len(self.grid) - 2),
+                    top_left_corner_y + room_size[1] // 2 + 1
+                ] = 0
+                self.grid[
+                    top_left_corner_x + room_size[0] // 2 + 1,
+                    min(top_left_corner_y + room_size[1], len(self.grid) - 2)
+                ] = 0
+                self.grid[
+                    top_left_corner_x + room_size[0] // 2,
+                    min(top_left_corner_y + room_size[1], len(self.grid) - 2)
+                ] = 0
 
 
 if __name__ == '__main__':
-    grid = GridBuilder(16).generate_grid()
+    grid = GridBuilder().generate_grid()
     print(grid)
