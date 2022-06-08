@@ -277,7 +277,7 @@ class EnvironmentModel:
         
         return events, None
 
-    def _cell_visible(self, cell_x, cell_y, ) -> bool:
+    def _cell_visible(self, cell_x: int, cell_y: int) -> bool:
         """Checks if the cell is visible to the agent.
 
         Args:
