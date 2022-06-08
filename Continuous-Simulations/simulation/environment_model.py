@@ -15,7 +15,7 @@ class EnvironmentModel:
             grid: np.ndarray,
             num_obstacles: int,
             num_dirt: int,
-            scalar: int = 64,
+            cell_size: int = 64,
             battery_drain: float = 0.25,
             agent_width: int = 48
     ):
@@ -25,7 +25,7 @@ class EnvironmentModel:
         the size of the provided grid.
 
         Args:
-            grid: A (usually) 24x24 array containing where walls are.
+            grid: A (usually) 24x24 array containing where walls are. Rows is x, cols is y.
             num_obstacles: The number of obstacles to place.
             num_dirt: The number of dirt particles to place.
             scalar: The amount to scale the grid by for the actual world
@@ -34,11 +34,12 @@ class EnvironmentModel:
             agent_width: The width of the agent on the world.
         """
         # Set environment parameters
-        self.scalar = scalar
+        self.cell_size = cell_size
         self.battery_drain = battery_drain
         self.grid = grid
         self.grid_size = grid.shape[0]
 
+        self.floor_rects: List[Rect] = self._grid_to_rects(grid, 0)
         self.wall_rects: List[Rect] = self._grid_to_rects(self.grid, 1)
         self.death_rects: List[Rect] = self._grid_to_rects(self.grid, 2)
 
@@ -55,7 +56,21 @@ class EnvironmentModel:
         self._place_dirt(num_dirt)
         self._place_agent()
 
-    def _grid_to_rects(self, grid, val) -> List[Rect]:
+    def _cell_to_rect(self, cell: Tuple[int, int]) -> Rect:
+        """Converts a cell to a rectangle.
+
+        Args:
+            cell: The cell to convert as (x, y) tuple.
+
+        Returns:
+            A rectangle representing the cell.
+        """
+        return Rect(left=cell[0] * self.cell_size,
+                    top=cell[1] * self.cell_size,
+                    width=self.cell_size,
+                    height=self.cell_size)
+
+    def _grid_to_rects(self, grid: np.ndarray, val) -> List[Rect]:
         """Places walls and death tiles as a list of Rect objects.
 
         Walls are represented as a bunch of rectangular objects in the world,
@@ -70,12 +85,10 @@ class EnvironmentModel:
         Returns:
              A list of rectangles representing some wall or death tile objects.
         """
-        idxs = np.where(grid == val)
-        idxs = list(zip(idxs[0], idxs[1]))
+        idxs = np.nonzero(grid == val)
+        positive_cells = list(zip(idxs[0], idxs[1]))
 
-        return [Rect(left=pos[0] * self.scalar, top=pos[1] * self.scalar,
-                     width=self.scalar, height=self.scalar)
-                for pos in idxs]
+        return [self._cell_to_rect(cell) for cell in positive_cells]
 
     def _place_thing(self, width: float, height: float) -> Rect:
         """Places a thing somewhere on the grid, respecting walls.
@@ -137,8 +150,8 @@ class EnvironmentModel:
         The agent should always be placed last so it doesn't start off inside
         an obstacle or on top of dirt.
         """
-        self.agent_rect = self._place_thing(width=self.scalar / 2,
-                                            height=self.scalar / 2)
+        self.agent_rect = self._place_thing(width=self.cell_size / 2,
+                                            height=self.cell_size / 2)
 
     def _check_colisions(self, rect: Rect) -> Dict[str: list]:
         """Tests if the provided rectangle collides with anything in the world.
@@ -176,7 +189,7 @@ class EnvironmentModel:
         """
         self.agent_angle = (self.agent_angle + angle) % 360
 
-    def move_agent(self, distance: int):
+    def move_agent(self, distance: int) -> Tuple[dict,np.ndarray]:
         """Moves the agent by the given distance and checks for colisions.
 
         Sets the observation dict which is a dictionary containing keys
@@ -199,7 +212,7 @@ class EnvironmentModel:
             distance: The distance to move the agent by.
 
         Returns:
-            The observation dict and the world observation.
+            The event dictionary and the robot's new observation of the world.
         """
         move_succeeded = True
         hit_wall = False
@@ -217,7 +230,7 @@ class EnvironmentModel:
         # Check if agent is still alive after draining the battery. Every move
         # should drain the battery since even if a robot bumps into a wall, it's
         # still expending energy to do so.
-        is_alive = self._drain_battery()
+        self.agent_is_alive = self._drain_battery()
 
         # Check for colisions
         collisions = self._check_colisions(self.agent_rect)
@@ -239,7 +252,7 @@ class EnvironmentModel:
             self.agent_rect.move(-move_by[0], -move_by[1])
             move_succeeded = False
             hit_death = True
-            is_alive = False
+            self.agent_is_alive = False
 
         if move_succeeded:
             hit_dirt = len(collisions["dirt"])
@@ -249,13 +262,44 @@ class EnvironmentModel:
                                   if i not in collisions["dirt"]]
                 self.dirt_rects = new_dirt_rects
 
-        observation_dict = {
+        events = {
             "move_succeeded": move_succeeded,
             "hit_wall": hit_wall,
             "hit_obstacle": hit_obstacle,
             "hit_dirt": hit_dirt,
             "hit_death": hit_death,
-            "is_alive": is_alive
+            "is_alive": self.agent_is_alive
         }
         # TODO Implement world observation code
-        return observation_dict, None
+        return events, None
+
+    def cell_visible(self, cell_x, cell_y, ) -> bool:
+        """Checks if the cell is visible to the agent.
+
+        Args:
+            cell: The cell to check.
+
+        Returns:
+            True if the cell is visible, False otherwise.
+        """
+        # TODO Implement visibility code
+        # Figure out cell side positions
+        cell_rect = self._cell_to_rect((cell_x, cell_y))
+        sides = [
+            np.array(cell_rect.midtop),
+            np.array(cell_rect.midleft),
+            np.array(cell_rect.midbottom),
+            np.array(cell_rect.midright),
+        ]
+        for side_center in sides:
+            angle_vector = side_center - np.array(self.agent_rect.center)
+            if angle_vector == np.zeros(2):  # Agent is exactly on the side
+                return True
+            norm = np.sqrt(angle_vector.dot(angle_vector))
+            angle_vector = angle_vector / norm
+            
+            
+        
+        # for each side, check if its center is in view cone (vector angle between it and agent)
+        # if not other wall rectangles are in between (collision with ray) return true
+        return True
