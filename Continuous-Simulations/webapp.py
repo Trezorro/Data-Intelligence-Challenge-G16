@@ -27,7 +27,7 @@ def make_grid(grid_file: Optional[Path]) -> go.Figure:
 def main():
     app = Dash("rl-vacuum-cleaner")
 
-    maps = [i.stem for i in Path("map_configs").glob("*.map")]
+    maps = [i.stem for i in Path("map_configs").glob("*.grid")]
 
     # Temporary data
     # df = pd.DataFrame({

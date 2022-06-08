@@ -199,8 +199,8 @@ def handle_browser_spawn_robot(json):
         emit('new_grid', {'grid': '<h1>Invalid robot coordinates entered!</h1>'})
         print('[ERROR] invalid starting coordinate entered!')
     except ValueError:
-        emit('new_grid', {'grid': '<h1>Invalid robot coordinates entered, spot on map is not free!</h1>'})
-        print('[ERROR] invalid starting coordinate entered, spot on map is not free!')
+        emit('new_grid', {'grid': '<h1>Invalid robot coordinates entered, spot on grid is not free!</h1>'})
+        print('[ERROR] invalid starting coordinate entered, spot on grid is not free!')
     else:
         emit('new_grid', draw_grid(grid))
 

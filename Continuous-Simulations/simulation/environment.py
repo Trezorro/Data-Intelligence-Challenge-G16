@@ -81,9 +81,8 @@ class ContinuousEnv(gym.Env):
         background = background.convert()
         background.fill((250, 250, 250))
 
-        # Draw rectangles at every point where there is an object on the map
-        wall_idxs = np.where(self.map > 0)
-        wall_idxs = list(zip(wall_idxs[0], wall_idxs[1]))
+        # Draw rectangles at every point where there is an object on the grid
+
         for pos in wall_idxs:
             x0 = pos[0] * self.world.scalar
             y0 = pos[1] * self.world.scalar

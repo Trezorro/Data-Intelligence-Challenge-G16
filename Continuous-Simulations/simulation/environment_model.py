@@ -2,87 +2,159 @@
 
 The internal environment used to maintain an awareness of where everything is.
 """
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Union
 from pygame import Rect
 
 import numpy as np
+from random import random
 
 
 class EnvironmentModel:
-    def __init__(self, map: np.ndarray, num_obstacles: int, num_dirt: int):
+    def __init__(
+            self,
+            grid: np.ndarray,
+            num_obstacles: int,
+            num_dirt: int,
+            scalar: int = 64,
+            battery_drain: float = 0.25,
+            agent_width: int = 48
+    ):
         """A very simple environment model which holds data about the world.
 
-        The world is represented as a grid 32x bigger than the map array. For
-        example, if the provided map array is 24x24, then the world has an edge
-        length of 24x32=768.
+        The world is represented as a continuous grid with the size based on
+        the size of the provided map.
 
         Args:
-            map: A (usually) 24x24 array containing where walls are.
+            grid: A (usually) 24x24 array containing where walls are.
+            num_obstacles: The number of obstacles to place.
+            num_dirt: The number of dirt particles to place.
+            scalar: The amount to scale the grid by for the actual world
+            battery_drain: The amount of battery drained with every step for
+                the agent.
+            agent_width: The width of the agent on the world.
         """
-        self.scalar = 32
-        self.battery_drain = 0.25
-        self.map = map
+        # Set environment parameters
+        self.scalar = scalar
+        self.battery_drain = battery_drain
+        self.grid = grid
+        self.grid_size = grid.shape[0]
 
-        self.agent_loc = self._translate_to_world(self._place_thing())
+        self.wall_rects: List[Rect] = self._grid_to_rects(self.grid[:, :, 0])
+        self.death_rects: List[Rect] = self._grid_to_rects(self.grid[:, :, 1])
+
+        self.obstacle_rects: List[Rect] = []
+        self.dirt_rects: List[Rect] = []
+
+        self.agent_rect = Rect(0, 0, 0, 0)  # Initialize with a dummy value
         self.agent_angle = 0  # Angle of agent in degrees, 0 being north
         self.agent_battery = 100.0
         self.agent_is_alive = True
         self.agent_width = 24
-        self.agent_bbox = self._get_agent_bbox()
 
-        self.obstacle_locs = self._place_things(num_obstacles)
-        self.dirt_locs = self._place_things(num_dirt)
+        self.observation_dict = {"move_succeeded"}
 
-    def _place_thing(self) -> np.ndarray:
-        """Places a thing somewhere on the map, respecting walls.
+        self._place_walls()
+        self._place_death()
+        self._place_obstacles(num_obstacles)
+        self._place_dirt(num_dirt)
+        self._place_agent()
+
+    def _grid_to_rects(self, grid) -> List[Rect]:
+        """Places walls as a list of Rect objects.
+
+        Walls are represented as a bunch of rectangular objects in the world,
+        NOT the grid. Each wall square has a size of 1x1.
 
         Returns:
-            The random position somewhere on the grid, not world, respecting
-            walls
+             A list of rectangles representing some wall or death tile objects.
+        """
+        idxs = np.where(grid > 0)
+        idxs = list(zip(idxs[0], idxs[1]))
+
+        return [Rect(left=pos[0] * self.scalar, top=pos[1] * self.scalar,
+                     width=self.scalar, height=self.scalar)
+                for pos in idxs]
+
+    def _place_thing(self, width: float, height: float) -> Rect:
+        """Places a thing somewhere on the grid, respecting walls.
+
+        Args:
+            width: The width of the object.
+            height: The height of the object.
+
+        Returns:
+            The random position somewhere on the grid, respecting all other
+            already placed objects.
         """
         thing_placed = False
         while not thing_placed:
             # Keep trying until a position that is not a wall is found.
-            position = np.random.randint(0, self.map.shape[0], 2)
-            thing_placed = self.map[tuple(position)] == 0
-        return position.astype(int)
+            position = np.random.random(2) * self.grid_size
+            rect = Rect(position[0], position[1], width, height)
 
-    def _translate_to_world(self, pos: np.ndarray,
-                            randomize: bool = False) -> np.ndarray:
-        """Scales the smaller map position to the world position.
+            # Check for collisions
+            collisions_dict = self._check_colisions(rect)
+            # Check that all produced collision lists are of length 0, i.e.,
+            # that all types of collisions are avoided
+            thing_placed = all([len(v) == 0 for v in collisions_dict.values()])
+
+        return rect
+
+    def _place_obstacles(self, num_obstacles: int):
+        """Places the given number of obstacles on the grid.
+
+        Obstacles have a minimum side length of 0.5x wall and maximum side
+        length of 3.5x wall
 
         Args:
-            randomize: Whether or not to randomize the position within a grid
-                position. If False, then puts it in the center of the grid
-                square.
+            num_obstacles: The number of obstacles to be placed.
+        """
+        for _ in range(num_obstacles):
+            width = (random() * 3.) + 0.5
+            height = (random() * 3.) + 0.5
+
+            self.obstacle_rects.append(self._place_thing(width, height))
+
+    def _place_dirt(self, num_dirt: int):
+        """Places the given number of dirt particles on the grid.
+
+        Dirt is represented as simply points on the grid.
+
+        Args:
+            num_dirt: The number of dirt particles to be placed.
+        """
+        for _ in range(num_dirt):
+            # We do this sequentially so that each previous dirt object will
+            # have an effect on the position of the next dirt object and not
+            # overlap.
+            self.dirt_rects.append(self._place_thing(1, 1))
+
+    def _place_agent(self):
+        """Places the agent somewhere on the world, respecting existing objects.
+
+        The agent should always be placed last so it doesn't start off inside
+        an obstacle or on top of dirt.
+        """
+        self.agent_rect = self._place_thing(width=self.scalar / 2,
+                                            height=self.scalar / 2)
+
+    def _check_colisions(self, rect: Rect) -> Dict[str: list]:
+        """Tests if the provided rectangle collides with anything in the world.
+
+        Args:
+            rect: The object to test
+
         Returns:
-            The scaled new position
+             A dictionary with the list of indices of collided objects.
+                An empty list means no collisions. The keys are
+                ['walls', 'obstacles', 'dirt', 'death'].
+                An example returned dictionary would be
+                {"walls": [], "obstacles": [2], "dirt": [1, 5], "death": []}
         """
-        pos *= self.scalar
-        if randomize:
-            translation = np.random.randint(0, 32, 2)
-            pos += translation
-        else:
-            pos += 16
-        return pos
-
-    def _translate_to_grid(self, pos: np.ndarray) -> np.ndarray:
-        """Scales a world location to a grid position.
-
-        Args:
-            pos: A position in the world
-        """
-        return (pos / self.scalar).astype(int)
-
-    def _place_things(self, num_things) -> Dict[tuple, np.ndarray]:
-        """Places things on the map as a dict"""
-        grid_positions = [self._place_thing() for _ in range(num_things)]
-        things = {tuple(pos): self._translate_to_world(pos, True)
-                  for pos in grid_positions}
-        return things
-
-    def _get_agent_bbox(self):
-        """Gets the current bbox of the agent."""
+        return {"walls": rect.collidelistall(self.wall_rects),
+                "obstacles": rect.collidelistall(self.obstacle_rects),
+                "dirt": rect.collidelistall(self.dirt_rects),
+                "death": rect.collidelistall(self.death_rects)}
 
     def _drain_battery(self) -> bool:
         """Drains battery by a certain amount.
@@ -102,51 +174,75 @@ class EnvironmentModel:
         """
         self.agent_angle = (self.agent_angle + angle) % 360
 
-    def move_agent(self, distance) -> Tuple[bool, bool, bool, bool, bool]:
+    def move_agent(self, distance: int):
         """Moves the agent by the given distance and checks for colisions.
+
+        Also sets the observation dict which is a dictionary containing keys
+        [move_succeeded, hit_wall, hit_obstacle, hit_dirt, hit_death, is_alive].
+        `hit_dirt` is an int representing the number of dirt objects hit during
+        the move. Every other key has a value of a bool.
 
         Args:
             distance: The distance to move the agent by.
 
-        Returns:
-            A tuple containing bools representing
-                [move_succeeded, hit_wall, hit_obstacle, hit_dirt, is_alive]
         """
         move_succeeded = True
         hit_wall = False
         hit_obstacle = False
-        hit_dirt = False
+        hit_dirt = 0
+        hit_death = False
 
-        # Moves the agentby the given distance respecting its current angle
-        heading = np.array([np.cos(self.agent_angle), np.sin(self.agent_angle)])
-        movement = (heading * heading).astype(int)
-        self.agent_loc += movement
-        self.agent_bbox.move(movement[0], movement[1])
+        # Moves the agent by the given distance respecting its current angle
+        heading = np.array([np.cos(self.agent_angle * np.pi),
+                            np.sin(self.agent_angle * np.pi)])
+        move_by = (heading * distance).astype(int)
+        move_by = (int(move_by[0]), int(move_by[1]))
+        self.agent_rect.move(move_by[0], move_by[1])
 
         # Check if agent is still alive after draining the battery. Every move
         # should drain the battery since even if a robot bumps into a wall, it's
         # still expending energy to do so.
         is_alive = self._drain_battery()
 
-        agent_grid_pos = self._translate_to_grid(self.agent_loc)
-
         # Check for colisions
-        if self.map[tuple(agent_grid_pos)] == 1:
-            self.agent_loc -= (distance * heading).astype(int)
-            hit_wall = True
+        collisions = self._check_colisions(self.agent_rect)
+
+        # Check if we hit a wall
+        if len(collisions["walls"]) > 0:
+            self.agent_rect.move(-move_by[0], -move_by[1])
             move_succeeded = False
+            hit_wall = True
 
-        if tuple(agent_grid_pos) in self.obstacle_locs.keys():
-            # Then there is an obstacle in the same grid square.
-            # Do collision calculation
-            raise NotImplementedError
-        if tuple(agent_grid_pos) in self.dirt_locs.keys():
-            # Do collision calculation for dirt
-            raise NotImplementedError
+        # check if we hit an obstacle
+        elif len(collisions["obstacles"]) > 0:
+            self.agent_rect.move(-move_by[0], -move_by[1])
+            move_succeeded = False
+            hit_obstacle = True
 
-        return move_succeeded, hit_wall, hit_obstacle, hit_dirt, is_alive
+        # Check if we hit a death tile
+        elif len(collisions["death"]) > 0:
+            self.agent_rect.move(-move_by[0], -move_by[1])
+            move_succeeded = False
+            hit_death = True
+            is_alive = False
 
-    def get_world_observation(self) -> np.ndarray:
+        if move_succeeded:
+            hit_dirt = len(collisions["dirt"])
+            if hit_dirt > 0:
+                # Remove vacuumed up dirt
+                new_dirt_rects = [dirt for i, dirt in enumerate(self.dirt_rects)
+                                  if i not in collisions["dirt"]]
+                self.dirt_rects = new_dirt_rects
+
+        self.observation_dict = {
+            "move_succeeded": move_succeeded,
+            "hit_wall": hit_wall,
+            "hit_obstacle": hit_obstacle,
+            "hit_dirt": hit_dirt,
+            "hit_death": hit_death
+        }
+
+    def get_world_observation(self) -> Tuple[dict, np.ndarray]:
         """Gets the world observation as an 3-dimensional grid array.
 
         The world observation is returned as a grid array with 3-dimensions
@@ -154,12 +250,13 @@ class EnvironmentModel:
         different types of object in the world. A value of 1 means that something
         of that object type exists in that grid square.
             0: Walls
-            1: Obstacles
-            2: Dirt
-            3: Visited
-            4: Fog of war
+            1: Death
+            2: Obstacles
+            3: Dirt
+            4: Visited
+            5: Fog of war
 
         Returns:
-            A 3-dimensional grid array
+            The observation dict and a 3-dimensional grid array.
         """
         raise NotImplementedError
