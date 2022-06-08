@@ -39,8 +39,8 @@ class EnvironmentModel:
         self.grid = grid
         self.grid_size = grid.shape[0]
 
-        self.wall_rects: List[Rect] = self._grid_to_rects(self.grid[:, :, 0])
-        self.death_rects: List[Rect] = self._grid_to_rects(self.grid[:, :, 1])
+        self.wall_rects: List[Rect] = self._grid_to_rects(self.grid, 1)
+        self.death_rects: List[Rect] = self._grid_to_rects(self.grid, 2)
 
         self.obstacle_rects: List[Rect] = []
         self.dirt_rects: List[Rect] = []
@@ -55,16 +55,22 @@ class EnvironmentModel:
         self._place_dirt(num_dirt)
         self._place_agent()
 
-    def _grid_to_rects(self, grid) -> List[Rect]:
-        """Places walls as a list of Rect objects.
+    def _grid_to_rects(self, grid, val) -> List[Rect]:
+        """Places walls and death tiles as a list of Rect objects.
 
         Walls are represented as a bunch of rectangular objects in the world,
-        NOT the grid. Each wall square has a size of 1x1.
+        NOT the grid. Each wall square has a size of scalar x scalar.
+
+        Args:
+            grid: The grid to use to generate the rectangles.
+            val: The value to match to figure out the rectangles to generate.
+                For example, to get walls, val should be 1 and for death tiles,
+                val should be 2.
 
         Returns:
              A list of rectangles representing some wall or death tile objects.
         """
-        idxs = np.where(grid > 0)
+        idxs = np.where(grid == val)
         idxs = list(zip(idxs[0], idxs[1]))
 
         return [Rect(left=pos[0] * self.scalar, top=pos[1] * self.scalar,
