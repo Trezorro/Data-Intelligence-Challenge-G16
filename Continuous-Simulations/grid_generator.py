@@ -21,7 +21,7 @@ def get_grid_with_corridor(grid_size: int):
     grid[grid_size-1, :] = 1
     grid[:, 0] = 1
     grid[:, grid_size-1] = 1
-    grid[grid_size-1, corridor_start+1:corridor_end] = 0  # Open up the corridor
+    grid[grid_size-1, corridor_start+1:corridor_end] = 3  # Put death tiles in the beginning of the corridor
     return grid
 
 
@@ -83,7 +83,7 @@ class GridBuilder:
                 self.grid[
                     top_left_corner_x:top_left_corner_x + room_size[0],
                     top_left_corner_y:top_left_corner_y + room_size[1]
-                ] = 2
+                ] = 3
 
             # Create doors
             if not death_room:
