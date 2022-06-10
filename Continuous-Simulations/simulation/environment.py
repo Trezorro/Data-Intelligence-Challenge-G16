@@ -28,6 +28,14 @@ OBSERVATION_SPACE = Dict({
                          shape=(GRID_SIZE, GRID_SIZE, 5),
                          dtype=np.float64)
         })
+START_STATS = {"successful_moves": 0,
+                "wall_hits": 0,
+                "obstacle_hits": 0,
+                "dirt_hits": 0,
+                "death_hits": 0,
+                "is_alive": True,
+                "score": 0,
+                "fps": 0}
 
 
 class ContinuousEnv(gym.Env):
@@ -56,15 +64,7 @@ class ContinuousEnv(gym.Env):
                                   "move": Discrete(2)})
 
         self.should_render = render_mode == "human"
-        self.info = {"successful_moves": 0,
-                      "wall_hits": 0,
-                      "obstacle_hits": 0,
-                      "dirt_hits": 0,
-                      "death_hits": 0,
-                      "is_alive": True,
-                      "score": 0,
-                      "fps": 0}
-        self.last_observation = {}
+        self.info = START_STATS.copy()
 
         if self.should_render:
             pygame.init()
@@ -96,6 +96,8 @@ class ContinuousEnv(gym.Env):
         """
         super().reset(seed=seed)
         # First set defaults
+        self.info = START_STATS.copy()
+        
         params = {
             "grid_size": 24,
             "num_obstacles": randint(4, 30),
@@ -124,12 +126,16 @@ class ContinuousEnv(gym.Env):
         self.world = EnvironmentModel(grid=self.grid, **params)
         self._initial_render()  # shows loading text
 
-        self.last_observation = {}
-
-        if return_info:
-            return self._get_obs(), self._get_info()
-        else:
-            return self._get_obs()
+        agent_observation = {
+                "move_succeeded": 1,
+                "hit_wall": 0,
+                "hit_obstacle": 0,
+                "hit_dirt": 0,
+                "hit_death": 0,
+                "is_alive": 1,
+                "world": self.world.last_observation
+            }
+        return agent_observation, self.info if return_info else agent_observation
 
     def step(self, action: dict) -> Tuple[dict, int, bool, dict]:
         """Takes an action space value and returns the result.
@@ -151,9 +157,9 @@ class ContinuousEnv(gym.Env):
         self._update_stats(events, reward)
 
         # Provide reward and observation back to agent
-        self.last_observation = dict(**events, world=observation)
+        agent_observation = dict(**events, world=observation)
         done = not self.world.agent_is_alive
-        return self.last_observation, reward, done, self._get_info()
+        return agent_observation, reward, done, self.info
 
     def _get_reward(self, events: dict) -> int:
         """Given the events dict, returns the reward.
@@ -177,27 +183,6 @@ class ContinuousEnv(gym.Env):
         self.info["is_alive"] = events["is_alive"]
         self.info["score"] += reward
 
-    def _generate_observation_space(self) -> Dict:
-        return OBSERVATION_SPACE
-
-    def _get_obs(self) -> dict:
-        """Required method for gym, generates first observation."""
-        if len(self.last_observation) == 0:
-            events = {
-                "move_succeeded": 1,
-                "hit_wall": 0,
-                "hit_obstacle": 0,
-                "hit_dirt": 0,
-                "hit_death": 0,
-                "is_alive": 1
-            }
-            observation = self.world.last_observation
-            return dict(**events, world=observation)
-        else:
-            return self.last_observation
-
-    def _get_info(self) -> dict:
-        return self.info
 
     def _initial_render(self):
         """Initial rendering of the environment. Displays loading text."""
