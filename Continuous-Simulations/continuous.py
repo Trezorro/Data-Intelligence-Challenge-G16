@@ -1,3 +1,4 @@
+"""Baseline provided by the course."""
 import numpy as np
 import matplotlib
 
@@ -123,7 +124,7 @@ class Robot:
             self.alive = False
         # Cant move if we died:
         if self.alive:
-            if self.direction_vector == (0, 0):  # Literally 0 speed so no movement.
+            if self.direction_vector == (0, 0):  # Literally 0 agent_speed so no movement.
                 return False
             new_pos = tuple(np.array(self.pos) + self.direction_vector)
             # Temporarily set the new bounding box:
@@ -197,4 +198,4 @@ while True:
             if not robot.move(p_random=0.05):
                 robot.direction_vector = (0.1, 0.1)
 grid.plot_grid()
-time.sleep(3)
+time.sleep(0.1)
