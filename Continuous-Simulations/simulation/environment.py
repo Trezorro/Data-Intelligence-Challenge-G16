@@ -74,8 +74,6 @@ class ContinuousEnv(gym.Env):
             self.clock = pygame.time.Clock()
             self.prev_render_rects = []
 
-
-
     def reset(self, seed=None,
               return_info=False,
               options=None) -> Union[Tuple[dict, dict], dict]:
@@ -376,7 +374,12 @@ class ContinuousEnv(gym.Env):
 
         image_base = (walls + death).clip(0, 255)
 
-        for idx, img in enumerate((obstacles, dirt)):
+        for idx, (text, img) in enumerate(zip(("Obstacles", "Dirt"),
+                                      (obstacles, dirt))):
+            font = pygame.font.Font(None, 24)
+            label = font.render(text, True, (10, 10, 10))
+            label_pos = label.get_rect()
+
             img += image_base
             img = Image.fromarray(img.astype('uint8'), mode='RGB')\
                        .resize((96, 96), resample=Image.Resampling.NEAREST)\
@@ -384,10 +387,16 @@ class ContinuousEnv(gym.Env):
                        .transpose(method=Image.Transpose.FLIP_TOP_BOTTOM)
 
             img = pygame.image.fromstring(img.tobytes(), img.size, "RGB")
-            pos = img.get_rect()
-            pos.x = x + (128 * idx)
-            pos.y = y
-            surface.blit(img, pos)
+            img_pos = img.get_rect()
+            img_pos.x = x + (128 * idx)
+            img_pos.y = y + 28
+
+            # Center the label, put it above the image
+            label_pos.centerx = img_pos.centerx
+            label_pos.y = y
+
+            surface.blit(img, img_pos)
+            surface.blit(label, label_pos)
 
     def _draw_battery(self, surface, x, bottom_pad):
         """Draws the battery"""
