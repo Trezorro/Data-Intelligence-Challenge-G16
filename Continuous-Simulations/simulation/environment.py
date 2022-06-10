@@ -12,6 +12,7 @@ from simulation.environment_model import EnvironmentModel
 import gym
 from gym.spaces import Box, Dict, Discrete
 import pygame
+from PIL import Image
 
 
 class ContinuousEnv(gym.Env):
@@ -27,7 +28,7 @@ class ContinuousEnv(gym.Env):
         self.grid: Optional[np.ndarray] = None
         self.world: Optional[EnvironmentModel] = None
         self.grid_size = 24
-        self.window_size = 768  # Pygame window size.
+        self.window_size = (1152, 768)  # Pygame window size.
         self.agent_speed = 128
 
         # Set up the observation space
@@ -41,12 +42,20 @@ class ContinuousEnv(gym.Env):
                                   "move": Discrete(2)})
 
         self.should_render = render_mode == "human"
+        self.stats = {"successful_moves": 0,
+                      "wall_hits": 0,
+                      "obstacle_hits": 0,
+                      "dirt_hits": 0,
+                      "death_hits": 0,
+                      "is_alive": True,
+                      "score": 0,
+                      "fps": 0}
+        self.last_observation = {}
 
         if self.should_render:
             pygame.init()
             pygame.display.init()
-            self.window = pygame.display.set_mode((self.window_size,
-                                                   self.window_size))
+            self.window = pygame.display.set_mode(self.window_size)
             pygame.display.set_caption("Reinforcement Learning Vacuum")
             self.clock = pygame.time.Clock()
             self.prev_render_rects = []
@@ -116,6 +125,8 @@ class ContinuousEnv(gym.Env):
         self.world = EnvironmentModel(grid=self.grid, **params)
         self._initial_render()
 
+        self.last_observation = {}
+
         if return_info:
             return self._get_obs(), self._get_info()
         else:
@@ -136,13 +147,14 @@ class ContinuousEnv(gym.Env):
         move_distance = action["move"] * self.agent_speed
         events, observation = self.world.move_agent(int(move_distance))
 
-        # Calculate reward from move
+        # Calculate reward from move and update stats
         reward = self._get_reward(events)
+        self._update_stats(events, reward)
 
         # Provide reward and observation back to agent
-        observation_dict = dict(**events, world=observation)
+        self.last_observation = dict(**events, world=observation)
         done = not self.world.agent_is_alive
-        return observation_dict, reward, done, self._get_info()
+        return self.last_observation, reward, done, self._get_info()
 
     def _get_reward(self, events: dict) -> int:
         """Given the events dict, returns the reward.
@@ -153,12 +165,36 @@ class ContinuousEnv(gym.Env):
         Returns:
             The reward value.
         """
+        # TODO
+        return 0
+
+    def _update_stats(self, events: dict, reward: int):
+        """Updates the stats dict."""
+        self.stats["successful_moves"] += events["move_succeeded"]
+        self.stats["wall_hits"] += events["hit_wall"]
+        self.stats["obstacle_hits"] += events["hit_obstacle"]
+        self.stats["dirt_hits"] += events["hit_dirt"]
+        self.stats["death_hits"] += events["hit_death"]
+        self.stats["is_alive"] = events["is_alive"]
+        self.stats["score"] += reward
 
     def _get_obs(self) -> dict:
-        return self.world.previous_observation
+        if len(self.last_observation) == 0:
+            events = {
+                "move_succeeded": True,
+                "hit_wall": False,
+                "hit_obstacle": False,
+                "hit_dirt": 0,
+                "hit_death": False,
+                "is_alive": True
+            }
+            observation = self.world.last_observation
+            return {"events": events, "observation": observation}
+        else:
+            return self.last_observation
 
     def _get_info(self) -> dict:
-        pass
+        return self.stats
 
     def _initial_render(self):
         """Initial rendering of the environment. Displays loading text."""
@@ -189,35 +225,49 @@ class ContinuousEnv(gym.Env):
         height = rect.height * scalar
         return pygame.Rect(x, y, width, height)
 
-
     def render(self, mode="human"):
         if not self.should_render:
             return
-        scalar = self.window.get_size()[0]
+
+        self.stats["fps"] = int(self.clock.get_fps())
+        scalar = self.window.get_size()[1]
         scalar /= self.world.grid_size * self.world.cell_size
+
         # create surface
         background = pygame.Surface(self.window.get_size())
         background = background.convert()
         background.fill((250, 250, 250))
 
+        self._draw_world(background, scalar)
+        self._draw_agent(background, scalar)
+        self._draw_info(background, 798, 30)
+        self._draw_observation(background, 798, 350)
+        self._draw_battery(background, 798, 30)
+
+        # Update the actual display
+        update_rect = self.window.blit(background, background.get_rect())
+        pygame.display.update(update_rect)
+        self.clock.tick(self.metadata["render_fps"])
+
+    def _draw_world(self, surface, scalar):
         # Draw walls
         for wall_rect in self.world.wall_rects:
             pygame.draw.rect(
-                surface=background,
+                surface=surface,
                 color=(69, 71, 82),
                 rect=self._downsample_rect(wall_rect, scalar)
             )
         # Draw death tiles
         for death_tile in self.world.death_rects:
             pygame.draw.rect(
-                surface=background,
+                surface=surface,
                 color=(235, 64, 52),
                 rect=self._downsample_rect(death_tile, scalar)
             )
         # Draw obstacles
         for obstacle in self.world.obstacle_rects:
             pygame.draw.rect(
-                surface=background,
+                surface=surface,
                 color=(240, 175, 36),
                 rect=self._downsample_rect(obstacle, scalar)
             )
@@ -228,14 +278,17 @@ class ContinuousEnv(gym.Env):
             dirt_width = 4
             dirt_height = 4
             pygame.draw.rect(
-                surface=background,
+                surface=surface,
                 color=(82, 59, 33),
                 rect=pygame.Rect(dirt_x, dirt_y, dirt_width, dirt_height),
             )
+
+    def _draw_agent(self, surface, scalar):
+        """Draws the agent on the surface."""
         # Draw the agent base
         agent_rect = self._downsample_rect(self.world.agent_rect, scalar)
         pygame.draw.rect(
-            surface=background,
+            surface=surface,
             color=(36, 83, 138),
             rect=agent_rect
         )
@@ -254,46 +307,106 @@ class ContinuousEnv(gym.Env):
         points = []
 
         # For 0, 120, and 240 degrees in radians
-        for theta in (4.1887902047863905, 0., 2.0943951023931953, ):
+        for theta in (4.1887902047863905, 0., 2.0943951023931953,):
             x = center[0] + radius * math.cos(theta + rads)
             y = center[1] + radius * math.sin(theta + rads)
             points.append((x, y))
 
         pygame.draw.aalines(
-            surface=background,
+            surface=surface,
             color=(242, 242, 242),
             closed=False,
             points=points,
             blend=1
         )
-        # Draw a battery indicator
-        batt_level = self.world.agent_battery
-        font = pygame.font.Font(None, 18)
-        text = font.render(f"Battery: {batt_level:.2f} %",
-                           True, (250, 250, 250))
-        textpos = text.get_rect()
-        textpos.x = 10
-        textpos.y = 10
 
-        background.blit(text, textpos)
-        # Draw the white background rect
+    def _draw_info(self, surface, x, padding):
+        """Draws run stats."""
+        font = pygame.font.Font(None, 38)
+        human_names = {"successful_moves": "Moves:",
+                       "wall_hits": "Wall:",
+                       "obstacle_hits": "Obstacles:",
+                       "dirt_hits": "Dirt:",
+                       "death_hits": "Death:",
+                       "is_alive": "Alive:",
+                       "score": "Score:",
+                       "fps": "FPS:"}
+        for idx, (key, value) in enumerate(self.stats.items()):
+            y_pos = padding + (idx * 38)
+
+            key_label = font.render(f"{human_names[key]}", True, (10, 10, 10))
+            key_pos = key_label.get_rect()
+            key_pos.x = x
+            key_pos.y = y_pos
+            surface.blit(key_label, key_pos)
+
+            val_label = font.render(f"{value}", True, (10, 10, 10))
+            val_pos = val_label.get_rect()
+            val_pos.x = surface.get_rect().width - padding - val_pos.width
+            val_pos.y = y_pos
+            surface.blit(val_label, val_pos)
+
+    def _draw_observation(self, surface, x, y):
+        """Draws the observation array that the agent receives."""
+        obs = self.world.last_observation
+
+        walls = np.zeros([24, 24, 4], dtype="uint8")
+        walls[obs[:, :, 0] == 1] = np.array([69, 71, 82, 255])
+
+        death = np.zeros([24, 24, 4], dtype="uint8")
+        death[obs[:, :, 0] == 3] = np.array([235, 64, 52, 255])
+        #
+        #
+        # image *= np.array(240, 175, 36)
+        image = walls + death
+        image = image.clip(0, 255)
+
+        image = Image.fromarray(image, mode="RGBA")
+        image = image.resize((96, 96), resample=Image.NEAREST)\
+                     .rotate(90)\
+                     .transpose(method=Image.FLIP_TOP_BOTTOM)
+
+        py_image = pygame.image.fromstring(image.tobytes(),
+                                           image.size,
+                                           image.mode)
+        pos = py_image.get_rect()
+        pos.x = x
+        pos.y = y
+        surface.blit(py_image, pos)
+
+    def _draw_battery(self, surface, x, bottom_pad):
+        """Draws the battery"""
+        # Draw the text label
+        font = pygame.font.Font(None, 45)
+        batt_label = font.render(f"Battery:", True, (10, 10, 10))
+        label_pos = batt_label.get_rect()
+        label_pos.x = x
+        label_pos.y = surface.get_height() - 2 * (label_pos.height + bottom_pad)
+        surface.blit(batt_label, label_pos)
+
+        batt_level = font.render(f"{self.world.agent_battery:.02f} %",
+                                 True, (10, 10, 10))
+        level_pos = batt_level.get_rect()
+        level_pos.x = x + label_pos.width + 10
+        level_pos.y = label_pos.y
+        surface.blit(batt_level, level_pos)
+
+        # Draw the white surface rect
+        top = label_pos.y + 45
+        width = 324
+        height = surface.get_height() - bottom_pad - top
         pygame.draw.rect(
-            surface=background,
-            color=(250, 250, 250),
-            rect=pygame.Rect(120, 10, 204, 14)
+            surface=surface,
+            color=(230, 230, 230),
+            rect=pygame.Rect(x, top, width, height)
         )
         # Draw the battery meter
-        length = 200 * batt_level / 100
+        length = (width - 4) * self.world.agent_battery / 100
         pygame.draw.rect(
-            surface=background,
-            color=(43, 227, 52),
-            rect=pygame.Rect(122, 12, int(length), 10)
+            surface=surface,
+            color=(52, 201, 93),
+            rect=pygame.Rect(x + 5, top + 5, int(length), height - 10)
         )
-
-        # Update the actual display
-        update_rect = self.window.blit(background, background.get_rect())
-        pygame.display.update(update_rect)
-        self.clock.tick(self.metadata["render_fps"])
 
     def close(self):
         if self.should_render:

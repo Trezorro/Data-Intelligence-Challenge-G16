@@ -40,13 +40,13 @@ def main():
     # fig = px.bar(df, x="Fruit", y="Amount", color="City", barmode="group")
 
     # Layout the app
-    colors = {"background": "#F9F9F9",
+    colors = {"surface": "#F9F9F9",
               "text": "#000000"}
     fonts = {"san_serif": ["Open Sans", "HelveticaNeue", "Helvetica Neue",
                            "Helvetica", "Arial", "sans-serif"]}
     # fig.update_layout(
-    #     plot_bgcolor=colors["background"],
-    #     paper_bgcolor=colors["background"],
+    #     plot_bgcolor=colors["surface"],
+    #     paper_bgcolor=colors["surface"],
     #     font_color=colors["text"],
     #     width=600,
     #     height=600
@@ -67,7 +67,7 @@ def main():
     }
     app.layout = html.Div(
         style={
-            'backgroundColor': colors["background"],
+            'backgroundColor': colors["surface"],
             "fontFamily": fonts["san_serif"],
             "padding": 10,
         },

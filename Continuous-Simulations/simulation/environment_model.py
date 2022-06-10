@@ -47,7 +47,9 @@ class EnvironmentModel:
         self.death_rects: List[Rect] = self._grid_to_rects(self.grid, 3)
 
         self.obstacle_rects: List[Rect] = []
+        self.obstacle_grid = np.zeros_like(self.grid)
         self.dirt_rects: List[Rect] = []
+        self.dirt_grid = np.zeros_like(self.grid)
 
         self.agent_rect = Rect(0, 0, 0, 0)  # Initialize with a dummy value
         self.agent_angle = 0  # Angle of agent in degrees, 0 being north
@@ -55,11 +57,15 @@ class EnvironmentModel:
         self.agent_is_alive: bool = True
         self.agent_width = agent_width
 
-        self.previous_observation = None
+        self._cell_rects = [[self._cell_to_rect((x, y))
+                             for y in range(self.grid.shape[0])]
+                            for x in range(self.grid.shape[1])]
 
         self._place_obstacles(num_obstacles)
         self._place_dirt(num_dirt)
         self._place_agent()
+
+        self.last_observation = self._get_world_observation()
 
     def _cell_to_rect(self, cell: Tuple[int, int]) -> Rect:
         """Converts a cell to a rectangle.
@@ -133,7 +139,11 @@ class EnvironmentModel:
             width = (random() * 3. * self.cell_size) + 0.5
             height = (random() * 3. * self.cell_size) + 0.5
 
-            self.obstacle_rects.append(self._place_thing(width, height))
+            obstacle = self._place_thing(width, height)
+
+            self.obstacle_rects.append(obstacle)
+
+
 
     def _place_dirt(self, num_dirt: int):
         """Places the given number of dirt particles on the grid.
@@ -158,7 +168,7 @@ class EnvironmentModel:
         self.agent_rect = self._place_thing(width=self.cell_size / 2,
                                             height=self.cell_size / 2)
 
-    def _check_colisions(self, rect: Rect) -> Dict[str, list]:
+    def _check_colisions(self, rect: Rect, check_walls=True) -> Dict[str, list]:
         """Tests if the provided rectangle collides with anything in the world.
 
         Args:
@@ -171,10 +181,13 @@ class EnvironmentModel:
                 An example returned dictionary would be
                 {"walls": [], "obstacles": [2], "dirt": [1, 5], "death": []}
         """
-        return {"walls": rect.collidelistall(self.wall_rects),
-                "obstacles": rect.collidelistall(self.obstacle_rects),
-                "dirt": rect.collidelistall(self.dirt_rects),
-                "death": rect.collidelistall(self.death_rects)}
+        collisions = {"obstacles": rect.collidelistall(self.obstacle_rects),
+                      "dirt": rect.collidelistall(self.dirt_rects)}
+        if check_walls:
+            collisions["walls"] = rect.collidelistall(self.wall_rects)
+            collisions["death"] = rect.collidelistall(self.death_rects)
+
+        return collisions
 
     def _drain_battery(self) -> bool:
         """Drains battery by a certain amount.
@@ -282,11 +295,40 @@ class EnvironmentModel:
         # TODO: maintain fog of war and obstacle channels
         # add visible cells to fog of war 
         # add visible obstacles to obstacle channel
-        world_observation = None
 
-        self.previous_observation = events, world_observation
+        self.last_observation = self._get_world_observation()
 
-        return events, world_observation
+        return events, self.last_observation
+
+    def _get_world_observation(self) -> np.ndarray:
+        """Gets the world observation.
+
+        A value of 1 means that cell is completely filled with the object of
+        that type. Uniquely, for walls/death, a 1 represents a wall and a 3
+         represents a death tile.
+            0: Walls / death
+            1: Obstacles
+            2: Dirt
+            3: Visited
+            4: Fog of war
+        """
+        obs = np.concatenate([
+            self.grid.reshape([self.grid.shape[0], self.grid.shape[1], 1]),
+            np.zeros([self.grid.shape[0], self.grid.shape[1], 4])
+        ], axis=2).astype(float)
+        for x, row in enumerate(self._cell_rects):
+            for y, cell in enumerate(row):
+                collisions = self._check_colisions(cell, check_walls=False)
+                obs[y, x, 1] = len(collisions["obstacles"])
+                obs[y, x, 2] = len(collisions["dirt"])
+                obs[y, x, 4] = 1 * self._cell_visible(x, y)
+
+        # Normalize axes
+        sums = obs[:, :, 1:3].sum(axis=2)
+        sums[sums == 0] = 1.
+        obs[:, :, 1:3] = obs[:, :, 1:3] / sums[:, :, np.newaxis]
+        return obs
+
 
     def _cell_visible(self, cell_x: int, cell_y: int) -> bool:
         """Checks if the cell is visible to the agent.
@@ -311,15 +353,15 @@ class EnvironmentModel:
         ]
         for side_center in sides:
             line_of_sight_vec = side_center - np.array(self.agent_rect.center)
-            if line_of_sight_vec == np.zeros(2):  # Agent is exactly on the side
+            if not line_of_sight_vec.any():  # Agent is exactly on the side
                 return True
             norm = np.sqrt(line_of_sight_vec @ line_of_sight_vec)
             if agent_direction_vec @ (
                     line_of_sight_vec / norm) < 0.7:  # Outside view cone of +-90 degrees
                 continue
             for wall_rect in self.wall_rects:
-                if wall_rect.clipline(self.agent_rect.center,
-                                      side_center) != tuple():
+                if len(wall_rect.clipline(self.agent_rect.center,
+                                          side_center)) != 0:
                     break  # line of sight blocked by a wall
             return True
         return False
