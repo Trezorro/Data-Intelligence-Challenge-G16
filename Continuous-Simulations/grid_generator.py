@@ -1,5 +1,5 @@
 from typing import Optional, Union
-
+from tqdm import trange
 import numpy as np
 import random
 
@@ -35,7 +35,6 @@ class GridBuilder:
         allocated randomly within the allocated space. 
         Default setting: grid 24x24, 5 rooms - living room, kitchen, toilet, bedroom, garden exit 
         """
-        self.size = grid_size
         self.grid = get_grid_with_corridor(grid_size)
         self.room_sizes = room_sizes
         
@@ -59,21 +58,22 @@ class GridBuilder:
         """ Finds possible top left corners for a room with given size
         and randomly selects one, adding the borders to grid as walls
         """
+        possible_grid = np.zeros((self.grid.shape[0], self.grid.shape[1]))
         for h in range(self.grid.shape[0]):
             for w in range(self.grid.shape[1]):
                 if h + room_size[0] < self.grid.shape[0] and w + room_size[1] < self.grid.shape[1] and \
                         np.sum(self.grid[h+1:h + room_size[0], w+1:w + room_size[1]]) == 0:
-                    self.grid[h, w] += 2  # Cannot use negative because sum will not work
+                    possible_grid[h, w] += 2  # Cannot use negative because sum will not work
 
         # Find random placement for top-left corner of the room
-        all_possible_idx = np.argwhere(self.grid > 1)
+        all_possible_idx = np.argwhere(possible_grid > 1)
         if len(all_possible_idx) > 0:
             random_idx = random.choice(all_possible_idx)
             top_left_corner_x = random_idx[0]
             top_left_corner_y = random_idx[1]
 
-            for idx in all_possible_idx:
-                self.grid[(idx[0], idx[1])] -= 2
+            # for idx in all_possible_idx:
+            #     self.grid[(idx[0], idx[1])] -= 2
             if not death_room:
                 self.grid[top_left_corner_x:top_left_corner_x + room_size[0] + 1, top_left_corner_y] = 1
                 self.grid[top_left_corner_x, top_left_corner_y:top_left_corner_y + room_size[1] + 1] = 1
@@ -110,5 +110,9 @@ class GridBuilder:
 
 
 if __name__ == '__main__':
-    grid = GridBuilder().generate_grid()
-    print(grid)
+    for i in trange(100000):
+        try:
+            grid = GridBuilder().generate_grid()
+        except Exception as e:
+            print(e)
+            break
