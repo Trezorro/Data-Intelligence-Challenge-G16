@@ -57,6 +57,8 @@ class EnvironmentModel:
         self.agent_is_alive: bool = True
         self.agent_width = agent_width
 
+        self.visited_grid = np.zeros_like(self.grid, dtype=float)
+
         self._cell_rects = [[self._cell_to_rect((x, y))
                              for y in range(self.grid.shape[0])]
                             for x in range(self.grid.shape[1])]
@@ -313,6 +315,12 @@ class EnvironmentModel:
                                       for i, dirt in enumerate(self.dirt_rects)
                                       if i not in collisions["dirt"]]
                     self.dirt_rects = new_dirt_rects
+
+                # Set the current grid cell as visited
+                x_pos = int(self.agent_rect.x / self.cell_size)
+                y_pos = int(self.agent_rect.y / self.cell_size)
+                self.visited_grid[x_pos, y_pos] = 1
+
             else:
                 self.agent_rect = self.agent_rect.move(-move_by[0], -move_by[1])
         else:
@@ -360,12 +368,11 @@ class EnvironmentModel:
             self.grid.reshape(new_shape),             # 0: walls/death
             obstacles_with_fow.reshape(new_shape),    # 1: obstacles
             dirt_with_fow.reshape(new_shape),         # 2: dirt
-            np.zeros(new_shape, dtype=float),         # 3: visited
+            self.visited_grid.reshape(new_shape),         # 3: visited
             fow.reshape(new_shape)                    # 4: fog of war
         ], axis=2).astype(float)
 
         return obs
-
 
     def _cell_visible(self, cell_x: int, cell_y: int) -> bool:
         """Checks if the cell is visible to the agent.

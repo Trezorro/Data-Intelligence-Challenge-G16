@@ -350,14 +350,21 @@ class ContinuousEnv(gym.Env):
         death = np.zeros_like(walls)
         death[obs[:, :, 0] == 3] = np.array([235, 64, 52])
 
+        visited = np.zeros_like(walls)
+        visited[obs[:, :, 3] == 1] = np.array([113, 52, 235])
+
         obstacles = np.full_like(walls, 255)
         obstacles += obs[:, :, 1][:, :, np.newaxis] * np.array([-15, -80, -219])
 
         dirt = np.full_like(walls, 255)
         dirt += obs[:, :, 2][:, :, np.newaxis] * np.array([-173, -196, -222])
-        # fow = obs[:, :, 4][:, :, np.newaxis] * np.array([-50, -50, -50])
+        fow = (1 - obs[:, :, 4][:, :, np.newaxis]) * np.array([-100, -100,
+                                                               -100])
 
-        image_base = (walls + death).clip(0, 255)
+        image_base = (walls + death + visited)
+        # Subtract image_base from fow so the visualization makes sense
+        fow[image_base.any(axis=2)] = np.array([0, 0, 0])
+        image_base += fow
 
         for idx, (text, img) in enumerate(zip(("Obstacles", "Dirt"),
                                       (obstacles, dirt))):
