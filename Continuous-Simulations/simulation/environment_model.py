@@ -339,6 +339,7 @@ class EnvironmentModel:
         Returns:
             True if the cell is visible, False otherwise.
         """
+        agent_center = np.array(self.agent_rect.center)
         agent_angle_rad = self.agent_angle * math.pi / 180
         agent_direction_vec = np.array([math.cos(agent_angle_rad),
                                         math.sin(agent_angle_rad)])
@@ -346,22 +347,26 @@ class EnvironmentModel:
         # Figure out cell side positions
         cell_rect = self._cell_to_rect((cell_x, cell_y))
         sides = [
-            np.array(cell_rect.midtop),
-            np.array(cell_rect.midleft),
-            np.array(cell_rect.midbottom),
-            np.array(cell_rect.midright),
+            cell_rect.midtop,
+            cell_rect.midleft,
+            cell_rect.midbottom,
+            cell_rect.midright,
         ]
         for side_center in sides:
-            line_of_sight_vec = side_center - np.array(self.agent_rect.center)
+            line_of_sight_vec = np.array(side_center) - agent_center
             if not line_of_sight_vec.any():  # Agent is exactly on the side
                 return True
-            norm = np.sqrt(line_of_sight_vec @ line_of_sight_vec)
-            if agent_direction_vec @ (
-                    line_of_sight_vec / norm) < 0.7:  # Outside view cone of +-90 degrees
+            los_norm = np.sqrt(line_of_sight_vec @ line_of_sight_vec)
+            if agent_direction_vec @ ( line_of_sight_vec / los_norm) < 0.7:
+                # Outside view cone of +-90 degrees
                 continue
+            no_ocludes = True
             for wall_rect in self.wall_rects:
-                if len(wall_rect.clipline(self.agent_rect.center,
-                                          side_center)) != 0:
-                    break  # line of sight blocked by a wall
-            return True
+                if not wall_rect.clipline(self.agent_rect.center, side_center):
+                    # line of sight blocked by a wall
+                    no_ocludes = False
+                    break  
+            if no_ocludes:
+                # Found a side that is visible
+                return True
         return False
