@@ -2,6 +2,7 @@
 
 The simulation environment used for our continuous vacuum cleaner.
 """
+from pathlib import Path
 from typing import Optional, Union, Tuple
 import sys
 from random import randint
@@ -72,7 +73,7 @@ class ContinuousEnv(gym.Env):
             self.window = pygame.display.set_mode(self.window_size)
             pygame.display.set_caption("Reinforcement Learning Vacuum")
             self.clock = pygame.time.Clock()
-            self.prev_render_rects = []
+            self.agent_eyes = Image.open(Path(__file__).parent / "eyes.png")
 
     def reset(self, seed=None,
               return_info=False,
@@ -280,13 +281,22 @@ class ContinuousEnv(gym.Env):
 
     def _draw_agent(self, surface, scalar):
         """Draws the agent on the surface."""
-        # Draw the agent base
+        # Draw the agent
         agent_rect = self._downsample_rect(self.world.agent_rect, scalar)
-        pygame.draw.rect(
-            surface=surface,
-            color=(36, 83, 138),
-            rect=agent_rect
-        )
+
+        agent_surface = pygame.Surface((agent_rect.width, agent_rect.height))
+        agent_surface = agent_surface.convert()
+        agent_surface.fill((196, 223, 155))
+        # agent_surface.fill((50, 50, 50))
+
+        img = self.agent_eyes.resize(tuple([int(0.9 * agent_rect.width)] * 2),
+                                     Image.Resampling.BICUBIC)\
+                             .rotate(self.world.agent_angle + 90)\
+                             .transpose(method=Image.Transpose.FLIP_LEFT_RIGHT)
+        img = pygame.image.fromstring(img.tobytes(), img.size, "RGBA")
+        img_pos = img.get_rect()
+        img_pos.center = agent_surface.get_rect().center
+        agent_surface.blit(img, img_pos)
         # Draw the a triangle representing its direction
         # Triangle has three points (a, b, c) with a center at the origin
         #         C
@@ -295,25 +305,29 @@ class ContinuousEnv(gym.Env):
         #       / O \
         #      /_____\
         #     A       B
-
+        #
         rads = self.world.agent_angle / 180 * np.pi
-        center = agent_rect.center
-        radius = agent_rect.width * 0.3
+        center = agent_surface.get_rect().center
+        radius = (agent_rect.width * 0.2,
+                  agent_rect.width * 0.05,
+                  agent_rect.width * 0.2)
+        angles = (4.1887902047863905, 0., 2.0943951023931953)
         points = []
 
         # For 0, 120, and 240 degrees in radians
-        for theta in (4.1887902047863905, 0., 2.0943951023931953,):
-            x = center[0] + radius * math.cos(theta + rads)
-            y = center[1] + radius * math.sin(theta + rads)
+        for theta, r in zip(angles, radius):
+            x = center[0] + r * math.cos(theta + rads)
+            y = center[1] + r * math.sin(theta + rads)
             points.append((x, y))
 
         pygame.draw.aalines(
-            surface=surface,
-            color=(242, 242, 242),
+            surface=agent_surface,
+            color=(168, 100, 168),
             closed=False,
             points=points,
             blend=1
         )
+        surface.blit(agent_surface, agent_rect)
 
     def _draw_info(self, surface, x, padding):
         """Draws run info."""

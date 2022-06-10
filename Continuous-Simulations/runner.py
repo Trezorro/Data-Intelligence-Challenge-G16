@@ -11,7 +11,7 @@ register(
 
 options = {
     "battery_drain": 0.1,
-    "agent_width": 48
+    "agent_width": 96
 }
 
 if __name__ == '__main__':
