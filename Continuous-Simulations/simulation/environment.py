@@ -14,6 +14,19 @@ from gym.spaces import Box, Dict, Discrete
 import pygame
 from PIL import Image
 
+GRID_SIZE = 24
+OBSERVATION_SPACE = Dict({
+            "move_succeeded": Discrete(2),
+            "hit_wall": Discrete(2),
+            "hit_obstacle": Discrete(2),
+            "hit_dirt": Discrete(2048),
+            "hit_death": Discrete(2),
+            "is_alive": Discrete(2),
+            "world": Box(low=0.,
+                         high=3,
+                         shape=(GRID_SIZE, GRID_SIZE, 5),
+                         dtype=np.float64)
+        })
 
 class ContinuousEnv(gym.Env):
     metadata = {"render_modes": ["human"], "render_fps": 30}
@@ -27,14 +40,13 @@ class ContinuousEnv(gym.Env):
         """
         self.grid: Optional[np.ndarray] = None
         self.world: Optional[EnvironmentModel] = None
-        self.grid_size = 24
         self.window_size = (1152, 768)  # Pygame window size.
         self.agent_speed = 128
 
         # Set up the observation space
         # All observations with Discrete(2) represent booleans. 0 for False and
         # 1 for True.
-        self.observation_space = self._generate_observation_space()
+        self.observation_space = OBSERVATION_SPACE
         # `move` is a represents a boolean. 0 is False, 1 is True.
         self.action_space = Dict({"direction": Box(low=-1.,
                                                    high=1.,
@@ -60,18 +72,7 @@ class ContinuousEnv(gym.Env):
             self.clock = pygame.time.Clock()
             self.prev_render_rects = []
 
-    def _generate_observation_space(self) -> Dict:
-        return Dict({
-            "move_succeeded": Discrete(2),
-            "hit_wall": Discrete(2),
-            "hit_obstacle": Discrete(2),
-            "hit_dirt": Box(low=0, high=2048, shape=(1,), dtype=int),
-            "hit_death": Discrete(2),
-            "is_alive": Discrete(2),
-            "world": Box(low=0.,
-                         high=1.0,
-                         shape=(self.grid_size, self.grid_size, 6))
-        })
+
 
     def reset(self, seed=None,
               return_info=False,
@@ -114,8 +115,6 @@ class ContinuousEnv(gym.Env):
                                    f"keys. Possible keys are {possible_keys=}")
                 params[key] = value
         self.grid = GridBuilder(params["grid_size"]).generate_grid()
-        self.grid_size = self.grid.shape[0]
-        self.observation_space = self._generate_observation_space()
 
         self.agent_speed = params["agent_speed"]
 
@@ -123,7 +122,7 @@ class ContinuousEnv(gym.Env):
         del params["agent_speed"]
 
         self.world = EnvironmentModel(grid=self.grid, **params)
-        self._initial_render()
+        self._initial_render()  # shows loading text
 
         self.last_observation = {}
 
@@ -178,18 +177,24 @@ class ContinuousEnv(gym.Env):
         self.stats["is_alive"] = events["is_alive"]
         self.stats["score"] += reward
 
+    def _generate_observation_space(self) -> Dict:
+        
+
+        return OBSERVATION_SPACE
+
     def _get_obs(self) -> dict:
+        """Required method for gym, generates first observation."""
         if len(self.last_observation) == 0:
             events = {
-                "move_succeeded": True,
-                "hit_wall": False,
-                "hit_obstacle": False,
+                "move_succeeded": 1,
+                "hit_wall": 0,
+                "hit_obstacle": 0,
                 "hit_dirt": 0,
-                "hit_death": False,
-                "is_alive": True
+                "hit_death": 0,
+                "is_alive": 1
             }
             observation = self.world.last_observation
-            return {"events": events, "observation": observation}
+            return dict(**events, world=observation)
         else:
             return self.last_observation
 

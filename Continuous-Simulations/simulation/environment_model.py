@@ -285,12 +285,12 @@ class EnvironmentModel:
             move_succeeded = False
 
         events = {
-            "move_succeeded": move_succeeded,
-            "hit_wall": hit_wall,
-            "hit_obstacle": hit_obstacle,
-            "hit_dirt": hit_dirt,
-            "hit_death": hit_death,
-            "is_alive": self.agent_is_alive
+            "move_succeeded": int(move_succeeded),
+            "hit_wall": int(hit_wall),
+            "hit_obstacle": int(hit_obstacle),
+            "hit_dirt": int(hit_dirt),
+            "hit_death": int(hit_death),
+            "is_alive": int(self.agent_is_alive)
         }
         # TODO: maintain fog of war and obstacle channels
         # add visible cells to fog of war 
