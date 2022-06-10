@@ -3,6 +3,7 @@
 The simulation environment used for our continuous vacuum cleaner.
 """
 from typing import Optional, Union, Tuple
+import sys
 from random import randint
 import numpy as np
 import math
@@ -27,6 +28,7 @@ OBSERVATION_SPACE = Dict({
                          shape=(GRID_SIZE, GRID_SIZE, 5),
                          dtype=np.float64)
         })
+
 
 class ContinuousEnv(gym.Env):
     metadata = {"render_modes": ["human"], "render_fps": 30}
@@ -54,7 +56,7 @@ class ContinuousEnv(gym.Env):
                                   "move": Discrete(2)})
 
         self.should_render = render_mode == "human"
-        self.stats = {"successful_moves": 0,
+        self.info = {"successful_moves": 0,
                       "wall_hits": 0,
                       "obstacle_hits": 0,
                       "dirt_hits": 0,
@@ -146,7 +148,7 @@ class ContinuousEnv(gym.Env):
         move_distance = action["move"] * self.agent_speed
         events, observation = self.world.move_agent(int(move_distance))
 
-        # Calculate reward from move and update stats
+        # Calculate reward from move and update info
         reward = self._get_reward(events)
         self._update_stats(events, reward)
 
@@ -168,18 +170,16 @@ class ContinuousEnv(gym.Env):
         return 0
 
     def _update_stats(self, events: dict, reward: int):
-        """Updates the stats dict."""
-        self.stats["successful_moves"] += events["move_succeeded"]
-        self.stats["wall_hits"] += events["hit_wall"]
-        self.stats["obstacle_hits"] += events["hit_obstacle"]
-        self.stats["dirt_hits"] += events["hit_dirt"]
-        self.stats["death_hits"] += events["hit_death"]
-        self.stats["is_alive"] = events["is_alive"]
-        self.stats["score"] += reward
+        """Updates the info dict."""
+        self.info["successful_moves"] += events["move_succeeded"]
+        self.info["wall_hits"] += events["hit_wall"]
+        self.info["obstacle_hits"] += events["hit_obstacle"]
+        self.info["dirt_hits"] += events["hit_dirt"]
+        self.info["death_hits"] += events["hit_death"]
+        self.info["is_alive"] = events["is_alive"]
+        self.info["score"] += reward
 
     def _generate_observation_space(self) -> Dict:
-        
-
         return OBSERVATION_SPACE
 
     def _get_obs(self) -> dict:
@@ -199,7 +199,7 @@ class ContinuousEnv(gym.Env):
             return self.last_observation
 
     def _get_info(self) -> dict:
-        return self.stats
+        return self.info
 
     def _initial_render(self):
         """Initial rendering of the environment. Displays loading text."""
@@ -234,7 +234,7 @@ class ContinuousEnv(gym.Env):
         if not self.should_render:
             return
 
-        self.stats["fps"] = int(self.clock.get_fps())
+        self.info["fps"] = int(self.clock.get_fps())
         scalar = self.window.get_size()[1]
         scalar /= self.world.grid_size * self.world.cell_size
 
@@ -252,6 +252,12 @@ class ContinuousEnv(gym.Env):
         # Update the actual display
         update_rect = self.window.blit(background, background.get_rect())
         pygame.display.update(update_rect)
+
+        # Get all events to make it interactive
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                sys.exit()
+        pygame.event.pump()
         self.clock.tick(self.metadata["render_fps"])
 
     def _draw_world(self, surface, scalar):
@@ -326,7 +332,7 @@ class ContinuousEnv(gym.Env):
         )
 
     def _draw_info(self, surface, x, padding):
-        """Draws run stats."""
+        """Draws run info."""
         font = pygame.font.Font(None, 38)
         human_names = {"successful_moves": "Moves:",
                        "wall_hits": "Wall:",
@@ -336,7 +342,7 @@ class ContinuousEnv(gym.Env):
                        "is_alive": "Alive:",
                        "score": "Score:",
                        "fps": "FPS:"}
-        for idx, (key, value) in enumerate(self.stats.items()):
+        for idx, (key, value) in enumerate(self.info.items()):
             y_pos = padding + (idx * 38)
 
             key_label = font.render(f"{human_names[key]}", True, (10, 10, 10))
@@ -355,17 +361,20 @@ class ContinuousEnv(gym.Env):
         """Draws the observation array that the agent receives."""
         obs = self.world.last_observation
 
-        walls = np.zeros([24, 24, 3], dtype="uint8")
+        walls = np.zeros([24, 24, 3])
         walls[obs[:, :, 0] == 1] = np.array([69, 71, 82])
 
         death = np.zeros_like(walls)
         death[obs[:, :, 0] == 3] = np.array([235, 64, 52])
 
-        obstacles = obs[:, :, 1][:, :, np.newaxis] * np.array([240, 175, 36])
-        dirt = obs[:, :, 2][:, :, np.newaxis] * np.array([82, 59, 33])
-        fow = obs[:, :, 4][:, :, np.newaxis] * np.array([-50, -50, -50])
+        obstacles = np.full_like(walls, 255)
+        obstacles += obs[:, :, 1][:, :, np.newaxis] * np.array([-15, -80, -219])
 
-        image_base = (walls + death + fow).clip(0, 255)
+        dirt = np.full_like(walls, 255)
+        dirt += obs[:, :, 2][:, :, np.newaxis] * np.array([-173, -196, -222])
+        # fow = obs[:, :, 4][:, :, np.newaxis] * np.array([-50, -50, -50])
+
+        image_base = (walls + death).clip(0, 255)
 
         for idx, img in enumerate((obstacles, dirt)):
             img += image_base
@@ -379,30 +388,6 @@ class ContinuousEnv(gym.Env):
             pos.x = x + (128 * idx)
             pos.y = y
             surface.blit(img, pos)
-        # obstacles += image_base
-        # dirt += image_base
-        #
-        # obstacles = Image.fromarray(obstacles.astype('uint8'), mode="RGB")
-        # obstacles = obstacles.resize((96, 96), resample=Image.NEAREST)\
-        #                      .rotate(90)\
-        #                      .transpose(method=Image.FLIP_TOP_BOTTOM)
-        #
-        # dirt = Image.fromarray(dirt.astype('uint8'), mode='RGB')
-        # dirt = dirt.resize((96, 96), resample=Image.NEAREST)\
-        #            .rotate(90)\
-        #
-        # obstacles = pygame.image.fromstring(obstacles.tobytes(),
-        #                                     obstacles.size,
-        #                                     "RGB")
-        # dirt = pygame.image.fromstring(dirt.tobytes(),
-        #                                dirt.size,
-        #                                "RGB")
-        #
-        #
-        # pos = img.get_rect()
-        # pos.x = x
-        # pos.y = y
-        # surface.blit(py_image, pos)
 
     def _draw_battery(self, surface, x, bottom_pad):
         """Draws the battery"""
