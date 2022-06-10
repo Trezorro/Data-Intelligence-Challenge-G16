@@ -17,25 +17,25 @@ from PIL import Image
 
 GRID_SIZE = 24
 OBSERVATION_SPACE = Dict({
-            "move_succeeded": Discrete(2),
-            "hit_wall": Discrete(2),
-            "hit_obstacle": Discrete(2),
-            "hit_dirt": Discrete(2048),
-            "hit_death": Discrete(2),
-            "is_alive": Discrete(2),
-            "world": Box(low=0.,
-                         high=3,
-                         shape=(GRID_SIZE, GRID_SIZE, 5),
-                         dtype=np.float64)
-        })
+    "move_succeeded": Discrete(2),
+    "hit_wall": Discrete(2),
+    "hit_obstacle": Discrete(2),
+    "hit_dirt": Discrete(2048),
+    "hit_death": Discrete(2),
+    "is_alive": Discrete(2),
+    "world": Box(low=0.,
+                 high=3,
+                 shape=(GRID_SIZE, GRID_SIZE, 5),
+                 dtype=np.float64)
+})
 START_STATS = {"successful_moves": 0,
-                "wall_hits": 0,
-                "obstacle_hits": 0,
-                "dirt_hits": 0,
-                "death_hits": 0,
-                "is_alive": True,
-                "score": 0,
-                "fps": 0}
+               "wall_hits": 0,
+               "obstacle_hits": 0,
+               "dirt_hits": 0,
+               "death_hits": 0,
+               "is_alive": True,
+               "score": 0,
+               "fps": "0.0"}
 
 
 class ContinuousEnv(gym.Env):
@@ -97,7 +97,7 @@ class ContinuousEnv(gym.Env):
         super().reset(seed=seed)
         # First set defaults
         self.info = START_STATS.copy()
-        
+
         params = {
             "grid_size": 24,
             "num_obstacles": randint(4, 30),
@@ -127,15 +127,16 @@ class ContinuousEnv(gym.Env):
         self._initial_render()  # shows loading text
 
         agent_observation = {
-                "move_succeeded": 1,
-                "hit_wall": 0,
-                "hit_obstacle": 0,
-                "hit_dirt": 0,
-                "hit_death": 0,
-                "is_alive": 1,
-                "world": self.world.last_observation
-            }
-        return agent_observation, self.info if return_info else agent_observation
+            "move_succeeded": 1,
+            "hit_wall": 0,
+            "hit_obstacle": 0,
+            "hit_dirt": 0,
+            "hit_death": 0,
+            "is_alive": 1,
+            "world": self.world.last_observation
+        }
+        return agent_observation, self.info if return_info \
+            else agent_observation
 
     def step(self, action: dict) -> Tuple[dict, int, bool, dict]:
         """Takes an action space value and returns the result.
@@ -183,7 +184,6 @@ class ContinuousEnv(gym.Env):
         self.info["is_alive"] = events["is_alive"]
         self.info["score"] += reward
 
-
     def _initial_render(self):
         """Initial rendering of the environment. Displays loading text."""
         if not self.should_render:
@@ -217,7 +217,7 @@ class ContinuousEnv(gym.Env):
         if not self.should_render:
             return
 
-        self.info["fps"] = int(self.clock.get_fps())
+        self.info["fps"] = f"{self.clock.get_fps():.01f}"
         scalar = self.window.get_size()[1]
         scalar /= self.world.grid_size * self.world.cell_size
 
@@ -353,30 +353,33 @@ class ContinuousEnv(gym.Env):
         visited = np.zeros_like(walls)
         visited[obs[:, :, 3] == 1] = np.array([113, 52, 235])
 
+        fow = (1 - obs[:, :, 4][:, :, np.newaxis]) * np.array([150, 150, 150])
+
         obstacles = np.full_like(walls, 255)
-        obstacles += obs[:, :, 1][:, :, np.newaxis] * np.array([-15, -80, -219])
+        obstacles += obs[:, :, 1][:, :, np.newaxis] * np.array([-20, -60, -203])
 
         dirt = np.full_like(walls, 255)
         dirt += obs[:, :, 2][:, :, np.newaxis] * np.array([-173, -196, -222])
-        fow = (1 - obs[:, :, 4][:, :, np.newaxis]) * np.array([-100, -100,
-                                                               -100])
+
 
         image_base = (walls + death + visited)
         # Subtract image_base from fow so the visualization makes sense
         fow[image_base.any(axis=2)] = np.array([0, 0, 0])
         image_base += fow
+        base_mask = image_base.any(axis=2)
 
         for idx, (text, img) in enumerate(zip(("Obstacles", "Dirt"),
-                                      (obstacles, dirt))):
+                                              (obstacles, dirt))):
             font = pygame.font.Font(None, 24)
             label = font.render(text, True, (10, 10, 10))
             label_pos = label.get_rect()
 
-            img += image_base
-            img = Image.fromarray(img.astype('uint8'), mode='RGB')\
-                       .resize((96, 96), resample=Image.Resampling.NEAREST)\
-                       .rotate(90)\
-                       .transpose(method=Image.Transpose.FLIP_TOP_BOTTOM)
+
+            img[base_mask] = image_base[base_mask]
+            img = Image.fromarray(img.astype('uint8'), mode='RGB') \
+                .resize((96, 96), resample=Image.Resampling.NEAREST) \
+                .rotate(90) \
+                .transpose(method=Image.Transpose.FLIP_TOP_BOTTOM)
 
             img = pygame.image.fromstring(img.tobytes(), img.size, "RGB")
             img_pos = img.get_rect()

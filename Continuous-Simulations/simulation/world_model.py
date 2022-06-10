@@ -58,6 +58,7 @@ class WorldModel:
         self.agent_width = agent_width
 
         self.visited_grid = np.zeros_like(self.grid, dtype=float)
+        self.fow_grid = np.zeros_like(self.grid, dtype=float)
 
         self._cell_rects = [[self._cell_to_rect((x, y))
                              for y in range(self.grid.shape[0])]
@@ -355,21 +356,22 @@ class WorldModel:
             4: Fog of war
         """
         # Calculate fog of war
-        fow = np.zeros([self.grid.shape[0], self.grid.shape[1]], dtype=float)
         for x, row in enumerate(self._cell_rects):
             for y, cell in enumerate(row):
-                fow[x, y] = 1. * self._cell_visible(x, y)
+                if self.fow_grid[x, y] == 0.:
+                    # Only check if a cell has not been visited yet
+                    self.fow_grid[x, y] = 1. * self._cell_visible(x, y)
 
-        dirt_with_fow = self.dirt_grid * fow
-        obstacles_with_fow = self.obstacle_grid * fow
+        dirt_with_fow = self.dirt_grid * self.fow_grid
+        obstacles_with_fow = self.obstacle_grid * self.fow_grid
 
         new_shape = [self.grid.shape[0], self.grid.shape[1], 1]
         obs = np.concatenate([
             self.grid.reshape(new_shape),             # 0: walls/death
             obstacles_with_fow.reshape(new_shape),    # 1: obstacles
             dirt_with_fow.reshape(new_shape),         # 2: dirt
-            self.visited_grid.reshape(new_shape),         # 3: visited
-            fow.reshape(new_shape)                    # 4: fog of war
+            self.visited_grid.reshape(new_shape),     # 3: visited
+            self.fow_grid.reshape(new_shape)          # 4: fog of war
         ], axis=2).astype(float)
 
         return obs
@@ -401,12 +403,12 @@ class WorldModel:
             if not line_of_sight_vec.any():  # Agent is exactly on the side
                 return True
             los_norm = np.sqrt(line_of_sight_vec @ line_of_sight_vec)
-            if agent_direction_vec @ ( line_of_sight_vec / los_norm) < 0.7:
+            if agent_direction_vec @ (line_of_sight_vec / los_norm) < 0.7:
                 # Outside view cone of +-90 degrees
                 continue
             no_ocludes = True
             for wall_rect in self.wall_rects:
-                if not wall_rect.clipline(self.agent_rect.center, side_center):
+                if wall_rect.clipline(self.agent_rect.center, side_center):
                     # line of sight blocked by a wall
                     no_ocludes = False
                     break  
