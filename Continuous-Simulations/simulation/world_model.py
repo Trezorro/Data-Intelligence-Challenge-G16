@@ -10,7 +10,7 @@ import numpy as np
 from pygame import Rect
 
 
-class EnvironmentModel:
+class WorldModel:
     def __init__(
             self,
             grid: np.ndarray,

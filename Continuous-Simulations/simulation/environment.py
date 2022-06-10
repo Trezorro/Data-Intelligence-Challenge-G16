@@ -8,7 +8,7 @@ from random import randint
 import numpy as np
 import math
 from grid_generator import GridBuilder
-from simulation.environment_model import EnvironmentModel
+from simulation.world_model import WorldModel
 
 import gym
 from gym.spaces import Box, Dict, Discrete
@@ -49,7 +49,7 @@ class ContinuousEnv(gym.Env):
                 "human" or None.
         """
         self.grid: Optional[np.ndarray] = None
-        self.world: Optional[EnvironmentModel] = None
+        self.world: Optional[WorldModel] = None
         self.window_size = (1152, 768)  # Pygame window size.
         self.agent_speed = 128
 
@@ -123,7 +123,7 @@ class ContinuousEnv(gym.Env):
         del params["grid_size"]
         del params["agent_speed"]
 
-        self.world = EnvironmentModel(grid=self.grid, **params)
+        self.world = WorldModel(grid=self.grid, **params)
         self._initial_render()  # shows loading text
 
         agent_observation = {
