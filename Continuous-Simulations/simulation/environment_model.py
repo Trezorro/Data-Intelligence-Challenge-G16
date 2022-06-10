@@ -47,9 +47,9 @@ class EnvironmentModel:
         self.death_rects: List[Rect] = self._grid_to_rects(self.grid, 3)
 
         self.obstacle_rects: List[Rect] = []
-        self.obstacle_grid = np.zeros_like(self.grid)
+        self.obstacle_grid = np.zeros_like(self.grid, dtype=float)
         self.dirt_rects: List[Rect] = []
-        self.dirt_grid = np.zeros_like(self.grid)
+        self.dirt_grid = np.zeros_like(self.grid, dtype=float)
 
         self.agent_rect = Rect(0, 0, 0, 0)  # Initialize with a dummy value
         self.agent_angle = 0  # Angle of agent in degrees, 0 being north
@@ -126,6 +126,25 @@ class EnvironmentModel:
 
         return rect
 
+    @staticmethod
+    def _calculate_overlap(rect: Rect, other: Rect) -> float:
+        """Calculates overlap between two rectangles.
+
+        Both rects must have an area > 0.
+
+        Returns:
+            The proportion of rect which is filled with other.
+        """
+        int_x0 = max(rect.x, other.x)
+        int_x1 = min(rect.x + rect.width, other.x + other.width)
+        int_y0 = max(rect.y, other.y)
+        int_y1 = min(rect.y + rect.height, other.y + other.height)
+        int_width = max(0, int_x1 - int_x0)
+        int_height = max(0, int_y1 - int_y0)
+        int_area = int_width * int_height
+
+        return min(1., float(int_area) / float(rect.width * rect.height))
+
     def _place_obstacles(self, num_obstacles: int):
         """Places the given number of obstacles on the grid.
 
@@ -140,10 +159,16 @@ class EnvironmentModel:
             height = (random() * 3. * self.cell_size) + 0.5
 
             obstacle = self._place_thing(width, height)
+            for x, row in enumerate(self._cell_rects):
+                for y, cell in enumerate(row):
+                    overlap = self._calculate_overlap(cell, obstacle)
+                    self.obstacle_grid[x, y] += overlap
 
             self.obstacle_rects.append(obstacle)
 
-
+        # Normalize obstacle_grid when done
+        self.obstacle_grid -= np.min(self.obstacle_grid)
+        self.obstacle_grid /= np.max(self.obstacle_grid)
 
     def _place_dirt(self, num_dirt: int):
         """Places the given number of dirt particles on the grid.
@@ -157,7 +182,16 @@ class EnvironmentModel:
             # We do this sequentially so that each previous dirt object will
             # have an effect on the position of the next dirt object and not
             # overlap.
-            self.dirt_rects.append(self._place_thing(1, 1))
+            dirt = self._place_thing(1, 1)
+            for x, row in enumerate(self._cell_rects):
+                for y, cell in enumerate(row):
+                    if cell.contains(dirt):
+                        self.dirt_grid[x, y] += 1
+            self.dirt_rects.append(dirt)
+
+        # Normalize dirt_grid when done
+        self.dirt_grid -= np.min(self.dirt_grid)
+        self.dirt_grid /= np.max(self.dirt_grid)
 
     def _place_agent(self):
         """Places the agent somewhere on the world, respecting existing objects.
@@ -312,21 +346,24 @@ class EnvironmentModel:
             3: Visited
             4: Fog of war
         """
-        obs = np.concatenate([
-            self.grid.reshape([self.grid.shape[0], self.grid.shape[1], 1]),
-            np.zeros([self.grid.shape[0], self.grid.shape[1], 4])
-        ], axis=2).astype(float)
+        # Calculate fog of war
+        fow = np.zeros([self.grid.shape[0], self.grid.shape[1]], dtype=float)
         for x, row in enumerate(self._cell_rects):
             for y, cell in enumerate(row):
-                collisions = self._check_colisions(cell, check_walls=False)
-                obs[y, x, 1] = len(collisions["obstacles"])
-                obs[y, x, 2] = len(collisions["dirt"])
-                obs[y, x, 4] = 1 * self._cell_visible(x, y)
+                fow[x, y] = 1. * self._cell_visible(x, y)
 
-        # Normalize axes
-        sums = obs[:, :, 1:3].sum(axis=2)
-        sums[sums == 0] = 1.
-        obs[:, :, 1:3] = obs[:, :, 1:3] / sums[:, :, np.newaxis]
+        dirt_with_fow = self.dirt_grid * fow
+        obstacles_with_fow = self.obstacle_grid * fow
+
+        new_shape = [self.grid.shape[0], self.grid.shape[1], 1]
+        obs = np.concatenate([
+            self.grid.reshape(new_shape),             # 0: walls/death
+            obstacles_with_fow.reshape(new_shape),    # 1: obstacles
+            dirt_with_fow.reshape(new_shape),         # 2: dirt
+            np.zeros(new_shape, dtype=float),         # 3: visited
+            fow.reshape(new_shape)                    # 4: fog of war
+        ], axis=2).astype(float)
+
         return obs
 
 

@@ -355,29 +355,54 @@ class ContinuousEnv(gym.Env):
         """Draws the observation array that the agent receives."""
         obs = self.world.last_observation
 
-        walls = np.zeros([24, 24, 4], dtype="uint8")
-        walls[obs[:, :, 0] == 1] = np.array([69, 71, 82, 255])
+        walls = np.zeros([24, 24, 3], dtype="uint8")
+        walls[obs[:, :, 0] == 1] = np.array([69, 71, 82])
 
-        death = np.zeros([24, 24, 4], dtype="uint8")
-        death[obs[:, :, 0] == 3] = np.array([235, 64, 52, 255])
+        death = np.zeros_like(walls)
+        death[obs[:, :, 0] == 3] = np.array([235, 64, 52])
+
+        obstacles = obs[:, :, 1][:, :, np.newaxis] * np.array([240, 175, 36])
+        dirt = obs[:, :, 2][:, :, np.newaxis] * np.array([82, 59, 33])
+        fow = obs[:, :, 4][:, :, np.newaxis] * np.array([-50, -50, -50])
+
+        image_base = (walls + death + fow).clip(0, 255)
+
+        for idx, img in enumerate((obstacles, dirt)):
+            img += image_base
+            img = Image.fromarray(img.astype('uint8'), mode='RGB')\
+                       .resize((96, 96), resample=Image.Resampling.NEAREST)\
+                       .rotate(90)\
+                       .transpose(method=Image.Transpose.FLIP_TOP_BOTTOM)
+
+            img = pygame.image.fromstring(img.tobytes(), img.size, "RGB")
+            pos = img.get_rect()
+            pos.x = x + (128 * idx)
+            pos.y = y
+            surface.blit(img, pos)
+        # obstacles += image_base
+        # dirt += image_base
+        #
+        # obstacles = Image.fromarray(obstacles.astype('uint8'), mode="RGB")
+        # obstacles = obstacles.resize((96, 96), resample=Image.NEAREST)\
+        #                      .rotate(90)\
+        #                      .transpose(method=Image.FLIP_TOP_BOTTOM)
+        #
+        # dirt = Image.fromarray(dirt.astype('uint8'), mode='RGB')
+        # dirt = dirt.resize((96, 96), resample=Image.NEAREST)\
+        #            .rotate(90)\
+        #
+        # obstacles = pygame.image.fromstring(obstacles.tobytes(),
+        #                                     obstacles.size,
+        #                                     "RGB")
+        # dirt = pygame.image.fromstring(dirt.tobytes(),
+        #                                dirt.size,
+        #                                "RGB")
         #
         #
-        # image *= np.array(240, 175, 36)
-        image = walls + death
-        image = image.clip(0, 255)
-
-        image = Image.fromarray(image, mode="RGBA")
-        image = image.resize((96, 96), resample=Image.NEAREST)\
-                     .rotate(90)\
-                     .transpose(method=Image.FLIP_TOP_BOTTOM)
-
-        py_image = pygame.image.fromstring(image.tobytes(),
-                                           image.size,
-                                           image.mode)
-        pos = py_image.get_rect()
-        pos.x = x
-        pos.y = y
-        surface.blit(py_image, pos)
+        # pos = img.get_rect()
+        # pos.x = x
+        # pos.y = y
+        # surface.blit(py_image, pos)
 
     def _draw_battery(self, surface, x, bottom_pad):
         """Draws the battery"""
