@@ -148,7 +148,7 @@ class ContinuousEnv(gym.Env):
             observation, reward, done, and info.
         """
         # Applies move to the world and asks environment_model for observation.
-        direction = int(180 * action["direction"])
+        direction = int(180 * action["direction"][0])
         self.world.rotate_agent(direction)
         move_distance = action["move"] * self.agent_speed
         events, observation = self.world.move_agent(int(move_distance))
@@ -241,7 +241,8 @@ class ContinuousEnv(gym.Env):
             if event.type == pygame.QUIT:
                 sys.exit()
         pygame.event.pump()
-        self.clock.tick(self.metadata["render_fps"])
+        # self.clock.tick(self.metadata["render_fps"])
+        self.clock.tick(999)
 
     def _draw_world(self, surface, scalar):
         # Draw walls

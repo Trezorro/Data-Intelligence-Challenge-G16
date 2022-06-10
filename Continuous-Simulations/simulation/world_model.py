@@ -202,8 +202,8 @@ class WorldModel:
         The agent should always be placed last so it doesn't start off inside
         an obstacle or on top of dirt.
         """
-        self.agent_rect = self._place_thing(width=self.cell_size / 2,
-                                            height=self.cell_size / 2)
+        self.agent_rect = self._place_thing(width=self.agent_width,
+                                            height=self.agent_width)
 
     def _check_colisions(self, rect: Rect, check_walls=True) -> Dict[str, list]:
         """Tests if the provided rectangle collides with anything in the world.
@@ -391,7 +391,7 @@ class WorldModel:
                                         math.sin(agent_angle_rad)])
 
         # Figure out cell side positions
-        cell_rect = self._cell_to_rect((cell_x, cell_y))
+        cell_rect = self._cell_rects[cell_x][cell_y]
         sides = [
             cell_rect.midtop,
             cell_rect.midleft,
