@@ -18,6 +18,9 @@ For documentation see https://pipenv.pypa.io/en/latest/
 4. Replicate the project environment dependencies.
    - For pip by running `pip install -r requirements.txt` in the project folder.
    - For conda by running `conda install --file requirements.txt` in the project folder.
+5. Check the installation by running:
+   - To check the vacuum robot environment: `python .\Continuous-Simulations\runner.py`
+   - To check the adapted spinningup library: `python -m spinup.run ppo --hid "[32,32]" --env LunarLander-v2 --exp_name installtest --gamma 0.999` 
 
 **Note** that the C++ build tools on your system are required for using this project.
 
