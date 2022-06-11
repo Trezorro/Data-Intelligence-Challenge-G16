@@ -12,21 +12,6 @@ with open(join("spinup", "version.py")) as version_file:
 setup(
     name='spinup',
     py_modules=['spinup'],
-    install_requires=[
-        'cloudpickle==1.2.1',
-        'ipython',
-        'joblib',
-        'matplotlib',
-        'mpi4py',
-        'numpy',
-        'pandas',
-        'pytest',
-        'psutil',
-        'scipy',
-        'seaborn',
-        'torch',
-        'tqdm'
-    ],
     description="Teaching tools for introducing people to deep RL.",
     author="Joshua Achiam",
 )
