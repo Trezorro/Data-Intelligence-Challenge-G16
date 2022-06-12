@@ -17,18 +17,23 @@ import pygame
 from PIL import Image
 
 GRID_SIZE = 24
-OBSERVATION_SPACE = Dict({
-    "move_succeeded": Discrete(2),
-    "hit_wall": Discrete(2),
-    "hit_obstacle": Discrete(2),
-    "hit_dirt": Discrete(2048),
-    "hit_death": Discrete(2),
-    "is_alive": Discrete(2),
-    "world": Box(low=0.,
+OBSERVATION_SPACE = Box(low=0.,
                  high=3,
                  shape=(GRID_SIZE, GRID_SIZE, 5),
                  dtype=np.float64)
-})
+#Dict({
+    # "move_succeeded": Discrete(2),
+    # "hit_wall": Discrete(2),
+    # "hit_obstacle": Discrete(2),
+    # "hit_dirt": Discrete(2048),
+    # "hit_death": Discrete(2),
+    # "is_alive": Discrete(2),
+    # "world":
+    #          Box(low=0.,
+    #              high=3,
+    #              shape=(GRID_SIZE, GRID_SIZE, 5),
+    #              dtype=np.float64)
+#})
 START_STATS = {"successful_moves": 0,
                "wall_hits": 0,
                "obstacle_hits": 0,
@@ -59,10 +64,11 @@ class ContinuousEnv(gym.Env):
         # 1 for True.
         self.observation_space = OBSERVATION_SPACE
         # `move` is a represents a boolean. 0 is False, 1 is True.
-        self.action_space = Dict({"direction": Box(low=-1.,
-                                                   high=1.,
-                                                   shape=(1,)),
-                                  "move": Discrete(2)})
+        self.action_space = gym.spaces.Box(
+            np.array([0, 1]),
+            np.array([-1, +1]),
+            dtype=np.float32,
+        )
 
         self.should_render = render_mode == "human"
         self.info = START_STATS.copy()
