@@ -294,15 +294,18 @@ class EpochLogger(Logger):
         if val is not None:
             super().log_tabular(key,val)
         else:
-            v = self.epoch_dict[key]
-            vals = np.concatenate(v) if isinstance(v[0], np.ndarray) and len(v[0].shape)>0 else v
-            stats = mpi_statistics_scalar(vals, with_min_and_max=with_min_and_max)
-            super().log_tabular(key if average_only else 'Average' + key, stats[0])
-            if not(average_only):
-                super().log_tabular('Std'+key, stats[1])
-            if with_min_and_max:
-                super().log_tabular('Max'+key, stats[3])
-                super().log_tabular('Min'+key, stats[2])
+            try:
+                v = self.epoch_dict[key]
+                vals = np.concatenate(v) if isinstance(v[0], np.ndarray) and len(v[0].shape)>0 else v
+                stats = mpi_statistics_scalar(vals, with_min_and_max=with_min_and_max)
+                super().log_tabular(key if average_only else 'Average' + key, stats[0])
+                if not(average_only):
+                    super().log_tabular('Std'+key, stats[1])
+                if with_min_and_max:
+                    super().log_tabular('Max'+key, stats[3])
+                    super().log_tabular('Min'+key, stats[2])
+            except:
+                print("EpochLogger.log_tabular: Unknown epoch_dict key.")
         self.epoch_dict[key] = []
 
     def get_stats(self, key):
