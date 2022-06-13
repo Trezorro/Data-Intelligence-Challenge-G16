@@ -95,11 +95,11 @@ class ContinuousEnv(gym.Env):
 
         params = {
             "grid_size": 24,
-            "num_obstacles": randint(4, 30),
-            "num_dirt": randint(50, 600),
+            "num_obstacles": 4,
+            "num_dirt": 600,
             "cell_size": 64,
             "battery_drain": 0.25,
-            "agent_width": 96,
+            "agent_width": 80,
             "agent_speed": 10
         }
 

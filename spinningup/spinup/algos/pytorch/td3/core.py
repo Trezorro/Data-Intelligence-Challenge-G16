@@ -30,7 +30,14 @@ class MLPActor(nn.Module):
 
     def forward(self, obs):
         # Return output from network scaled to action space limits.
-        return self.act_limit * self.pi(obs)
+        if len(obs.shape) == 3:
+            input = torch.flatten(obs)
+        elif len(obs.shape) == 4:
+            input = torch.reshape(obs, (-1, 2880))
+        else:
+            raise Exception("MLPActor.forward: Unknown parameter shape")
+
+        return self.act_limit * self.pi(input)
 
 class MLPQFunction(nn.Module):
 
@@ -39,7 +46,14 @@ class MLPQFunction(nn.Module):
         self.q = mlp([obs_dim + act_dim] + list(hidden_sizes) + [1], activation)
 
     def forward(self, obs, act):
-        q = self.q(torch.cat([obs, act], dim=-1))
+        if len(obs.shape) == 3:
+            input = torch.flatten(obs)
+        elif len(obs.shape) == 4:
+            input = torch.reshape(obs, (-1, 2880))
+        else:
+            raise Exception("MLPQFunction.forward: Unknown parameter shape")
+
+        q = self.q(torch.cat([input, act], dim=-1))
         return torch.squeeze(q, -1) # Critical to ensure q has right shape.
 
 class MLPActorCritic(nn.Module):
@@ -48,7 +62,7 @@ class MLPActorCritic(nn.Module):
                  activation=nn.ReLU):
         super().__init__()
 
-        obs_dim = observation_space.shape[0]
+        obs_dim = np.prod(observation_space.shape)
         act_dim = action_space.shape[0]
         act_limit = action_space.high[0]
 

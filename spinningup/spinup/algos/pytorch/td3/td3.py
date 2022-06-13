@@ -5,6 +5,9 @@ import torch
 from torch.optim import Adam
 import gym
 import time
+
+from tqdm import tqdm
+
 import spinup.algos.pytorch.td3.core as core
 from spinup.utils.logx import EpochLogger
 
@@ -269,6 +272,7 @@ def td3(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         return np.clip(a, -act_limit, act_limit)
 
     def test_agent():
+        print(f"\nsac.test_agent: Testing agent for {num_test_episodes} episodes with max_ep_len {max_ep_len}")
         for j in range(num_test_episodes):
             o, d, ep_ret, ep_len = test_env.reset(), False, 0, 0
             while not(d or (ep_len == max_ep_len)):
@@ -284,7 +288,7 @@ def td3(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     o, ep_ret, ep_len = env.reset(), 0, 0
 
     # Main loop: collect experience in env and update/log each epoch
-    for t in range(total_steps):
+    for t in tqdm(range(total_steps)):
         
         # Until start_steps have elapsed, randomly sample actions
         # from a uniform distribution for better exploration. Afterwards, 
