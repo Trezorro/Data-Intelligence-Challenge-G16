@@ -100,7 +100,7 @@ class ContinuousEnv(gym.Env):
             "cell_size": 64,
             "battery_drain": 0.25,
             "agent_width": 80,
-            "agent_speed": 10
+            "agent_speed": 50
         }
 
         possible_keys = {"grid_size", "num_rooms", "num_obstacles", "num_dirt",
@@ -165,10 +165,7 @@ class ContinuousEnv(gym.Env):
             The reward value.
         """
         # TODO
-        if events["hit_dirt"] == 1:
-            return 10
-        else:
-            return 0
+        return events["hit_dirt"] * 10
 
     def _update_stats(self, events: dict, reward: int):
         """Updates the info dict."""
