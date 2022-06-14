@@ -7,13 +7,27 @@ in the Pipfile and Pipfile.lock.
 For documentation see https://pipenv.pypa.io/en/latest/ 
 
 ### Steps:
-1. Activate or install a Python 3.8 environment and install pipenv in it.
-   - For instance using conda: `conda create -n py38 python=3.8.12 pipenv -c conda-forge`
-   - Don't forget to activate it or add it to your path variable.
-2. Replicate the project environment by running `pipenv install` in the project folder.
-3. Activate the project environment with `pipenv shell` or configure your IDE to use the new pipenv environment (with the project folder name) as the python environment.
+1. Activate or install a Python 3.8 environment.
+2. Install MPI
+   - For windows: get [Microsoft MPI](https://www.microsoft.com/en-us/download/details.aspx?id=100593) and make sure to add it to your path variable.
+   - For Ubuntu: get OpenMPI `sudo apt-get update && sudo apt-get install libopenmpi-dev`
+   - For Max OSX: get OpenMPI `brew install openmpi`
+   - Alternatively, you can install OpenMPI using conda `conda install openmpi`
+3. Make sure to have [swig](https://www.swig.org/download.html) installed. 
+   - Download it from the link and unpack it.
+   - Make sure to add swig to your path variable.
+   - Alternatively, you can install swig using conda `conda install swig`
+4. Replicate the project environment dependencies.
+   - For pip by running `pip install -r requirements.txt` in the project folder.
+   - For conda by running `conda install --file requirements.txt` in the project folder.
+5. Check the installation by running:
+   - To check the vacuum robot environment: `python .\Continuous-Simulations\runner.py`
+   - To check the adapted spinningup library: `python -m spinup.run ppo --hid "[32,32]" --env LunarLander-v2 --exp_name installtest --gamma 0.999` 
 
-Note, that the C++ build tools on your system are required for using this project.
+**Note** that the C++ build tools on your system are required for using this project.
+
+**Note (2)** that your path variable will now have the `<path>\swig-<version>` and `<path>\Microsoft MPI\bin`. 
+On windows, your path variable can be set by searching for `edit the system environment variables` -> `environment variables` -> Find `Path` variable -> `Edit` -> Add the paths.
 
 ## Headless
 

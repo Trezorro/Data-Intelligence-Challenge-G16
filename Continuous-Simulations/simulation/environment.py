@@ -3,7 +3,7 @@
 The simulation environment used for our continuous vacuum cleaner.
 """
 from pathlib import Path
-from typing import Optional, Union, Tuple
+from typing import Optional, Union, Tuple, List
 import sys
 from random import randint
 import numpy as np
@@ -17,18 +17,11 @@ import pygame
 from PIL import Image
 
 GRID_SIZE = 24
-OBSERVATION_SPACE = Dict({
-    "move_succeeded": Discrete(2),
-    "hit_wall": Discrete(2),
-    "hit_obstacle": Discrete(2),
-    "hit_dirt": Discrete(2048),
-    "hit_death": Discrete(2),
-    "is_alive": Discrete(2),
-    "world": Box(low=0.,
-                 high=3,
-                 shape=(GRID_SIZE, GRID_SIZE, 5),
-                 dtype=np.float64)
-})
+OBSERVATION_SPACE = Box(low=0.,
+                        high=3,
+                        shape=(GRID_SIZE, GRID_SIZE, 5),
+                        dtype=np.float64)
+
 START_STATS = {"successful_moves": 0,
                "wall_hits": 0,
                "obstacle_hits": 0,
@@ -59,10 +52,11 @@ class ContinuousEnv(gym.Env):
         # 1 for True.
         self.observation_space = OBSERVATION_SPACE
         # `move` is a represents a boolean. 0 is False, 1 is True.
-        self.action_space = Dict({"direction": Box(low=-1.,
-                                                   high=1.,
-                                                   shape=(1,)),
-                                  "move": Discrete(2)})
+        self.action_space = Box(
+            np.array([-1, +1]),
+            np.array([0, 1]),
+            dtype=np.float32,
+        )
 
         self.should_render = render_mode == "human"
         self.info = START_STATS.copy()
@@ -101,12 +95,12 @@ class ContinuousEnv(gym.Env):
 
         params = {
             "grid_size": 24,
-            "num_obstacles": randint(4, 30),
-            "num_dirt": randint(50, 600),
+            "num_obstacles": 4,
+            "num_dirt": 600,
             "cell_size": 64,
             "battery_drain": 0.25,
-            "agent_width": 96,
-            "agent_speed": 10
+            "agent_width": 80,
+            "agent_speed": 50
         }
 
         possible_keys = {"grid_size", "num_rooms", "num_obstacles", "num_dirt",
@@ -136,10 +130,9 @@ class ContinuousEnv(gym.Env):
             "is_alive": 1,
             "world": self.world.last_observation
         }
-        return agent_observation, self.info if return_info \
-            else agent_observation
+        return self.world.last_observation
 
-    def step(self, action: dict) -> Tuple[dict, int, bool, dict]:
+    def step(self, action: List) -> Tuple[np.ndarray, int, bool, dict]:
         """Takes an action space value and returns the result.
 
         Args:
@@ -149,19 +142,18 @@ class ContinuousEnv(gym.Env):
             observation, reward, done, and info.
         """
         # Applies move to the world and asks environment_model for observation.
-        direction = int(180 * action["direction"][0])
+        direction = int(180 * action[0])
         self.world.rotate_agent(direction)
-        move_distance = action["move"] * self.agent_speed
+        move_distance = action[1] * self.agent_speed
         events, observation = self.world.move_agent(int(move_distance))
 
         # Calculate reward from move and update info
         reward = self._get_reward(events)
-        self._update_stats(events, reward)
+        self._update_info(events, reward)
 
         # Provide reward and observation back to agent
-        agent_observation = dict(**events, world=observation)
         done = not self.world.agent_is_alive
-        return agent_observation, reward, done, self.info
+        return observation, reward, done, self.info
 
     def _get_reward(self, events: dict) -> int:
         """Given the events dict, returns the reward.
@@ -173,9 +165,9 @@ class ContinuousEnv(gym.Env):
             The reward value.
         """
         # TODO
-        return 0
+        return events["hit_dirt"] * 10
 
-    def _update_stats(self, events: dict, reward: int):
+    def _update_info(self, events: dict, reward: int):
         """Updates the info dict."""
         self.info["successful_moves"] += events["move_succeeded"]
         self.info["wall_hits"] += events["hit_wall"]
@@ -290,9 +282,9 @@ class ContinuousEnv(gym.Env):
         # agent_surface.fill((50, 50, 50))
 
         img = self.agent_eyes.resize(tuple([int(0.9 * agent_rect.width)] * 2),
-                                     Image.Resampling.BICUBIC)\
-                             .rotate(self.world.agent_angle + 90)\
-                             .transpose(method=Image.Transpose.FLIP_LEFT_RIGHT)
+                                     Image.Resampling.BICUBIC) \
+            .rotate(self.world.agent_angle + 90) \
+            .transpose(method=Image.Transpose.FLIP_LEFT_RIGHT)
         img = pygame.image.fromstring(img.tobytes(), img.size, "RGBA")
         img_pos = img.get_rect()
         img_pos.center = agent_surface.get_rect().center
@@ -376,7 +368,6 @@ class ContinuousEnv(gym.Env):
         dirt = np.full_like(walls, 255)
         dirt += obs[:, :, 2][:, :, np.newaxis] * np.array([-173, -196, -222])
 
-
         image_base = (walls + death + visited)
         # Subtract image_base from fow so the visualization makes sense
         fow[image_base.any(axis=2)] = np.array([0, 0, 0])
@@ -388,7 +379,6 @@ class ContinuousEnv(gym.Env):
             font = pygame.font.Font(None, 24)
             label = font.render(text, True, (10, 10, 10))
             label_pos = label.get_rect()
-
 
             img[base_mask] = image_base[base_mask]
             img = Image.fromarray(img.astype('uint8'), mode='RGB') \
