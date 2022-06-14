@@ -22,6 +22,28 @@ def mlp(sizes, activation, output_activation=nn.Identity):
     return nn.Sequential(*layers)
 
 
+def conv(conv_sizes=(32, 64, 64), dense_sizes=(512, 128), activation=nn.ReLU()):
+    return nn.Sequential(
+        nn.Conv2d(5, conv_sizes[0], 3, 1),
+        activation,
+        nn.Conv2d(conv_sizes[0], conv_sizes[1], 3, 1),
+        activation,
+        nn.Conv2d(conv_sizes[1], conv_sizes[2], 3, 1),
+        activation,
+        nn.Flatten(),
+        nn.Linear(18*18*conv_sizes[-1], dense_sizes[0]),
+        activation,
+        nn.Linear(dense_sizes[0], dense_sizes[1]),
+        activation
+    )
+
+
+def conv_last(out_size=2, input_size=130):
+    return nn.Sequential(
+        nn.Linear(input_size, out_size),
+    )
+
+
 def count_vars(module):
     return sum([np.prod(p.shape) for p in module.parameters()])
 
@@ -46,7 +68,7 @@ def discount_cumsum(x, discount):
 
 class Actor(nn.Module):
 
-    def _distribution(self, obs):
+    def _distribution(self, field, agent_center):
         raise NotImplementedError
 
     def _log_prob_from_distribution(self, pi, act):
@@ -56,44 +78,38 @@ class Actor(nn.Module):
         # Produce action distributions for given observations, and 
         # optionally compute the log likelihood of given actions under
         # those distributions.
-        pi = self._distribution(obs)
+        field = torch.as_tensor(obs['world'], dtype=torch.float32)
+        position = torch.tensor(obs['agent_center'])
+
+        pi = self._distribution(field, position)
         logp_a = None
         if act is not None:
             logp_a = self._log_prob_from_distribution(pi, act)
         return pi, logp_a
 
-
-class MLPCategoricalActor(Actor):
-
-    def __init__(self, obs_dim, act_dim, hidden_sizes, activation):
-        super().__init__()
-        self.logits_net = mlp([obs_dim] + list(hidden_sizes) + [act_dim], activation)
-
-    def _distribution(self, obs):
-        logits = self.logits_net(obs)
-        return Categorical(logits=logits)
-
-    def _log_prob_from_distribution(self, pi, act):
-        return pi.log_prob(act)
-
-
 class MLPGaussianActor(Actor):
 
-    def __init__(self, obs_dim, act_dim, hidden_sizes, activation):
+    def __init__(self, act_dim):
         super().__init__()
         log_std = -0.5 * np.ones(act_dim, dtype=np.float32)
         self.log_std = torch.nn.Parameter(torch.as_tensor(log_std))
-        self.mu_net = mlp([obs_dim] + list(hidden_sizes) + [act_dim], activation)
+        self.mu_net = conv()
+        self.mu_net_last = conv_last()
 
-    def _distribution(self, obs):
+    def _distribution(self, field, agent_center):
+        obs = torch.tensor(field)
         if len(obs.shape) == 3:
-            input = torch.flatten(obs)
-        elif len(obs.shape) == 4:
-            input = torch.reshape(obs, (-1, 2880))
-        else:
-            raise Exception("MLPGaussianAction._distribution: Unknown parameter shape")
+            obs = obs.unsqueeze(0)
 
-        mu = self.mu_net(input)
+        emb = self.mu_net(obs)
+        if len(agent_center.shape) == 1:
+            agent_center = agent_center.unsqueeze(0)
+        emb = torch.concat([emb, agent_center], dim=1)
+        mu = self.mu_net_last(emb)
+
+        if mu.shape[0] == 1:
+            mu = mu.squeeze(0)
+
         std = torch.exp(self.log_std)
         return Normal(mu, std)
 
@@ -103,22 +119,32 @@ class MLPGaussianActor(Actor):
 
 class MLPCritic(nn.Module):
 
-    def __init__(self, obs_dim, hidden_sizes, activation):
+    def __init__(self):
         super().__init__()
-        self.v_net = mlp([obs_dim] + list(hidden_sizes) + [1], activation)
+        self.v_net = conv()
+        self.v_net_end = conv_last(out_size=1)
 
-    def forward(self, obs):
-        if len(obs.shape) == 3:
-            input = torch.flatten(obs)
-        elif len(obs.shape) == 4:
-            input = torch.reshape(obs, (-1, 2880))
-        else:
-            raise Exception("MLPCritic.forward: Unknown parameter shape")
+    def forward(self, world, agent_center):
+        world = torch.tensor(world)
+        if len(world.shape) == 3:
+            world = world.unsqueeze(0)
 
-        return torch.squeeze(self.v_net(input), -1)  # Critical to ensure v has right shape.
+        emb = self.v_net(world)
+
+        if len(agent_center.shape) == 1:
+            agent_center = agent_center.unsqueeze(0)
+
+        emb = torch.concat([emb, agent_center], dim=1)
+        out = self.v_net_end(emb)
+
+        if out.shape[0] == 1:
+            out = out.squeeze(0)
+
+        return torch.squeeze(out, -1)  # Critical to ensure v has right shape.
 
 
 class MLPActorCritic(nn.Module):
+
     def __init__(self, observation_space, action_space,
                  hidden_sizes=(64, 64), activation=nn.Tanh):
         super().__init__()
@@ -127,19 +153,22 @@ class MLPActorCritic(nn.Module):
 
         # policy builder depends on action space
         if isinstance(action_space, Box):
-            self.pi = MLPGaussianActor(obs_dim, action_space.shape[0], hidden_sizes, activation)
+            self.pi = MLPGaussianActor(action_space.shape[0])
         elif isinstance(action_space, Discrete):
-            self.pi = MLPCategoricalActor(obs_dim, action_space.n, hidden_sizes, activation)
+            raise Exception()
 
         # build value function
-        self.v = MLPCritic(obs_dim, hidden_sizes, activation)
+        self.v = MLPCritic()
 
     def step(self, obs):
+        field = torch.as_tensor(obs['world'], dtype=torch.float32)
+        position = torch.tensor(obs['agent_center'], dtype=torch.float32)/1536
+
         with torch.no_grad():
-            pi = self.pi._distribution(obs)
+            pi = self.pi._distribution(field, position)
             a = pi.sample()
             logp_a = self.pi._log_prob_from_distribution(pi, a)
-            v = self.v(obs)
+            v = self.v(field, position)
         return a.numpy(), v.numpy(), logp_a.numpy()
 
     def act(self, obs):

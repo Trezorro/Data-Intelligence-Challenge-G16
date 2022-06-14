@@ -3,7 +3,7 @@
 The simulation environment used for our continuous vacuum cleaner.
 """
 from pathlib import Path
-from typing import Optional, Union, Tuple, List
+from typing import Optional, Union, Tuple, List, Dict as Dict_py
 import sys
 from random import randint
 import numpy as np
@@ -17,10 +17,13 @@ import pygame
 from PIL import Image
 
 GRID_SIZE = 24
-OBSERVATION_SPACE = Box(low=0.,
-                        high=3,
-                        shape=(GRID_SIZE, GRID_SIZE, 5),
-                        dtype=np.float64)
+OBSERVATION_SPACE = Dict({
+    "agent_center": Box(low=0, high=1536, shape=(2,), dtype=np.int32),
+    "world": Box(low=0.,
+                 high=3,
+                 shape=(5, GRID_SIZE, GRID_SIZE),
+                 dtype=np.float64)
+})
 
 START_STATS = {"successful_moves": 0,
                "wall_hits": 0,
@@ -96,7 +99,7 @@ class ContinuousEnv(gym.Env):
         params = {
             "grid_size": 24,
             "num_obstacles": 4,
-            "num_dirt": 600,
+            "num_dirt": 800,
             "cell_size": 64,
             "battery_drain": 0.25,
             "agent_width": 80,
@@ -122,17 +125,12 @@ class ContinuousEnv(gym.Env):
         self._initial_render()  # shows loading text
 
         agent_observation = {
-            "move_succeeded": 1,
-            "hit_wall": 0,
-            "hit_obstacle": 0,
-            "hit_dirt": 0,
-            "hit_death": 0,
-            "is_alive": 1,
+            "agent_center": self.world.agent_rect.center,
             "world": self.world.last_observation
         }
-        return self.world.last_observation
+        return agent_observation
 
-    def step(self, action: List) -> Tuple[np.ndarray, int, bool, dict]:
+    def step(self, action: List) -> Tuple[Dict_py, int, bool, dict]:
         """Takes an action space value and returns the result.
 
         Args:
@@ -153,7 +151,12 @@ class ContinuousEnv(gym.Env):
 
         # Provide reward and observation back to agent
         done = not self.world.agent_is_alive
-        return observation, reward, done, self.info
+
+        return_observation = {
+            "agent_center": self.world.agent_rect.center,
+            "world": observation
+        }
+        return return_observation, reward, done, self.info
 
     def _get_reward(self, events: dict) -> int:
         """Given the events dict, returns the reward.
@@ -352,21 +355,21 @@ class ContinuousEnv(gym.Env):
         obs = self.world.last_observation
 
         walls = np.zeros([24, 24, 3])
-        walls[obs[:, :, 0] == 1] = np.array([69, 71, 82])
+        walls[obs[0, :, :] == 1] = np.array([69, 71, 82])
 
         death = np.zeros_like(walls)
-        death[obs[:, :, 0] == 3] = np.array([235, 64, 52])
+        death[obs[0, :, :] == 3] = np.array([235, 64, 52])
 
         visited = np.zeros_like(walls)
-        visited[obs[:, :, 3] == 1] = np.array([113, 52, 235])
+        visited[obs[3, :, :] == 1] = np.array([113, 52, 235])
 
-        fow = (1 - obs[:, :, 4][:, :, np.newaxis]) * np.array([150, 150, 150])
+        fow = (1 - obs[4, :, :][:, :, np.newaxis]) * np.array([150, 150, 150])
 
         obstacles = np.full_like(walls, 255)
-        obstacles += obs[:, :, 1][:, :, np.newaxis] * np.array([-20, -60, -203])
+        obstacles += obs[1, :, :][:, :, np.newaxis] * np.array([-20, -60, -203])
 
         dirt = np.full_like(walls, 255)
-        dirt += obs[:, :, 2][:, :, np.newaxis] * np.array([-173, -196, -222])
+        dirt += obs[2, :, :][:, :, np.newaxis] * np.array([-173, -196, -222])
 
         image_base = (walls + death + visited)
         # Subtract image_base from fow so the visualization makes sense

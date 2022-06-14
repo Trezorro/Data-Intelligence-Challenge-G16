@@ -25,6 +25,6 @@ env_fn = lambda: gym.make('ContinuousWorld-v0')
 
 
 # td3(env_fn=env_fn, ac_kwargs=ac_kwargs, steps_per_epoch=100, num_test_episodes=1, max_ep_len=100, logger_kwargs=logger_kwargs)
-vpg(env_fn=env_fn, ac_kwargs=ac_kwargs, steps_per_epoch=500, epochs=20, logger_kwargs=logger_kwargs)
-# ppo(env_fn=env_fn, ac_kwargs=ac_kwargs, steps_per_epoch=100, logger_kwargs=logger_kwargs)
+# vpg(env_fn=env_fn, ac_kwargs=ac_kwargs, steps_per_epoch=500, epochs=20, logger_kwargs=logger_kwargs)
+ppo(env_fn=env_fn, ac_kwargs=ac_kwargs, steps_per_epoch=100, logger_kwargs=logger_kwargs)
 # sac(env_fn=env_fn, ac_kwargs=ac_kwargs, steps_per_epoch=100, epochs=10, num_test_episodes=1, max_ep_len=100, logger_kwargs=logger_kwargs)
