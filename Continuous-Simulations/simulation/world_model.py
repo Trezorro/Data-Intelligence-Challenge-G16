@@ -365,14 +365,14 @@ class WorldModel:
         dirt_with_fow = self.dirt_grid * self.fow_grid
         obstacles_with_fow = self.obstacle_grid * self.fow_grid
 
-        new_shape = [self.grid.shape[0], self.grid.shape[1], 1]
+        new_shape = [1, self.grid.shape[0], self.grid.shape[1]]
         obs = np.concatenate([
             self.grid.reshape(new_shape),             # 0: walls/death
             obstacles_with_fow.reshape(new_shape),    # 1: obstacles
             dirt_with_fow.reshape(new_shape),         # 2: dirt
             self.visited_grid.reshape(new_shape),     # 3: visited
             self.fow_grid.reshape(new_shape)          # 4: fog of war
-        ], axis=2).astype(float)
+        ], axis=0).astype(float)
 
         return obs
 
