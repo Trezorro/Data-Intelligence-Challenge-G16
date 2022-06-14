@@ -12,9 +12,11 @@ For documentation see https://pipenv.pypa.io/en/latest/
    - For windows: get [Microsoft MPI](https://www.microsoft.com/en-us/download/details.aspx?id=100593) and make sure to add it to your path variable.
    - For Ubuntu: get OpenMPI `sudo apt-get update && sudo apt-get install libopenmpi-dev`
    - For Max OSX: get OpenMPI `brew install openmpi`
+   - Alternatively, you can install OpenMPI using conda `conda install openmpi`
 3. Make sure to have [swig](https://www.swig.org/download.html) installed. 
    - Download it from the link and unpack it.
    - Make sure to add swig to your path variable.
+   - Alternatively, you can install swig using conda `conda install swig`
 4. Replicate the project environment dependencies.
    - For pip by running `pip install -r requirements.txt` in the project folder.
    - For conda by running `conda install --file requirements.txt` in the project folder.

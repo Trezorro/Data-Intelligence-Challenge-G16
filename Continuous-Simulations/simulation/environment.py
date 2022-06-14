@@ -149,7 +149,7 @@ class ContinuousEnv(gym.Env):
 
         # Calculate reward from move and update info
         reward = self._get_reward(events)
-        self._update_stats(events, reward)
+        self._update_info(events, reward)
 
         # Provide reward and observation back to agent
         done = not self.world.agent_is_alive
@@ -167,7 +167,7 @@ class ContinuousEnv(gym.Env):
         # TODO
         return events["hit_dirt"] * 10
 
-    def _update_stats(self, events: dict, reward: int):
+    def _update_info(self, events: dict, reward: int):
         """Updates the info dict."""
         self.info["successful_moves"] += events["move_succeeded"]
         self.info["wall_hits"] += events["hit_wall"]
