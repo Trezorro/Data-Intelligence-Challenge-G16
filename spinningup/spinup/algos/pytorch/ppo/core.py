@@ -41,6 +41,7 @@ def conv(conv_sizes=(32, 64, 64), dense_sizes=(512, 128), activation=nn.ReLU()):
 def conv_last(out_size=2, input_size=130):
     return nn.Sequential(
         nn.Linear(input_size, out_size),
+        nn.Tanh()
     )
 
 
@@ -79,7 +80,7 @@ class Actor(nn.Module):
         # optionally compute the log likelihood of given actions under
         # those distributions.
         field = torch.as_tensor(obs['world'], dtype=torch.float32)
-        position = torch.tensor(obs['agent_center'])
+        position = torch.as_tensor(obs['agent_center'])
 
         pi = self._distribution(field, position)
         logp_a = None
@@ -97,7 +98,7 @@ class MLPGaussianActor(Actor):
         self.mu_net_last = conv_last()
 
     def _distribution(self, field, agent_center):
-        obs = torch.tensor(field)
+        obs = torch.as_tensor(field)
         if len(obs.shape) == 3:
             obs = obs.unsqueeze(0)
 
@@ -125,7 +126,7 @@ class MLPCritic(nn.Module):
         self.v_net_end = conv_last(out_size=1)
 
     def forward(self, world, agent_center):
-        world = torch.tensor(world)
+        world = torch.as_tensor(world)
         if len(world.shape) == 3:
             world = world.unsqueeze(0)
 
@@ -162,7 +163,7 @@ class MLPActorCritic(nn.Module):
 
     def step(self, obs):
         field = torch.as_tensor(obs['world'], dtype=torch.float32)
-        position = torch.tensor(obs['agent_center'], dtype=torch.float32)/1536
+        position = torch.as_tensor(obs['agent_center'], dtype=torch.float32)/1536
 
         with torch.no_grad():
             pi = self.pi._distribution(field, position)

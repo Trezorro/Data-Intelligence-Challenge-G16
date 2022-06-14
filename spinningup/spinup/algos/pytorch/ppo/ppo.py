@@ -272,7 +272,7 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
             loss_pi, pi_info = compute_loss_pi(data)
             kl = mpi_avg(pi_info['kl'])
             if kl > 1.5 * target_kl:
-                logger.log('Early stopping at step %d due to reaching max kl.'%i)
+                logger.log(f'Early stopping at step {i} due to reaching max kl. kl is {kl}')
                 break
             loss_pi.backward()
             mpi_avg_grads(ac.pi)    # average grads across MPI processes

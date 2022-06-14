@@ -159,7 +159,8 @@ class Logger:
             try:
                 joblib.dump(state_dict, osp.join(self.output_dir, fname))
             except Exception as e:
-                self.log('Warning: could not pickle state_dict.', color='red')
+                pass
+                # self.log('Warning: could not pickle state_dict.', color='red')
             if hasattr(self, 'pytorch_saver_elements'):
                 self._pytorch_simple_save(itr)
 
