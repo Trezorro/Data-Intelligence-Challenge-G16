@@ -7,7 +7,7 @@ from tqdm import trange
 from gym import Env
 from agent_configs.random_agent import RandomAgent
 from torch import nn
-sys.path.append(str(Path.cwd().parent))  # Make it possible to import from parent directory
+sys.path.append(str(Path(__file__).parent.parent.parent / "spinningup"))
 from spinup import ppo_pytorch as ppo
 from spinup import sac_pytorch as sac
 from spinup import vpg_pytorch as vpg
