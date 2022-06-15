@@ -13,7 +13,7 @@ We recommend using (mini)conda for installing the dependencies in a separate new
 2. Replicate the conda environment using:
    1. `conda env create -f conda_env.yaml`
    2. `conda activate dic-env`
-3. Install the spinup module ant it's dependencies using: `pip install -e spinningup`
+3. Install the spinup module and it's dependencies using: `pip install -e spinningup` (inside your conda environment.)
 4. Check the installation by running:
    - To check the vacuum robot environment: `python .\Continuous-Simulations\runner.py`
 
