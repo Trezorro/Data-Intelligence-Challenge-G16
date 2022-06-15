@@ -5,45 +5,14 @@ from gym.spaces import Box, Discrete
 import torch
 import torch.nn as nn
 from torch.distributions.normal import Normal
-from torch.distributions.categorical import Categorical
+
+from spinup.algos.pytorch.helpers.general_nets import conv, conv_last
 
 
 def combined_shape(length, shape=None):
     if shape is None:
         return (length,)
     return (length, shape) if np.isscalar(shape) else (length, *shape)
-
-
-def mlp(sizes, activation, output_activation=nn.Identity):
-    layers = []
-    for j in range(len(sizes) - 1):
-        act = activation if j < len(sizes) - 2 else output_activation
-        layers += [nn.Linear(sizes[j], sizes[j + 1]), act()]
-    return nn.Sequential(*layers)
-
-
-def conv(conv_sizes=(32, 64, 64), dense_sizes=(512, 128), activation=nn.ReLU()):
-    return nn.Sequential(
-        nn.Conv2d(5, conv_sizes[0], 3, 1),
-        activation,
-        nn.Conv2d(conv_sizes[0], conv_sizes[1], 3, 1),
-        activation,
-        nn.Conv2d(conv_sizes[1], conv_sizes[2], 3, 1),
-        activation,
-        nn.Flatten(),
-        nn.Linear(18*18*conv_sizes[-1], dense_sizes[0]),
-        activation,
-        nn.Linear(dense_sizes[0], dense_sizes[1]),
-        activation
-    )
-
-
-def conv_last(out_size=2, input_size=130):
-    return nn.Sequential(
-        nn.Linear(input_size, out_size),
-        nn.Tanh()
-    )
-
 
 def count_vars(module):
     return sum([np.prod(p.shape) for p in module.parameters()])

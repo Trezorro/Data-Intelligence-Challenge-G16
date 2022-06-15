@@ -22,7 +22,7 @@ OBSERVATION_SPACE = Dict({
     "world": Box(low=0.,
                  high=3,
                  shape=(5, GRID_SIZE, GRID_SIZE),
-                 dtype=np.float64)
+                 dtype=np.uint8)
 })
 
 START_STATS = {"successful_moves": 0,
@@ -56,7 +56,7 @@ class ContinuousEnv(gym.Env):
         self.observation_space = OBSERVATION_SPACE
         # `move` is a represents a boolean. 0 is False, 1 is True.
         self.action_space = Box(
-            np.array([-1, +1]),
+            np.array([-1, 1]),
             np.array([0, 1]),
             dtype=np.float32,
         )
@@ -140,6 +140,9 @@ class ContinuousEnv(gym.Env):
             observation, reward, done, and info.
         """
         # Applies move to the world and asks environment_model for observation.
+        if len(action) == 1:
+            action = action[0]
+
         direction = int(180 * action[0])
         self.world.rotate_agent(direction)
         move_distance = action[1] * self.agent_speed
@@ -168,6 +171,9 @@ class ContinuousEnv(gym.Env):
             The reward value.
         """
         # TODO
+        if events["hit_death"] == 1:
+            return -5000
+
         return events["hit_dirt"] * 10
 
     def _update_info(self, events: dict, reward: int):
