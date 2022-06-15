@@ -99,11 +99,11 @@ class ContinuousEnv(gym.Env):
         params = {
             "grid_size": 24,
             "num_obstacles": 4,
-            "num_dirt": 1000,
+            "num_dirt": 2000,
             "cell_size": 64,
             "battery_drain": 0.25,
-            "agent_width": 80,
-            "agent_speed": 80
+            "agent_width": 60,
+            "agent_speed": 60
         }
 
         possible_keys = {"grid_size", "num_rooms", "num_obstacles", "num_dirt",

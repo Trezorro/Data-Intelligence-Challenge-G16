@@ -18,7 +18,8 @@ class WorldModel:
             num_dirt: int,
             cell_size: int = 64,
             battery_drain: float = 0.25,
-            agent_width: int = 48
+            agent_width: int = 48,
+            slam_accuracy: float = 0.7
     ):
         """A very simple environment model which holds data about the world.
 
@@ -34,6 +35,12 @@ class WorldModel:
             battery_drain: The amount of battery drained with every step for
                 the agent.
             agent_width: The width of the agent on the world.
+            slam_accuracy: Simulated accuracy of the SLAM algorithm used to
+                figure out where all the walls are. How this works is when
+                walls from the grid are added to the world, it has a percentage
+                chance of being added to wall_rects and a 1-p chance of being
+                added as an obstacle instead. Must be between 0 and 1.
+
         """
         # Set environment parameters
         self.cell_size = cell_size
@@ -42,9 +49,9 @@ class WorldModel:
         self.grid_size = grid.shape[0]
         self.world_size = self.grid_size * self.cell_size
 
-        self.floor_rects: List[Rect] = self._grid_to_rects(grid, 0)
-        self.wall_rects: List[Rect] = self._grid_to_rects(self.grid, 1)
-        self.death_rects: List[Rect] = self._grid_to_rects(self.grid, 3)
+        self.occluding_walls: List[Rect] = []
+        self.wall_rects: List[Rect] = []
+        self.death_rects: List[Rect] = []
 
         self.obstacle_rects: List[Rect] = []
         self.obstacle_grid = np.zeros_like(self.grid, dtype=float)
@@ -64,6 +71,7 @@ class WorldModel:
                              for y in range(self.grid.shape[0])]
                             for x in range(self.grid.shape[1])]
 
+        self._place_walls_and_death(slam_accuracy)
         self._place_obstacles(num_obstacles)
         self._place_dirt(num_dirt)
         self._place_agent()
@@ -148,6 +156,29 @@ class WorldModel:
 
         return min(1., float(int_area) / float(rect.width * rect.height))
 
+    def _place_walls_and_death(self, slam_accuracy: float):
+        """Places walls and death tiles with a given accuracy.
+
+        Args:
+            slam_accuracy: A value between 0 and 1.
+        """
+        # For walls (1) and death (3)
+        for val in (1, 3):
+            idxs = np.nonzero(self.grid == val)
+            positive_cells = list(zip(idxs[0], idxs[1]))
+            for cell in positive_cells:
+                rect = self._cell_to_rect(cell)
+                if val == 1:
+                    self.occluding_walls.append(rect)
+                if random() < slam_accuracy:
+                    if val == 1:
+                        self.wall_rects.append(rect)
+                    else:
+                        self.death_rects.append(rect)
+                else:
+                    self.obstacle_rects.append(rect)
+
+
     def _place_obstacles(self, num_obstacles: int):
         """Places the given number of obstacles on the grid.
 
@@ -221,7 +252,7 @@ class WorldModel:
         collisions = {"obstacles": rect.collidelistall(self.obstacle_rects),
                       "dirt": rect.collidelistall(self.dirt_rects)}
         if check_walls:
-            collisions["walls"] = rect.collidelistall(self.wall_rects)
+            collisions["walls"] = rect.collidelistall(self.occluding_walls)
             collisions["death"] = rect.collidelistall(self.death_rects)
 
         return collisions
@@ -407,7 +438,7 @@ class WorldModel:
                 # Outside view cone of +-90 degrees
                 continue
             no_ocludes = True
-            for wall_rect in self.wall_rects:
+            for wall_rect in self.occluding_walls:
                 if wall_rect.clipline(self.agent_rect.center, side_center):
                     # line of sight blocked by a wall
                     no_ocludes = False
