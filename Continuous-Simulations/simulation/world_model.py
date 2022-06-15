@@ -318,7 +318,8 @@ class WorldModel:
             # Check if agent is still alive after draining the battery. Every
             # move should drain the battery since even if a robot bumps into a
             # wall, it's still expending energy to do so.
-            self.agent_is_alive = self._drain_battery()
+            if distance > 0:
+                self.agent_is_alive = self._drain_battery()
 
             # Check for colisions
             collisions = self._check_colisions(self.agent_rect)
