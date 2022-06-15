@@ -1,28 +1,21 @@
 # Data Intelligence Challenge solution
 
-## Setup
-We used pipenv for setting up our virtual environment. It fully specifies dependencies and subdependencies 
-in the Pipfile and Pipfile.lock.
+## Continuous Simulation Setup
+We recommend using (mini)conda for installing the dependencies in a separate new environment. This makes installing Pytorch on CUDA and other libraries a little easier. Installing dependencies may be done using `pip install -r requirements.txt`, but we provide no guarantees for this method.
 
-For documentation see https://pipenv.pypa.io/en/latest/ 
 
 ### Steps:
-1. Activate or install a Python 3.8 environment.
-2. Install MPI
-   - For windows: get [Microsoft MPI](https://www.microsoft.com/en-us/download/details.aspx?id=100593) and make sure to add it to your path variable.
+1. Install MPI
+   - For windows: Get the .exe from [Microsoft MPI](https://www.microsoft.com/en-us/download/details.aspx?id=100593). Run it, and check whether MSI was added to your system path variable.
    - For Ubuntu: get OpenMPI `sudo apt-get update && sudo apt-get install libopenmpi-dev`
    - For Max OSX: get OpenMPI `brew install openmpi`
-   - Alternatively, you can install OpenMPI using conda `conda install openmpi`
-3. Make sure to have [swig](https://www.swig.org/download.html) installed. 
-   - Download it from the link and unpack it.
-   - Make sure to add swig to your path variable.
-   - Alternatively, you can install swig using conda `conda install swig`
-4. Replicate the project environment dependencies.
-   - For pip by running `pip install -r requirements.txt` in the project folder.
-   - For conda by running `conda install --file requirements.txt` in the project folder.
-5. Check the installation by running:
+   - On some system configurations, you can install OpenMPI using conda `conda install openmpi`. Not guaranteed to work.
+2. Replicate the conda environment using:
+   1. `conda env create -f conda_env.yaml`
+   2. `conda activate dic-env`
+3. Install the spinup module ant it's dependencies using: `pip install -e spinningup`
+4. Check the installation by running:
    - To check the vacuum robot environment: `python .\Continuous-Simulations\runner.py`
-   - To check the adapted spinningup library: `python -m spinup.run ppo --hid "[32,32]" --env LunarLander-v2 --exp_name installtest --gamma 0.999` 
 
 **Note** that the C++ build tools on your system are required for using this project.
 

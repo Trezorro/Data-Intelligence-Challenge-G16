@@ -1,0 +1,32 @@
+name: dic-env
+channels:
+  - defaults
+  - conda-forge
+  - pytorch
+dependencies:
+  - python=3.8.12
+  - scipy
+  - flask-socketio
+  - cudatoolkit=11.3
+  - click
+  - colorama
+  - openpyxl
+  - psutil
+  - plotly
+  - numpy
+  - pillow==9.1.1
+  - rope
+  - matplotlib
+  - pytest
+  - yapf
+  - flask==1.1.2
+  - ipython
+  - pytorch==1.11.0
+  - pandas
+  - tqdm
+  - seaborn
+  - swig
+  - pip
+  - pip:
+    - gym[box2d]==0.24.0
+    - pygame
