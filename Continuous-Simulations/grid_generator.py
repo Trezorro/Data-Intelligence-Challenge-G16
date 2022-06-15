@@ -29,7 +29,7 @@ class GridBuilder:
     def __init__(
             self, 
             grid_size: int = 24, 
-            room_sizes: Union[tuple, list] = ((8, 7), (7, 6), (6, 5), (5, 4), (5, 4), (4, 2), (3, 2), (2, 1), (2, 1)),
+            room_sizes: Union[tuple, list] = ((8, 7), (7, 6), (7, 6), (6, 5), (4, 2), (3, 2), (2, 1), (2, 1)),
     ):
         """The GridBuilder can generate grids with specified rooms 
         allocated randomly within the allocated space. 
