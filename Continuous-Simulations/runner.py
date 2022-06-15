@@ -1,9 +1,13 @@
+import sys
+from pathlib import Path
+
 import gym
 from gym.envs.registration import register
 from tqdm import trange
 from gym import Env
 from agent_configs.random_agent import RandomAgent
 from torch import nn
+sys.path.append(str(Path.cwd().parent))  # Make it possible to import from parent directory
 from spinup import ppo_pytorch as ppo
 from spinup import sac_pytorch as sac
 from spinup import vpg_pytorch as vpg
