@@ -92,7 +92,7 @@ class MLPQFunction(nn.Module):
         self.device = device
 
         self.q = conv(conv_sizes=conv_sizes, dense_sizes=dense_sizes, activation=activation_conv)
-        self.q_last = conv_last(out_size=1, activation=nn.Tanh, input_size=dense_sizes[-1]+2)
+        self.q_last = conv_last(out_size=1, activation=nn.Tanh, input_size=dense_sizes[-1]+2+2)
 
     def forward(self, field, agent_center, act):
         field = torch.as_tensor(field).to(self.device)
