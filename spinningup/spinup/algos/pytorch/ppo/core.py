@@ -44,16 +44,16 @@ class Actor(nn.Module):
     def _log_prob_from_distribution(self, pi, act):
         raise NotImplementedError
 
-class MLPGaussianActor(Actor):
 
-    def __init__(self, act_dim, device):
+class MLPGaussianActor(Actor):
+    def __init__(self, act_dim, conv_sizes, dense_sizes, activation_conv, device='cpu'):
         super().__init__()
         self.device = device
 
         log_std = -0.5 * np.ones(act_dim, dtype=np.float32)
         self.log_std = torch.nn.Parameter(torch.as_tensor(log_std))
-        self.mu_net = conv()
-        self.mu_net_last = conv_last(activation=CustomAct)
+        self.mu_net = conv(conv_sizes=conv_sizes, dense_sizes=dense_sizes, activation=activation_conv)
+        self.mu_net_last = conv_last(out_size=2, input_size=dense_sizes[-1]+2, activation=CustomAct)
 
     def _distribution(self, field, agent_center):
         obs = torch.as_tensor(field)
@@ -87,14 +87,15 @@ class MLPGaussianActor(Actor):
 
 
 class MLPCritic(nn.Module):
-
-    def __init__(self):
+    def __init__(self, conv_sizes, dense_sizes, activation_conv, device='cpu'):
         super().__init__()
-        self.v_net = conv()
-        self.v_net_end = conv_last(out_size=1)
+        self.device = device
+
+        self.v_net = conv(conv_sizes=conv_sizes, dense_sizes=dense_sizes, activation=activation_conv)
+        self.v_net_end = conv_last(out_size=1, input_size=dense_sizes[-1]+2, activation=nn.Tanh)
 
     def forward(self, world, agent_center):
-        world = torch.as_tensor(world)
+        world = torch.as_tensor(world).to(self.device)
         if len(world.shape) == 3:
             world = world.unsqueeze(0)
 
@@ -114,19 +115,19 @@ class MLPCritic(nn.Module):
 
 class MLPActorCritic(nn.Module):
 
-    def __init__(self, action_space, device):
+    def __init__(self, action_space, device, conv_sizes=(64, 32, 16), dense_sizes=(512, 128), activation_conv=nn.ReLU):
         super().__init__()
 
         self.device = device
 
         # policy builder depends on action space
         if isinstance(action_space, Box):
-            self.pi = MLPGaussianActor(action_space.shape[0], device).to(device)
+            self.pi = MLPGaussianActor(action_space.shape[0], conv_sizes=conv_sizes, dense_sizes=dense_sizes, activation_conv=activation_conv, device=device).to(device)
         elif isinstance(action_space, Discrete):
             raise Exception()
 
         # build value function
-        self.v = MLPCritic().to(device)
+        self.v = MLPCritic(conv_sizes=conv_sizes, dense_sizes=dense_sizes, activation_conv=activation_conv, device=device).to(device)
 
     def step(self, obs):
         field = torch.as_tensor(obs['world'], dtype=torch.float32).to(self.device)

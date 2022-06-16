@@ -214,7 +214,7 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     act_dim = env.action_space.shape
 
     # Create actor-critic module
-    ac = actor_critic(env.action_space, device).to(device)
+    ac = actor_critic(env.action_space, device, **ac_kwargs).to(device)
 
     # Sync params across processes
     sync_params(ac)
