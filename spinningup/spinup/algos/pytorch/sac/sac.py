@@ -38,7 +38,7 @@ class ReplayBuffer:
         self.ptr = (self.ptr+1) % self.max_size
         self.size = min(self.size+1, self.max_size)
 
-    def sample_batch(self, batch_size=32):
+    def sample_batch(self, batch_size=32, device=torch.device('cpu')):
         idxs = np.random.randint(0, self.size, size=batch_size)
         batch = dict(obs=self.obs_buf[idxs],
                      obs2=self.obs2_buf[idxs],
@@ -47,7 +47,7 @@ class ReplayBuffer:
                      act=self.act_buf[idxs],
                      rew=self.rew_buf[idxs],
                      done=self.done_buf[idxs])
-        return {k: torch.as_tensor(v, dtype=torch.float32) for k,v in batch.items()}
+        return {k: torch.as_tensor(v, dtype=torch.float32, device=device) for k,v in batch.items()}
 
 
 
@@ -55,7 +55,7 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         steps_per_epoch=4000, epochs=100, replay_size=int(1e6), gamma=0.99, 
         polyak=0.995, lr=1e-3, alpha=0.2, batch_size=100, start_steps=10000, 
         update_after=1000, update_every=50, num_test_episodes=10, max_ep_len=1000, 
-        logger_kwargs=dict(), save_freq=1, device='cpu'):
+        logger_kwargs=dict(), save_freq=1, device=torch.device('cpu')):
     """
     Soft Actor-Critic (SAC)
 
@@ -208,8 +208,8 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         loss_q = loss_q1 + loss_q2
 
         # Useful info for logging
-        q_info = dict(Q1Vals=q1.detach().numpy(),
-                      Q2Vals=q2.detach().numpy())
+        q_info = dict(Q1Vals=q1.detach().cpu().numpy(),
+                      Q2Vals=q2.detach().cpu().numpy())
 
         return loss_q, q_info
 
@@ -225,7 +225,7 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         loss_pi = (alpha * logp_pi - q_pi).mean()
 
         # Useful info for logging
-        pi_info = dict(LogPi=logp_pi.detach().numpy())
+        pi_info = dict(LogPi=logp_pi.detach().cpu().numpy())
 
         return loss_pi, pi_info
 
@@ -327,7 +327,7 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         # Update handling
         if t >= update_after and t % update_every == 0:
             for j in range(update_every):
-                batch = replay_buffer.sample_batch(batch_size)
+                batch = replay_buffer.sample_batch(batch_size, device=device)
                 update(data=batch)
 
         # End of epoch handling

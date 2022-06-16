@@ -31,7 +31,7 @@ def mlp(sizes, activation, output_activation=nn.Identity):
 
 class SquashedGaussianMLPActor(nn.Module):
 
-    def __init__(self, act_limit, conv_sizes, dense_sizes, activation_conv, device='cpu'):
+    def __init__(self, act_limit, conv_sizes, dense_sizes, activation_conv, device=torch.device('cpu')):
         super().__init__()
         self.device = device
 
@@ -86,7 +86,7 @@ class SquashedGaussianMLPActor(nn.Module):
 
 class MLPQFunction(nn.Module):
 
-    def __init__(self, conv_sizes, dense_sizes, activation_conv, device='cpu'):
+    def __init__(self, conv_sizes, dense_sizes, activation_conv, device=torch.device('cpu')):
         super().__init__()
 
         self.device = device
@@ -131,4 +131,4 @@ class MLPActorCritic(nn.Module):
         with torch.no_grad():
             a, _ = self.pi(field, position, deterministic, False)
 
-            return a.numpy()
+            return a.cpu().numpy()

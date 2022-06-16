@@ -73,7 +73,7 @@ class PPOBuffer:
 
         self.path_start_idx = self.ptr
 
-    def get(self):
+    def get(self, device=torch.device('cpu')):
         """
         Call this at the end of an epoch to get all of the data from
         the buffer, with advantages appropriately normalized (shifted to have
@@ -86,13 +86,13 @@ class PPOBuffer:
         self.adv_buf = (self.adv_buf - adv_mean) / adv_std
         data = dict(obs=self.obs_buf, act=self.act_buf, ret=self.ret_buf,
                     adv=self.adv_buf, logp=self.logp_buf, pos_buf=self.pos_buf)
-        return {k: torch.as_tensor(v, dtype=torch.float32) for k, v in data.items()}
+        return {k: torch.as_tensor(v, dtype=torch.float32, device=device) for k, v in data.items()}
 
 
 def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         steps_per_epoch=4000, epochs=50, gamma=0.99, clip_ratio=0.2, pi_lr=3e-4,
         vf_lr=1e-3, train_pi_iters=80, train_v_iters=80, lam=0.97, max_ep_len=1000,
-        target_kl=0.01, logger_kwargs=dict(), save_freq=10, device='cpu'):
+        target_kl=0.01, logger_kwargs=dict(), save_freq=10, device=torch.device('cpu')):
     """
     Proximal Policy Optimization (by clipping), 
 
@@ -259,7 +259,7 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     logger.setup_pytorch_saver(ac)
 
     def update():
-        data = buf.get()
+        data = buf.get(device=device)
 
         pi_l_old, pi_info_old = compute_loss_pi(data)
         pi_l_old = pi_l_old.item()

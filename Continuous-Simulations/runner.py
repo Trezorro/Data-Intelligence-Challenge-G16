@@ -5,8 +5,8 @@ import gym
 import torch
 from gym.envs.registration import register
 
-DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-
+DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+print("Device:",DEVICE)
 sys.path.append(str(Path(__file__).parent.parent.parent / "spinningup"))
 from spinup import ppo_pytorch as ppo
 from spinup import sac_pytorch as sac

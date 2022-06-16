@@ -48,8 +48,8 @@ if __name__ == '__main__':
     your_gaussian_likelihood = gaussian_likelihood(x, mu, log_std)
     true_gaussian_likelihood = exercise1_1_soln.gaussian_likelihood(x, mu, log_std)
 
-    your_result = your_gaussian_likelihood.detach().numpy()
-    true_result = true_gaussian_likelihood.detach().numpy()
+    your_result = your_gaussian_likelihood.detach().cpu().numpy()
+    true_result = true_gaussian_likelihood.detach().cpu().numpy()
 
     correct = np.allclose(your_result, true_result)
     print_result(correct)

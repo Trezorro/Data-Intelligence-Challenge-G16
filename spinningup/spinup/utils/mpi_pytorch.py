@@ -22,7 +22,7 @@ def mpi_avg_grads(module):
     if num_procs()==1:
         return
     for p in module.parameters():
-        p_grad_numpy = p.grad.numpy()   # numpy view of tensor data
+        p_grad_numpy = p.grad.cpu().numpy()   # numpy view of tensor data
         avg_p_grad = mpi_avg(p.grad)
         p_grad_numpy[:] = avg_p_grad[:]
 
@@ -31,5 +31,5 @@ def sync_params(module):
     if num_procs()==1:
         return
     for p in module.parameters():
-        p_numpy = p.data.numpy()
+        p_numpy = p.data.cpu().numpy()
         broadcast(p_numpy)
