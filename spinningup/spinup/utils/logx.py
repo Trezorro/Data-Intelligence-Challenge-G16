@@ -7,13 +7,17 @@ Logs to a tab-separated-values file (path/to/output_directory/progress.txt)
 """
 import json
 import joblib
-import shutil
 import numpy as np
 import torch
 import os.path as osp, time, atexit, os
 import warnings
 from spinup.utils.mpi_tools import proc_id, mpi_statistics_scalar
 from spinup.utils.serialization_utils import convert_json
+try:
+    import wandb
+except ImportError as e:
+    pass
+
 
 color2num = dict(
     gray=30,
@@ -50,7 +54,7 @@ class Logger:
     state of a training run, and the trained model.
     """
 
-    def __init__(self, output_dir=None, output_fname='progress.txt', exp_name=None):
+    def __init__(self, output_dir=None, output_fname='progress.txt', exp_name=None, wandb_logger=None):
         """
         Initialize a Logger.
 
@@ -85,6 +89,7 @@ class Logger:
         self.log_headers = []
         self.log_current_row = {}
         self.exp_name = exp_name
+        self.wandb_logger = wandb_logger
 
     def log(self, msg, color='green'):
         """Print a colorized message to stdout."""
@@ -218,11 +223,15 @@ class Logger:
             fmt = "| " + keystr + "s | %15s |"
             n_slashes = 22 + max_key_len
             print("-" * n_slashes)
+            wandb_log_dict = {}
             for key in self.log_headers:
                 val = self.log_current_row.get(key, "")
                 valstr = "%8.3g" % val if hasattr(val, "__float__") else val
                 print(fmt % (key, valstr))
                 vals.append(val)
+                wandb_log_dict[key] = val
+            if self.wandb_logger is not None:
+                wandb.log(wandb_log_dict)
             print("-" * n_slashes, flush=True)
             if self.output_file is not None:
                 if self.first_row:
