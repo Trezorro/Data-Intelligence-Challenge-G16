@@ -2,11 +2,11 @@ import sys
 from pathlib import Path
 
 import gym
+import torch
 from gym.envs.registration import register
-from tqdm import trange
-from gym import Env
-from agent_configs.random_agent import RandomAgent
-from torch import nn
+
+DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
+
 sys.path.append(str(Path(__file__).parent.parent.parent / "spinningup"))
 from spinup import ppo_pytorch as ppo
 from spinup import sac_pytorch as sac
@@ -23,11 +23,10 @@ options = {
     "agent_width": 96
 }
 
-ac_kwargs = dict(hidden_sizes=[64, 64], activation=nn.ReLU)
 logger_kwargs = dict(output_dir='./data', exp_name='exp_1')
 env_fn = lambda: gym.make('ContinuousWorld-v0', render_mode="non_human")
 
-# td3(env_fn=env_fn, ac_kwargs=ac_kwargs, steps_per_epoch=100, num_test_episodes=1, max_ep_len=100, logger_kwargs=logger_kwargs)
-# vpg(env_fn=env_fn, ac_kwargs=ac_kwargs, steps_per_epoch=500, epochs=20, logger_kwargs=logger_kwargs)
-# ppo(env_fn=env_fn, ac_kwargs=ac_kwargs, steps_per_epoch=100, epochs=50, clip_ratio=0.3, pi_lr=3e-2, vf_lr=1e-2, train_pi_iters=10, train_v_iters=10, logger_kwargs=logger_kwargs)
-sac(env_fn=env_fn, steps_per_epoch=100, epochs=10, num_test_episodes=3, max_ep_len=100, logger_kwargs=logger_kwargs)
+# td3(env_fn=env_fn, steps_per_epoch=100, num_test_episodes=1, max_ep_len=100, logger_kwargs=logger_kwargs)
+# vpg(env_fn=env_fn, steps_per_epoch=500, epochs=20, logger_kwargs=logger_kwargs)
+# ppo(env_fn=env_fn, steps_per_epoch=100, epochs=2, clip_ratio=0.3, pi_lr=3e-2, vf_lr=1e-2, train_pi_iters=10, train_v_iters=10, logger_kwargs=logger_kwargs, device=DEVICE)
+sac(env_fn=env_fn, steps_per_epoch=200, epochs=1, num_test_episodes=3, max_ep_len=80, logger_kwargs=logger_kwargs, device=DEVICE)

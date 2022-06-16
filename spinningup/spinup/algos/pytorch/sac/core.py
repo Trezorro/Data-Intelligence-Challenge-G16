@@ -1,5 +1,4 @@
 import numpy as np
-import scipy.signal
 
 import torch
 import torch.nn as nn
@@ -32,8 +31,10 @@ def mlp(sizes, activation, output_activation=nn.Identity):
 
 class SquashedGaussianMLPActor(nn.Module):
 
-    def __init__(self, act_limit):
+    def __init__(self, act_limit, device):
         super().__init__()
+        self.device = device
+
         self.net = conv()
 
         self.mu_layer = conv_last()
@@ -42,7 +43,7 @@ class SquashedGaussianMLPActor(nn.Module):
         self.act_limit = act_limit
 
     def forward(self, field, agent_center, deterministic=False, with_logprob=True):
-        obs = torch.as_tensor(field)
+        obs = torch.as_tensor(field).to(self.device)
         if len(obs.shape) == 3:
             obs = obs.unsqueeze(0)
 
@@ -85,14 +86,16 @@ class SquashedGaussianMLPActor(nn.Module):
 
 class MLPQFunction(nn.Module):
 
-    def __init__(self):
+    def __init__(self, device):
         super().__init__()
+
+        self.device = device
 
         self.q = conv()
         self.q_last = conv_last(out_size=1)
 
     def forward(self, field, agent_center, act):
-        field = torch.as_tensor(field)
+        field = torch.as_tensor(field).to(self.device)
         if len(field.shape) == 3:
             field = field.unsqueeze(0)
 
@@ -109,21 +112,21 @@ class MLPQFunction(nn.Module):
 
 class MLPActorCritic(nn.Module):
 
-    def __init__(self, observation_space, action_space):
+    def __init__(self, device):
         super().__init__()
 
-        obs_dim = np.prod(observation_space.shape)
-        act_dim = action_space.shape[0]
+        self.device = device
+
         act_limit = 1
 
         # build policy and value functions
-        self.pi = SquashedGaussianMLPActor(act_limit)
-        self.q1 = MLPQFunction()
-        self.q2 = MLPQFunction()
+        self.pi = SquashedGaussianMLPActor(act_limit, device).to(device)
+        self.q1 = MLPQFunction(device).to(device)
+        self.q2 = MLPQFunction(device).to(device)
 
     def act(self, obs, deterministic=False):
-        field = torch.as_tensor(obs['world'], dtype=torch.float32)
-        position = torch.as_tensor(obs['agent_center'], dtype=torch.float32) / 1536
+        field = torch.as_tensor(obs['world'], dtype=torch.float32).to(self.device)
+        position = torch.as_tensor(obs['agent_center'], dtype=torch.float32).to(self.device) / 1536
 
         with torch.no_grad():
             a, _ = self.pi(field, position, deterministic, False)

@@ -20,7 +20,7 @@ class CustomAct(nn.Module):
         return input
 
 
-def conv(conv_sizes=(32, 64, 64), dense_sizes=(512, 128), activation=nn.ReLU):
+def conv(conv_sizes=(64, 32, 16), dense_sizes=(512, 128), activation=nn.ReLU):
     return nn.Sequential(
         nn.Conv2d(5, conv_sizes[0], 3, 1),
         activation(),

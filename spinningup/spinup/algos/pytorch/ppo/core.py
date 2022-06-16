@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 from torch.distributions.normal import Normal
 
-from spinup.algos.pytorch.helpers.general_nets import conv, conv_last
+from spinup.algos.pytorch.helpers.general_nets import conv, conv_last, CustomAct
 
 
 def combined_shape(length, shape=None):
@@ -44,27 +44,16 @@ class Actor(nn.Module):
     def _log_prob_from_distribution(self, pi, act):
         raise NotImplementedError
 
-    def forward(self, obs, act=None):
-        # Produce action distributions for given observations, and 
-        # optionally compute the log likelihood of given actions under
-        # those distributions.
-        field = torch.as_tensor(obs['world'], dtype=torch.float32)
-        position = torch.as_tensor(obs['agent_center'])
-
-        pi = self._distribution(field, position)
-        logp_a = None
-        if act is not None:
-            logp_a = self._log_prob_from_distribution(pi, act)
-        return pi, logp_a
-
 class MLPGaussianActor(Actor):
 
-    def __init__(self, act_dim):
+    def __init__(self, act_dim, device):
         super().__init__()
+        self.device = device
+
         log_std = -0.5 * np.ones(act_dim, dtype=np.float32)
         self.log_std = torch.nn.Parameter(torch.as_tensor(log_std))
         self.mu_net = conv()
-        self.mu_net_last = conv_last()
+        self.mu_net_last = conv_last(activation=CustomAct)
 
     def _distribution(self, field, agent_center):
         obs = torch.as_tensor(field)
@@ -85,6 +74,16 @@ class MLPGaussianActor(Actor):
 
     def _log_prob_from_distribution(self, pi, act):
         return pi.log_prob(act).sum(axis=-1)  # Last axis sum needed for Torch Normal distribution
+
+    def forward(self, obs, act=None):
+        field = torch.as_tensor(obs['world'], dtype=torch.float32).to(self.device)
+        position = torch.as_tensor(obs['agent_center']).to(self.device)
+
+        pi = self._distribution(field, position)
+        logp_a = None
+        if act is not None:
+            logp_a = self._log_prob_from_distribution(pi, act)
+        return pi, logp_a
 
 
 class MLPCritic(nn.Module):
@@ -115,24 +114,23 @@ class MLPCritic(nn.Module):
 
 class MLPActorCritic(nn.Module):
 
-    def __init__(self, observation_space, action_space,
-                 hidden_sizes=(64, 64), activation=nn.Tanh):
+    def __init__(self, action_space, device):
         super().__init__()
 
-        obs_dim = np.prod(observation_space.shape)
+        self.device = device
 
         # policy builder depends on action space
         if isinstance(action_space, Box):
-            self.pi = MLPGaussianActor(action_space.shape[0])
+            self.pi = MLPGaussianActor(action_space.shape[0], device).to(device)
         elif isinstance(action_space, Discrete):
             raise Exception()
 
         # build value function
-        self.v = MLPCritic()
+        self.v = MLPCritic().to(device)
 
     def step(self, obs):
-        field = torch.as_tensor(obs['world'], dtype=torch.float32)
-        position = torch.as_tensor(obs['agent_center'], dtype=torch.float32)/1536
+        field = torch.as_tensor(obs['world'], dtype=torch.float32).to(self.device)
+        position = torch.as_tensor(obs['agent_center'], dtype=torch.float32).to(self.device)/1536
 
         with torch.no_grad():
             pi = self.pi._distribution(field, position)
