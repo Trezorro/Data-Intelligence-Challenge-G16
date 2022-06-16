@@ -1,10 +1,9 @@
+from typing import Tuple
+
 import torch
 from torch import nn, Tensor
 import torch.nn.functional as F
 
-def init_weights(m):
-    for name, param in m.named_parameters():
-        nn.init.uniform_(param.data, -0.1, 0.1)
 
 class CustomAct(nn.Module):
     def __init__(self, inplace: bool = False):
@@ -20,7 +19,12 @@ class CustomAct(nn.Module):
         return input
 
 
-def conv(conv_sizes=(64, 32, 16), dense_sizes=(512, 128), activation=nn.ReLU):
+def init_weights(m):
+    for name, param in m.named_parameters():
+        nn.init.uniform_(param.data, -0.1, 0.1)
+
+
+def conv(conv_sizes: Tuple, dense_sizes: Tuple, activation: nn.Module):
     return nn.Sequential(
         nn.Conv2d(5, conv_sizes[0], 3, 1),
         activation(),
@@ -36,7 +40,7 @@ def conv(conv_sizes=(64, 32, 16), dense_sizes=(512, 128), activation=nn.ReLU):
     )
 
 
-def conv_last(out_size=2, input_size=130, activation=CustomAct):
+def conv_last(out_size: int, input_size: int, activation: nn.Module):
     return nn.Sequential(
         nn.Linear(input_size, out_size),
         activation(),
