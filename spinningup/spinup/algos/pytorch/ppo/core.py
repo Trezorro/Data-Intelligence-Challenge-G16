@@ -51,7 +51,7 @@ class MLPGaussianActor(Actor):
         self.device = device
 
         log_std = -0.5 * np.ones(act_dim, dtype=np.float32)
-        self.log_std = torch.nn.Parameter(torch.as_tensor(log_std))
+        self.log_std = torch.nn.Parameter(torch.as_tensor(log_std).to(device))
         self.mu_net = conv(conv_sizes=conv_sizes, dense_sizes=dense_sizes, activation=activation_conv)
         self.mu_net_last = conv_last(out_size=2, input_size=dense_sizes[-1]+2, activation=CustomAct)
 

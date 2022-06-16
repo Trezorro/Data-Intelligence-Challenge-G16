@@ -31,14 +31,14 @@ def mlp(sizes, activation, output_activation=nn.Identity):
 
 class SquashedGaussianMLPActor(nn.Module):
 
-    def __init__(self, act_limit, device):
+    def __init__(self, act_limit, conv_sizes, dense_sizes, activation_conv, device='cpu'):
         super().__init__()
         self.device = device
 
-        self.net = conv()
+        self.net = conv(conv_sizes=conv_sizes, dense_sizes=dense_sizes, activation=activation_conv)
 
-        self.mu_layer = conv_last()
-        self.log_std_layer = conv_last(activation=nn.Tanh)
+        self.mu_layer = conv_last(out_size=2, input_size=dense_sizes[-1]+2, activation=nn.Tanh)
+        self.log_std_layer = conv_last(out_size=2, input_size=dense_sizes[-1]+2, activation=nn.Tanh)
 
         self.act_limit = act_limit
 
@@ -86,13 +86,13 @@ class SquashedGaussianMLPActor(nn.Module):
 
 class MLPQFunction(nn.Module):
 
-    def __init__(self, device):
+    def __init__(self, conv_sizes, dense_sizes, activation_conv, device='cpu'):
         super().__init__()
 
         self.device = device
 
-        self.q = conv()
-        self.q_last = conv_last(out_size=1)
+        self.q = conv(conv_sizes=conv_sizes, dense_sizes=dense_sizes, activation=activation_conv)
+        self.q_last = conv_last(out_size=1, activation=nn.Tanh, input_size=dense_sizes[-1]+2)
 
     def forward(self, field, agent_center, act):
         field = torch.as_tensor(field).to(self.device)
@@ -112,7 +112,7 @@ class MLPQFunction(nn.Module):
 
 class MLPActorCritic(nn.Module):
 
-    def __init__(self, device):
+    def __init__(self, device, conv_sizes=(64, 32, 16), dense_sizes=(512, 128), activation_conv=nn.ReLU):
         super().__init__()
 
         self.device = device
@@ -120,9 +120,9 @@ class MLPActorCritic(nn.Module):
         act_limit = 1
 
         # build policy and value functions
-        self.pi = SquashedGaussianMLPActor(act_limit, device).to(device)
-        self.q1 = MLPQFunction(device).to(device)
-        self.q2 = MLPQFunction(device).to(device)
+        self.pi = SquashedGaussianMLPActor(act_limit, conv_sizes=conv_sizes, dense_sizes=dense_sizes, activation_conv=activation_conv, device=device).to(device)
+        self.q1 = MLPQFunction(conv_sizes=conv_sizes, dense_sizes=dense_sizes, activation_conv=activation_conv, device=device).to(device)
+        self.q2 = MLPQFunction(conv_sizes=conv_sizes, dense_sizes=dense_sizes, activation_conv=activation_conv, device=device).to(device)
 
     def act(self, obs, deterministic=False):
         field = torch.as_tensor(obs['world'], dtype=torch.float32).to(self.device)
