@@ -46,7 +46,7 @@ class Actor(nn.Module):
 
 
 class MLPGaussianActor(Actor):
-    def __init__(self, act_dim, conv_sizes, dense_sizes, activation_conv, device='cpu'):
+    def __init__(self, act_dim, conv_sizes, dense_sizes, activation_conv, device=torch.device('cpu')):
         super().__init__()
         self.device = device
 
@@ -56,7 +56,7 @@ class MLPGaussianActor(Actor):
         self.mu_net_last = conv_last(out_size=2, input_size=dense_sizes[-1]+2, activation=CustomAct)
 
     def _distribution(self, field, agent_center):
-        obs = torch.as_tensor(field)
+        obs = torch.as_tensor(field, device=self.device)
         if len(obs.shape) == 3:
             obs = obs.unsqueeze(0)
 
@@ -82,12 +82,13 @@ class MLPGaussianActor(Actor):
         pi = self._distribution(field, position)
         logp_a = None
         if act is not None:
+            act = act.to(self.device)
             logp_a = self._log_prob_from_distribution(pi, act)
         return pi, logp_a
 
 
 class MLPCritic(nn.Module):
-    def __init__(self, conv_sizes, dense_sizes, activation_conv, device='cpu'):
+    def __init__(self, conv_sizes, dense_sizes, activation_conv, device=torch.device('cpu')):
         super().__init__()
         self.device = device
 
@@ -138,7 +139,7 @@ class MLPActorCritic(nn.Module):
             a = pi.sample()
             logp_a = self.pi._log_prob_from_distribution(pi, a)
             v = self.v(field, position)
-        return a.numpy(), v.numpy(), logp_a.numpy()
+        return a.cpu().numpy(), v.cpu().numpy(), logp_a.cpu().numpy()
 
     def act(self, obs):
         return self.step(obs)[0]
