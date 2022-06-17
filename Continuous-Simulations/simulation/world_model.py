@@ -341,6 +341,8 @@ class WorldModel:
             if moved_distance > 0:
                 drain_amount = self._drain_battery(move_amount=moved_distance / self.agent_speed) 
                 self.agent_is_alive = self.agent_battery > 0
+            else:
+                drain_amount = 0
 
             collisions = self._check_colisions(self.agent_rect, check_walls=False)
             # Check if we hit a death tile
