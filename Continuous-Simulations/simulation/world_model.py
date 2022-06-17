@@ -260,14 +260,15 @@ class WorldModel:
 
         return collisions
 
-    def _drain_battery(self, move_amount=1.0) -> bool:
+    def _drain_battery(self, move_amount=1.0) -> float:
         """Drains battery by a certain amount.
 
         Returns:
             If the agent is still alive or not after the battery drain.
         """
-        self.agent_battery -= self.battery_drain * move_amount
-        return self.agent_battery > 0
+        drain_amount = self.battery_drain * move_amount
+        self.agent_battery -= drain_amount
+        return drain_amount
 
     def rotate_agent(self, angle: int):
         """Rotates the agent but the desired amount.
@@ -338,7 +339,8 @@ class WorldModel:
                 break
                 
             if moved_distance > 0:
-                self.agent_is_alive = self._drain_battery(move_amount=moved_distance / self.agent_speed) 
+                drain_amount = self._drain_battery(move_amount=moved_distance / self.agent_speed) 
+                self.agent_is_alive = self.agent_battery > 0
 
             collisions = self._check_colisions(self.agent_rect, check_walls=False)
             # Check if we hit a death tile
@@ -371,7 +373,8 @@ class WorldModel:
             "hit_obstacle": int(hit_obstacle),
             "hit_dirt": int(hit_dirt),
             "hit_death": int(hit_death),
-            "is_alive": int(self.agent_is_alive)
+            "is_alive": int(self.agent_is_alive),
+            "drain_amount": drain_amount
         }
         # TODO: maintain fog of war and obstacle channels
         # add visible cells to fog of war 

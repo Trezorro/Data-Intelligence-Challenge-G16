@@ -169,11 +169,11 @@ class ContinuousEnv(gym.Env):
         Returns:
             The reward value.
         """
-        # TODO
+        reward = 0
         if events["hit_death"] == 1:
-            return -100
-
-        return events["hit_dirt"] * 10
+            reward-=100
+        reward-=events["drain_amount"]
+        return events["hit_dirt"] * 2
 
     def _update_info(self, events: dict, reward: int):
         """Updates the info dict."""
