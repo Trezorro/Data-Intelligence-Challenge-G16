@@ -80,4 +80,4 @@ if __name__ == '__main__':
         sac(env_fn=env_fn, lr=args.lr, alpha=args.alpha,
             steps_per_epoch=args.steps_per_epoch, epochs=args.epochs, batch_size=args.batch_size,
             num_test_episodes=args.num_test_episodes, max_ep_len=args.max_ep_len, gamma=args.gamma,
-            logger_kwargs=logger_kwargs, device=DEVICE)
+            update_after=args.updates_after, logger_kwargs=logger_kwargs, device=DEVICE)
