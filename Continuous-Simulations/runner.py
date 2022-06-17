@@ -10,7 +10,6 @@ print("Device:", DEVICE)
 sys.path.append(str(Path(__file__).parent.parent.parent / "spinningup"))
 from spinup import ppo_pytorch as ppo
 from spinup import sac_pytorch as sac
-from spinup import vpg_pytorch as vpg
 from spinup import td3_pytorch as td3
 
 try:
@@ -45,6 +44,7 @@ if __name__ == '__main__':
     parser.add_argument('--max_ep_len', type=int, default=300)
     parser.add_argument('--num_test_episodes', type=int, default=5)
     parser.add_argument('--updates_after', type=int, default=150)
+    parser.add_argument('--clip_ratio', type=float, default=0.3)
     parser.add_argument('--algorithm', type=str, choices=["sac", "ppo", "vpg", "td3"], default="sac")
     args = parser.parse_args()
 
@@ -65,17 +65,17 @@ if __name__ == '__main__':
         }
         wandb.init(project="data-intelligence-challenge", entity="data-intelligence-challenge-g16", config=config)
         logger_kwargs["wandb_logger"] = wandb
-        logger_kwargs["output_dir"] = './data/' + wandb.wandb_run.name
+        # logger_kwargs["output_dir"] = './data/' + wandb.run.name
 
     torch.set_num_threads(torch.get_num_threads())
     if args.algorithm == "td3":
-        td3(env_fn=env_fn, steps_per_epoch=100, num_test_episodes=1, max_ep_len=100,
-            logger_kwargs=logger_kwargs)
-    elif args.algorithm == "vpg":
-        vpg(env_fn=env_fn, steps_per_epoch=500, epochs=20, logger_kwargs=logger_kwargs)
+        td3(env_fn=env_fn, steps_per_epoch=args.steps_per_epoch, num_test_episodes=args.num_test_episodes,
+            max_ep_len=args.max_ep_len, logger_kwargs=logger_kwargs, pi_lr=args.lr, q_lr=args.lr,
+            gamma=args.gamma, device=DEVICE)
     elif args.algorithm == "ppo":
-        ppo(env_fn=env_fn, steps_per_epoch=100, epochs=2, clip_ratio=0.3, pi_lr=3e-2, vf_lr=1e-2,
-            train_pi_iters=10, train_v_iters=10, logger_kwargs=logger_kwargs, device=DEVICE)
+        ppo(env_fn=env_fn, steps_per_epoch=args.steps_per_epoch, epochs=args.epochs,
+            clip_ratio=args.clip_ratio, pi_lr=args.lr, vf_lr=args.lr, train_pi_iters=10, train_v_iters=10,
+            gamma=args.gamma, max_ep_len=args.max_ep_len, logger_kwargs=logger_kwargs, device=DEVICE)
     else:
         sac(env_fn=env_fn, lr=args.lr, alpha=args.alpha,
             steps_per_epoch=args.steps_per_epoch, epochs=args.epochs, batch_size=args.batch_size,
