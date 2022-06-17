@@ -48,7 +48,7 @@ class ContinuousEnv(gym.Env):
         self.grid: Optional[np.ndarray] = None
         self.world: Optional[WorldModel] = None
         self.window_size = (1152, 768)  # Pygame window size.
-        self.agent_speed = 128
+        self.agent_speed = 60
 
         # Set up the observation space
         # All observations with Discrete(2) represent booleans. 0 for False and
@@ -120,7 +120,6 @@ class ContinuousEnv(gym.Env):
 
         # pass only keys that the WorldModel can accept
         del params["grid_size"]
-        del params["agent_speed"]
         self.world = WorldModel(grid=self.grid, **params)
         self._initial_render()  # shows loading text
 

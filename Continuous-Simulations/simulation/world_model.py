@@ -18,7 +18,8 @@ class WorldModel:
             num_dirt: int,
             cell_size: int = 64,
             battery_drain: float = 0.25,
-            agent_width: int = 48,
+            agent_width: int = 60,
+            agent_speed = 60,
             slam_accuracy: float = 0.7
     ):
         """A very simple environment model which holds data about the world.
@@ -64,6 +65,7 @@ class WorldModel:
         self.agent_battery = 100.0
         self.agent_is_alive: bool = True
         self.agent_width = agent_width
+        self.agent_speed = agent_speed
 
         self.visited_grid = np.zeros_like(self.grid, dtype=float)
         self.fow_grid = np.zeros_like(self.grid, dtype=float)
@@ -252,19 +254,19 @@ class WorldModel:
         """
         collisions = {"obstacles": rect.collidelistall(self.obstacle_rects),
                       "dirt": rect.collidelistall(self.dirt_rects)}
+        collisions["death"] = rect.collidelistall(self.death_rects)
         if check_walls:
             collisions["walls"] = rect.collidelistall(self.occluding_walls)
-            collisions["death"] = rect.collidelistall(self.death_rects)
 
         return collisions
 
-    def _drain_battery(self) -> bool:
+    def _drain_battery(self, move_amount=1.0) -> bool:
         """Drains battery by a certain amount.
 
         Returns:
             If the agent is still alive or not after the battery drain.
         """
-        self.agent_battery -= self.battery_drain
+        self.agent_battery -= self.battery_drain * move_amount
         return self.agent_battery > 0
 
     def rotate_agent(self, angle: int):
@@ -312,51 +314,54 @@ class WorldModel:
             # Moves the agent by the given distance respecting its current angle
             heading = np.array([math.cos(self.agent_angle / 180 * math.pi),
                                 math.sin(self.agent_angle / 180 * math.pi)])
-            move_by = (heading * distance).astype(int)
-            move_by = (int(move_by[0]), int(move_by[1]))
-            self.agent_rect = self.agent_rect.move(move_by[0], move_by[1])
+            for completion_ratio in [r / 100 for r in range(100, -1, -5)]:
+                moved_distance = distance * completion_ratio
+                move_by = (heading * moved_distance).astype(int)
+                move_by = (int(move_by[0]), int(move_by[1]))
+                next_position_rect = self.agent_rect.move(move_by[0], move_by[1])
 
-            # Check if agent is still alive after draining the battery. Every
-            # move should drain the battery since even if a robot bumps into a
-            # wall, it's still expending energy to do so.
-            if distance > 0:
-                self.agent_is_alive = self._drain_battery()
+                # Check for colisions
 
-            # Check for colisions
-            collisions = self._check_colisions(self.agent_rect)
+                # Check if we hit a wall or obstacle
+                if len(next_position_rect.collidelistall(self.occluding_walls)) > 0:
+                    hit_wall = True
+                    print("Hit wall    ", next_position_rect, move_by, completion_ratio)
+                if len(next_position_rect.collidelistall(self.obstacle_rects)) > 0:
+                    print("Hit obstacle", next_position_rect, move_by, completion_ratio)
+                    hit_obstacle = True
+                if hit_wall or hit_obstacle:
+                    move_succeeded = False
+                    continue # backtrack a bit
 
-            # Check if we hit a wall
-            if len(collisions["walls"]) > 0:
-                move_succeeded = False
-                hit_wall = True
+                # no wall or obstacle, move succesful! Check for dirt and death.
+                self.agent_rect  = next_position_rect
+                break
+                
+            if moved_distance > 0:
+                self.agent_is_alive = self._drain_battery(move_amount=moved_distance / self.agent_speed) 
 
-            # check if we hit an obstacle
-            elif len(collisions["obstacles"]) > 0:
-                move_succeeded = False
-                hit_obstacle = True
-
+            collisions = self._check_colisions(self.agent_rect, check_walls=False)
             # Check if we hit a death tile
-            elif len(collisions["death"]) > 0:
+            if len(collisions["death"]) > 0:
                 move_succeeded = False
                 hit_death = True
                 self.agent_is_alive = False
+            # Check if agent is still alive after draining the battery. Every
+            # move should drain the battery since even if a robot bumps into a
+            # wall, it's still expending energy to do so.
 
-            if move_succeeded:
-                hit_dirt = len(collisions["dirt"])
-                if hit_dirt > 0:
-                    # Remove vacuumed up dirt
-                    new_dirt_rects = [dirt
-                                      for i, dirt in enumerate(self.dirt_rects)
-                                      if i not in collisions["dirt"]]
-                    self.dirt_rects = new_dirt_rects
+            hit_dirt = len(collisions["dirt"])
+            if hit_dirt > 0:
+                # Remove vacuumed up dirt
+                new_dirt_rects = [dirt
+                                    for i, dirt in enumerate(self.dirt_rects)
+                                    if i not in collisions["dirt"]]
+                self.dirt_rects = new_dirt_rects
 
-                # Set the current grid cell as visited
-                x_pos = int(self.agent_rect.x / self.cell_size)
-                y_pos = int(self.agent_rect.y / self.cell_size)
-                self.visited_grid[x_pos, y_pos] = 1
-
-            else:
-                self.agent_rect = self.agent_rect.move(-move_by[0], -move_by[1])
+            # Set the current grid cell as visited
+            x_pos = int(self.agent_rect.x / self.cell_size)
+            y_pos = int(self.agent_rect.y / self.cell_size)
+            self.visited_grid[x_pos, y_pos] = 1
         else:
             move_succeeded = False
 
@@ -373,6 +378,7 @@ class WorldModel:
         # add visible obstacles to obstacle channel
 
         self.last_observation = self._get_world_observation()
+        print("Finished move. ratio:", completion_ratio, next_position_rect)
 
         return events, self.last_observation
 
