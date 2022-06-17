@@ -322,7 +322,7 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
         # End of trajectory handling
         if d or (ep_len == max_ep_len):
-            logger.store(EpRet=ep_ret, EpLen=ep_len, train_cleanliness=info_dict['cleanliness'])
+            logger.store(EpRet=ep_ret, EpLen=ep_len, TrainCleanliness=info_dict['Cleanliness'])
             o, ep_ret, ep_len = env.reset(), 0, 0
 
         # Update handling
@@ -330,7 +330,6 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
             for j in range(update_every):
                 batch = replay_buffer.sample_batch(batch_size, device=device)
                 update(data=batch)
-
         # End of epoch handling
         if (t + 1) % steps_per_epoch == 0:
             epoch = (t + 1) // steps_per_epoch
@@ -345,8 +344,8 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
             # Log info about epoch
             logger.log_tabular('Epoch', epoch)
             logger.log_tabular('EpRet', with_min_and_max=True)
-            logger.log_tabular('cleanliness', with_min_and_max=True)
-            logger.log_tabular('train_cleanliness', with_min_and_max=True)
+            logger.log_tabular('Cleanliness', with_min_and_max=True)
+            logger.log_tabular('TrainCleanliness', with_min_and_max=True)
             logger.log_tabular('TestEpRet', with_min_and_max=True)
             logger.log_tabular('EpLen', average_only=True)
             logger.log_tabular('TestEpLen', average_only=True)

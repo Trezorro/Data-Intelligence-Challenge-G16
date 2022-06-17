@@ -184,7 +184,7 @@ class ContinuousEnv(gym.Env):
         self.info["death_hits"] += events["hit_death"]
         self.info["is_alive"] = events["is_alive"]
         self.info["score"] += reward
-        self.info["cleanliness"] = self.info["dirt_hits"] / self.world.start_dirtiness
+        self.info["Cleanliness"] = self.info["dirt_hits"] / self.world.start_dirtiness
 
     def _initial_render(self):
         """Initial rendering of the environment. Displays loading text."""
@@ -340,7 +340,7 @@ class ContinuousEnv(gym.Env):
                        "death_hits": "Death:",
                        "is_alive": "Alive:",
                        "score": "Score:",
-                       "cleanliness": "Cleanliness:",
+                       "Cleanliness": "Cleanliness:",
                        "fps": "FPS:"}
         for idx, (key, value) in enumerate(self.info.items()):
             y_pos = padding + (idx * 38)
