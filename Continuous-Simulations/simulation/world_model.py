@@ -326,9 +326,7 @@ class WorldModel:
                 # Check if we hit a wall or obstacle
                 if len(next_position_rect.collidelistall(self.occluding_walls)) > 0:
                     hit_wall = True
-                    print("Hit wall    ", next_position_rect, move_by, completion_ratio)
                 if len(next_position_rect.collidelistall(self.obstacle_rects)) > 0:
-                    print("Hit obstacle", next_position_rect, move_by, completion_ratio)
                     hit_obstacle = True
                 if hit_wall or hit_obstacle:
                     move_succeeded = False
@@ -383,7 +381,6 @@ class WorldModel:
         # add visible obstacles to obstacle channel
 
         self.last_observation = self._get_world_observation()
-        print("Finished move. ratio:", completion_ratio, next_position_rect)
 
         return events, self.last_observation
 
