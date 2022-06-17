@@ -6,7 +6,17 @@ We recommend using (mini)conda for installing the dependencies in a separate new
 
 ### Steps:
 1. Install MPI
-   - For windows: Get the .exe from [Microsoft MPI](https://www.microsoft.com/en-us/download/details.aspx?id=100593). Run it, and check whether MSI was added to your system path variable.
+   - For Windows:
+     1. Go to [Microsoft MPI](https://www.microsoft.com/en-us/download/details.aspx?id=100593).
+     2. Click the Download button and select only the setup file `msmpisetup.exe`.
+     3. Run the downloaded file and install Microsoft MPI.
+     4. Confirm that Microsoft MPI has been added to your path.
+        1. Either click Start, type Run, and press Enter OR press Windows+R.
+        2. Type `sysdm.cpl` and click "OK".
+        3. Click the "Advanced" tab and then click "Environment Variables...".
+        4. Under the "System Variables" panel (lower square), find the variable "Path" and confirm that `C:\Program Files\Microsoft MPI\Bin` (or wherever you installed Microsoft MPI) is there.
+           1. If yes, press "OK" to close the panel then "OK" again to close the System Properties panel.
+           2. If not, click the "Path" variable, click "Edit", and add `${Microsoft MPI Install Location}\Bin`, replacing `${Microsoft MPI Install Location}` with wherever you installed Microsoft MPI 
    - For Ubuntu: get OpenMPI `sudo apt-get update && sudo apt-get install libopenmpi-dev`
    - For Max OSX: get OpenMPI `brew install openmpi`
    - On some system configurations, you can install OpenMPI using conda `conda install openmpi`. Not guaranteed to work.
@@ -16,18 +26,22 @@ We recommend using (mini)conda for installing the dependencies in a separate new
 3. Install the spinup module and it's dependencies using: `pip install -e spinningup` (inside your conda environment.)
 4. Check the installation by running:
    - To check the vacuum robot environment: `python .\Continuous-Simulations\runner.py`
+   - For Windows: if there is a Windows Firewall popup, allow Python to communicate through the firewall.
 
 **Note** that the C++ build tools on your system are required for using this project.
 
 **Note (2)** that your path variable will now have the `<path>\swig-<version>` and `<path>\Microsoft MPI\bin`. 
 On windows, your path variable can be set by searching for `edit the system environment variables` -> `environment variables` -> Find `Path` variable -> `Edit` -> Add the paths.
 
-## Headless
+## Discrete Simulation Setup
+
+### Running headless
 
 The `/Discrete-Simulations/headless.py` script allows for running many simulations without the use of the UI.
 This script intends to simulate the Monte Carlo, Sarsa, QLearning algorithms and it includes two grid options to apply the algorithms, the 'stay-off-my-grass' grid and the 'experiment-house' grid. One can run the simulations by following the steps shown below.  After running each simulation, a folder named 'output' is generated in the same path as the `headless.py` file. The folder includes 1 excel file for every simulation that is named after the time and date the simulation started running and it consist of the results of the simulation. This folder also includes another folder named 'history' that consist of the path that the robot followed in every simulation and helps in generating the heatmap graph described in the report.
 
 ### Steps for running simulations:
+
 1. Open the `headless.py` file
 2. Go to line 34 and change the value of `ROBOT_MODULE_NAME` with one of the values sarsa_robot, monte_carlo_robot, q_learning_robot based on which robot you want to use.
 3. Go to lines 35 - 38 and uncomment only the grid that you want to include in your simulations, either the 'experiment_house.grid' or the 'stay_off_my_grass.grid'.
@@ -39,4 +53,4 @@ This script intends to simulate the Monte Carlo, Sarsa, QLearning algorithms and
 The environment and UI were changed with respect to the previous version. To start, the grid object was transposed. 
 Therefore, all calls to the numpy array inside the grid objects are now indexed first on rows (y) and then on column (x). 
 The visualization was also changed to match the stored numpy array as to have an identical visualization to what is stored in memory (and can be seen in debug mode).
-As the grid (and visualization) we're changed, the directions corresponding to the robot orientations were also changed. 
+As the grid (and visualization) we're changed, the directions corresponding to the robot orientations were also changed.
