@@ -304,7 +304,7 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         for t in tqdm(range(local_steps_per_epoch)):
             a, v, logp = ac.step(o)
 
-            next_o, r, d, _ = env.step(a)
+            next_o, r, d, info_dict = env.step(a)
             ep_ret += r
             ep_len += 1
 
@@ -320,6 +320,7 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
             epoch_ended = t == local_steps_per_epoch - 1
 
             if terminal or epoch_ended:
+                logger.store(TrainCleanliness=info_dict['Cleanliness'])
                 if epoch_ended and not terminal:
                     print('Warning: trajectory cut off by epoch at %d steps.' % ep_len, flush=True)
                 # if trajectory didn't reach terminal state, bootstrap value target
@@ -342,6 +343,7 @@ def ppo(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
 
         # Log info about epoch
         logger.log_tabular('Epoch', epoch)
+        logger.log_tabular('TrainCleanliness', with_min_and_max=True)
         logger.log_tabular('EpRet', with_min_and_max=True)
         logger.log_tabular('EpLen', average_only=True)
         logger.log_tabular('VVals', with_min_and_max=True)
