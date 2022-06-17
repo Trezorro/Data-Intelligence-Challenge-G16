@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
-
+import warnings
+warnings.filterwarnings("ignore", category=UserWarning)
 import gym
 import torch
 from gym.envs.registration import register
@@ -26,7 +27,7 @@ register(
 
 options = {
     "battery_drain": 0.1,
-    "agent_width": 96
+    "agent_width": 60
 }
 
 if __name__ == '__main__':
@@ -40,11 +41,12 @@ if __name__ == '__main__':
     parser.add_argument('--gamma', type=float, default=0.99)
     parser.add_argument('--batch_size', type=int, default=100)
     parser.add_argument('--epochs', type=int, default=5)
-    parser.add_argument('--steps_per_epoch', type=int, default=600)
-    parser.add_argument('--max_ep_len', type=int, default=300)
-    parser.add_argument('--num_test_episodes', type=int, default=5)
-    parser.add_argument('--updates_after', type=int, default=150)
+    parser.add_argument('--steps_per_epoch', type=int, default=900)
+    parser.add_argument('--max_ep_len', type=int, default=900)
+    parser.add_argument('--num_test_episodes', type=int, default=3)
+    parser.add_argument('--updates_after', type=int, default=400)
     parser.add_argument('--clip_ratio', type=float, default=0.3)
+    parser.add_argument('--polyak', type=float, default=0.995)
     parser.add_argument('--algorithm', type=str, choices=["sac", "ppo", "vpg", "td3"], default="sac")
     args = parser.parse_args()
 
@@ -61,7 +63,8 @@ if __name__ == '__main__':
             "num_test_episodes": args.num_test_episodes,
             "epochs": args.epochs,
             "batch_size": args.batch_size,
-            "algorithm": args.algorithm
+            "algorithm": args.algorithm,
+            "polyak": args.polyak
         }
         wandb.init(project="data-intelligence-challenge", entity="data-intelligence-challenge-g16", config=config)
         logger_kwargs["wandb_logger"] = wandb
@@ -74,10 +77,10 @@ if __name__ == '__main__':
             gamma=args.gamma, device=DEVICE)
     elif args.algorithm == "ppo":
         ppo(env_fn=env_fn, steps_per_epoch=args.steps_per_epoch, epochs=args.epochs,
-            clip_ratio=args.clip_ratio, pi_lr=args.lr, vf_lr=args.lr, train_pi_iters=10, train_v_iters=10,
+            clip_ratio=args.clip_ratio, pi_lr=args.lr, vf_lr=args.lr,
             gamma=args.gamma, max_ep_len=args.max_ep_len, logger_kwargs=logger_kwargs, device=DEVICE)
     else:
-        sac(env_fn=env_fn, lr=args.lr, alpha=args.alpha,
+        sac(env_fn=env_fn, lr=args.lr, alpha=args.alpha, polyak=args.polyak,
             steps_per_epoch=args.steps_per_epoch, epochs=args.epochs, batch_size=args.batch_size,
             num_test_episodes=args.num_test_episodes, max_ep_len=args.max_ep_len, gamma=args.gamma,
             update_after=args.updates_after, logger_kwargs=logger_kwargs, device=DEVICE)
