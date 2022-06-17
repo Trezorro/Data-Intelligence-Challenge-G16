@@ -1,5 +1,3 @@
-import sys
-from pathlib import Path
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 import gym
@@ -8,7 +6,6 @@ from gym.envs.registration import register
 
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 print("Device:", DEVICE)
-sys.path.append(str(Path(__file__).parent.parent.parent / "spinningup"))
 from spinup import ppo_pytorch as ppo
 from spinup import sac_pytorch as sac
 from spinup import td3_pytorch as td3
