@@ -118,9 +118,9 @@ class ContinuousEnv(gym.Env):
 
         self.agent_speed = params["agent_speed"]
 
+        # pass only keys that the WorldModel can accept
         del params["grid_size"]
         del params["agent_speed"]
-
         self.world = WorldModel(grid=self.grid, **params)
         self._initial_render()  # shows loading text
 
@@ -185,6 +185,7 @@ class ContinuousEnv(gym.Env):
         self.info["death_hits"] += events["hit_death"]
         self.info["is_alive"] = events["is_alive"]
         self.info["score"] += reward
+        self.info["cleanliness"] = self.info["dirt_hits"] / self.world.start_dirtiness
 
     def _initial_render(self):
         """Initial rendering of the environment. Displays loading text."""
@@ -340,6 +341,7 @@ class ContinuousEnv(gym.Env):
                        "death_hits": "Death:",
                        "is_alive": "Alive:",
                        "score": "Score:",
+                       "cleanliness": "Cleanliness:",
                        "fps": "FPS:"}
         for idx, (key, value) in enumerate(self.info.items()):
             y_pos = padding + (idx * 38)

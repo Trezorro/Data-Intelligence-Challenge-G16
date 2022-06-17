@@ -48,9 +48,10 @@ class WorldModel:
         self.grid = grid
         self.grid_size = grid.shape[0]
         self.world_size = self.grid_size * self.cell_size
+        self.start_dirtiness = num_dirt
 
-        self.occluding_walls: List[Rect] = []
-        self.wall_rects: List[Rect] = []
+        self.occluding_walls: List[Rect] = [] # actual walls
+        self.wall_rects: List[Rect] = [] # walls that the robot detected using SLAM
         self.death_rects: List[Rect] = []
 
         self.obstacle_rects: List[Rect] = []
