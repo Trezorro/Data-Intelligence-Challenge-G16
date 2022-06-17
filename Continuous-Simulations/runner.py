@@ -6,7 +6,7 @@ import torch
 from gym.envs.registration import register
 
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-print("Device:",DEVICE)
+print("Device:", DEVICE)
 sys.path.append(str(Path(__file__).parent.parent.parent / "spinningup"))
 from spinup import ppo_pytorch as ppo
 from spinup import sac_pytorch as sac
@@ -39,11 +39,13 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--alpha', type=float, default=0.2)
     parser.add_argument('--gamma', type=float, default=0.99)
-    parser.add_argument('--batch_size', type=int, default=64)
+    parser.add_argument('--batch_size', type=int, default=100)
     parser.add_argument('--epochs', type=int, default=5)
-    parser.add_argument('--steps_per_epoch', type=int, default=50)
-    parser.add_argument('--max_ep_len', type=int, default=80)
+    parser.add_argument('--steps_per_epoch', type=int, default=600)
+    parser.add_argument('--max_ep_len', type=int, default=150)
     parser.add_argument('--num_test_episodes', type=int, default=3)
+    parser.add_argument('--updates_after', type=int, default=100)
+    parser.add_argument('--algorithm', type=str, choices=["sac", "ppo", "vpg", "td3"], default="sac")
     args = parser.parse_args()
 
     logger_kwargs = dict(output_dir='./data', exp_name='exp_1')
@@ -54,19 +56,27 @@ if __name__ == '__main__':
             "alpha": args.alpha,
             "gamma": args.gamma,
             "steps_per_epoch": args.steps_per_epoch,
+            "updates_after": args.updates_after,
             "max_ep_len": args.max_ep_len,
             "num_test_episodes": args.num_test_episodes,
             "epochs": args.epochs,
-            "batch_size": args.batch_size
+            "batch_size": args.batch_size,
+            "algorithm": args.algorithm
         }
-        wandb.init(project="data-intelligence-challenge", entity="data-intelligence-challenge-g16")
+        wandb.init(project="data-intelligence-challenge", entity="data-intelligence-challenge-g16", config=config)
         logger_kwargs["wandb_logger"] = wandb
 
     torch.set_num_threads(torch.get_num_threads())
-    # td3(env_fn=env_fn, steps_per_epoch=100, num_test_episodes=1, max_ep_len=100, logger_kwargs=logger_kwargs)
-    # vpg(env_fn=env_fn, steps_per_epoch=500, epochs=20, logger_kwargs=logger_kwargs)
-    # ppo(env_fn=env_fn, steps_per_epoch=100, epochs=2, clip_ratio=0.3, pi_lr=3e-2, vf_lr=1e-2, train_pi_iters=10, train_v_iters=10, logger_kwargs=logger_kwargs, device=DEVICE)
-    sac(env_fn=env_fn, lr=args.lr, alpha=args.alpha,
-        steps_per_epoch=args.steps_per_epoch, epochs=args.epochs, batch_size=args.batch_size,
-        num_test_episodes=args.num_test_episodes, max_ep_len=args.max_ep_len, gamma=args.gamma,
-        logger_kwargs=logger_kwargs, device=DEVICE)
+    if args.algorithm == "td3":
+        td3(env_fn=env_fn, steps_per_epoch=100, num_test_episodes=1, max_ep_len=100,
+            logger_kwargs=logger_kwargs)
+    elif args.algorithm == "vpg":
+        vpg(env_fn=env_fn, steps_per_epoch=500, epochs=20, logger_kwargs=logger_kwargs)
+    elif args.algorithm == "ppo":
+        ppo(env_fn=env_fn, steps_per_epoch=100, epochs=2, clip_ratio=0.3, pi_lr=3e-2, vf_lr=1e-2,
+            train_pi_iters=10, train_v_iters=10, logger_kwargs=logger_kwargs, device=DEVICE)
+    else:
+        sac(env_fn=env_fn, lr=args.lr, alpha=args.alpha,
+            steps_per_epoch=args.steps_per_epoch, epochs=args.epochs, batch_size=args.batch_size,
+            num_test_episodes=args.num_test_episodes, max_ep_len=args.max_ep_len, gamma=args.gamma,
+            logger_kwargs=logger_kwargs, device=DEVICE)
