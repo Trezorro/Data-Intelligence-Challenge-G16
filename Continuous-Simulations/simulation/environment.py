@@ -172,7 +172,7 @@ class ContinuousEnv(gym.Env):
         """
         # TODO
         if events["hit_death"] == 1:
-            return -5000
+            return -100
 
         return events["hit_dirt"] * 10
 

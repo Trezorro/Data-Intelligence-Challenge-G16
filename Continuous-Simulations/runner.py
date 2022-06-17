@@ -42,9 +42,9 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=100)
     parser.add_argument('--epochs', type=int, default=5)
     parser.add_argument('--steps_per_epoch', type=int, default=600)
-    parser.add_argument('--max_ep_len', type=int, default=150)
-    parser.add_argument('--num_test_episodes', type=int, default=3)
-    parser.add_argument('--updates_after', type=int, default=100)
+    parser.add_argument('--max_ep_len', type=int, default=300)
+    parser.add_argument('--num_test_episodes', type=int, default=5)
+    parser.add_argument('--updates_after', type=int, default=150)
     parser.add_argument('--algorithm', type=str, choices=["sac", "ppo", "vpg", "td3"], default="sac")
     args = parser.parse_args()
 
@@ -65,6 +65,7 @@ if __name__ == '__main__':
         }
         wandb.init(project="data-intelligence-challenge", entity="data-intelligence-challenge-g16", config=config)
         logger_kwargs["wandb_logger"] = wandb
+        logger_kwargs["output_dir"] = './data/' + wandb.wandb_run.name
 
     torch.set_num_threads(torch.get_num_threads())
     if args.algorithm == "td3":
