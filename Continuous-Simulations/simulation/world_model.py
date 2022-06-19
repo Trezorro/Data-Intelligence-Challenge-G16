@@ -13,9 +13,9 @@ from pygame import Rect
 class WorldModel:
     def __init__(
             self,
-            grid: np.ndarray,
-            num_obstacles: int,
-            num_dirt: int,
+            grid: np.ndarray = np.zeros((24, 24)),
+            num_obstacles: int = 3,
+            num_dirt: int = 100,
             cell_size: int = 64,
             battery_drain: float = 0.25,
             agent_width: int = 60,
@@ -191,6 +191,7 @@ class WorldModel:
         Args:
             num_obstacles: The number of obstacles to be placed.
         """
+        #TODO: increase minimum obstacle size
         for _ in range(num_obstacles):
             width = (random() * 3. * self.cell_size) + 0.5
             height = (random() * 3. * self.cell_size) + 0.5

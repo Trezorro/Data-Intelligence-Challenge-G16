@@ -19,6 +19,7 @@ from PIL import Image
 GRID_SIZE = 24
 OBSERVATION_SPACE = Dict({
     "agent_center": Box(low=0, high=1536, shape=(2,), dtype=np.int32),
+    "agent_angle": Discrete(360),
     "world": Box(low=0.,
                  high=3,
                  shape=(5, GRID_SIZE, GRID_SIZE),
@@ -46,7 +47,7 @@ class ContinuousEnv(gym.Env):
                 "human" or None.
         """
         self.grid: Optional[np.ndarray] = None
-        self.world: Optional[WorldModel] = None
+        self.world: Optional[WorldModel] =  WorldModel() # empty world
         self.window_size = (1152, 768)  # Pygame window size.
         self.agent_speed = 60
 
@@ -125,6 +126,7 @@ class ContinuousEnv(gym.Env):
 
         agent_observation = {
             "agent_center": self.world.agent_rect.center,
+            "agent_angle": self.world.agent_angle,
             "world": self.world.last_observation
         }
         return agent_observation
@@ -142,8 +144,9 @@ class ContinuousEnv(gym.Env):
         if len(action) == 1:
             action = action[0]
 
-        direction = int(180 * action[0])
-        self.world.rotate_agent(direction)
+        absolute_angle = int(180 * action[0])
+        relative_angle = absolute_angle - self.world.agent_angle
+        self.world.rotate_agent(relative_angle)
         move_distance = action[1] * self.agent_speed
         events, observation = self.world.move_agent(int(move_distance))
 
@@ -156,6 +159,7 @@ class ContinuousEnv(gym.Env):
 
         return_observation = {
             "agent_center": self.world.agent_rect.center,
+            "agent_angle": self.world.agent_angle,
             "world": observation
         }
         return return_observation, reward, done, self.info

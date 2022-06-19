@@ -22,10 +22,6 @@ register(
     entry_point="simulation.environment:ContinuousEnv"
 )
 
-options = {
-    "battery_drain": 0.1,
-    "agent_width": 60
-}
 
 if __name__ == '__main__':
     env_fn = lambda: gym.make('ContinuousWorld-v0', render_mode="non_human")
