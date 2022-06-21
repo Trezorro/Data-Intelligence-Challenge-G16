@@ -9,7 +9,7 @@ register(
     entry_point="simulation.environment:ContinuousEnv"
 )
 
-# _, get_action = load_policy_and_env("./data")
-get_action = get_action_random_agent      # Random agent -- Baseline
+_, get_action = load_policy_and_env("./data")
+# get_action = get_action_random_agent      # Random agent -- Baseline
 env = gym.make('ContinuousWorld-v0')
 run_policy(env, get_action, num_episodes=3, max_ep_len=900)
