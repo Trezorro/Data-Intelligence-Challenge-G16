@@ -8,7 +8,6 @@ DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 print("Device:", DEVICE)
 from spinup import ppo_pytorch as ppo
 from spinup import sac_pytorch as sac
-from spinup import td3_pytorch as td3
 
 try:
     import wandb
@@ -32,11 +31,11 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=1e-3)
     parser.add_argument('--alpha', type=float, default=0.2)
     parser.add_argument('--gamma', type=float, default=0.99)
-    parser.add_argument('--batch_size', type=int, default=100)
+    parser.add_argument('--batch_size', type=int, default=64)
     parser.add_argument('--epochs', type=int, default=5)
     parser.add_argument('--steps_per_epoch', type=int, default=900)
     parser.add_argument('--max_ep_len', type=int, default=900)
-    parser.add_argument('--num_test_episodes', type=int, default=3)
+    parser.add_argument('--num_test_episodes', type=int, default=10)
     parser.add_argument('--updates_after', type=int, default=400)
     parser.add_argument('--clip_ratio', type=float, default=0.3)
     parser.add_argument('--polyak', type=float, default=0.995)
@@ -64,11 +63,7 @@ if __name__ == '__main__':
         # logger_kwargs["output_dir"] = './data/' + wandb.run.name
 
     torch.set_num_threads(torch.get_num_threads())
-    if args.algorithm == "td3":
-        td3(env_fn=env_fn, steps_per_epoch=args.steps_per_epoch, num_test_episodes=args.num_test_episodes,
-            max_ep_len=args.max_ep_len, logger_kwargs=logger_kwargs, pi_lr=args.lr, q_lr=args.lr,
-            gamma=args.gamma, device=DEVICE)
-    elif args.algorithm == "ppo":
+    if args.algorithm == "ppo":
         ppo(env_fn=env_fn, steps_per_epoch=args.steps_per_epoch, epochs=args.epochs,
             clip_ratio=args.clip_ratio, pi_lr=args.lr, vf_lr=args.lr,
             gamma=args.gamma, max_ep_len=args.max_ep_len, logger_kwargs=logger_kwargs, device=DEVICE)
