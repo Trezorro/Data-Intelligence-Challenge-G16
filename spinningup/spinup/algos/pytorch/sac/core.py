@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions.normal import Normal
 
-from spinup.algos.pytorch.helpers.general_nets import conv, conv_last
+from spinup.algos.pytorch.helpers.general_nets import conv, conv_last, init_weights
 
 
 def combined_shape(length, shape=None):
@@ -37,7 +37,7 @@ class SquashedGaussianMLPActor(nn.Module):
 
         self.net = conv(conv_sizes=conv_sizes, dense_sizes=dense_sizes, activation=activation_conv)
 
-        self.mu_layer = conv_last(out_size=2, input_size=dense_sizes[-1]+2, activation=nn.Tanh)
+        self.mu_layer = conv_last(out_size=2, input_size=dense_sizes[-1]+2)
         self.log_std_layer = conv_last(out_size=2, input_size=dense_sizes[-1]+2, activation=nn.Tanh)
 
         self.act_limit = act_limit
@@ -79,7 +79,6 @@ class SquashedGaussianMLPActor(nn.Module):
             logp_pi = None
 
         pi_action = torch.tanh(pi_action)
-        pi_action = self.act_limit * pi_action
 
         return pi_action, logp_pi
 
@@ -123,6 +122,10 @@ class MLPActorCritic(nn.Module):
         self.pi = SquashedGaussianMLPActor(act_limit, conv_sizes=conv_sizes, dense_sizes=dense_sizes, activation_conv=activation_conv, device=device).to(device)
         self.q1 = MLPQFunction(conv_sizes=conv_sizes, dense_sizes=dense_sizes, activation_conv=activation_conv, device=device).to(device)
         self.q2 = MLPQFunction(conv_sizes=conv_sizes, dense_sizes=dense_sizes, activation_conv=activation_conv, device=device).to(device)
+        with torch.no_grad():
+            init_weights(self.pi)
+            init_weights(self.q1)
+            init_weights(self.q2)
 
     def act(self, obs, deterministic=False):
         field = torch.as_tensor(obs['world'], dtype=torch.float32).to(self.device)

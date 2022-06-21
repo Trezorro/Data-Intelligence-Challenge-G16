@@ -76,8 +76,8 @@ class WorldModel:
 
         self._place_walls_and_death(slam_accuracy)
         self._place_obstacles(num_obstacles)
-        self._place_dirt(num_dirt)
         self._place_agent()
+        self._place_dirt(num_dirt)
 
         self.last_observation = self._get_world_observation()
 
@@ -280,8 +280,8 @@ class WorldModel:
         if self.agent_is_alive:
             self.agent_angle = (self.agent_angle + angle) % 360
 
-    def move_agent(self, distance: int) -> Tuple[dict, np.ndarray]:
-        """Moves the agent by the given distance and checks for collisions.
+    def move_agent(self, action_distance: int, rotate_angle: int) -> Tuple[dict, np.ndarray]:
+        """Moves the agent by the given distance and checks for colisions.
 
         Sets the observation dict which is a dictionary containing keys
         [move_succeeded, hit_wall, hit_obstacle, hit_dirt, hit_death, is_alive].
@@ -311,12 +311,14 @@ class WorldModel:
         hit_death = False
 
         if self.agent_is_alive:
+            self.rotate_agent(rotate_angle)
+
             # Moves the agent by the given distance respecting its current angle
             heading = np.array([math.cos(self.agent_angle / 180 * math.pi),
                                 math.sin(self.agent_angle / 180 * math.pi)])
 
             for completion_ratio in [r / 100 for r in range(100, -1, -5)]:
-                moved_distance = distance * completion_ratio
+                moved_distance = action_distance * completion_ratio
                 move_by = (heading * moved_distance).astype(int)
                 move_by = (int(move_by[0]), int(move_by[1]))
                 next_position_rect = self.agent_rect.move(move_by[0], move_by[1])
@@ -336,11 +338,9 @@ class WorldModel:
                 self.agent_rect = next_position_rect
                 break
 
-            if moved_distance > 0:
-                drain_amount = self._drain_battery(move_amount=moved_distance / self.agent_speed)
-                self.agent_is_alive = self.agent_battery > 0
-            else:
-                drain_amount = 0
+
+            drain_amount = self._drain_battery(move_amount=action_distance / self.agent_speed + abs(rotate_angle%360) /360) 
+            self.agent_is_alive = self.agent_battery > 0
 
             collisions = self._check_collisions(self.agent_rect, check_walls=False)
             # Check if we hit a death tile
@@ -366,6 +366,8 @@ class WorldModel:
             self.visited_grid[x_pos, y_pos] = 1
         else:
             move_succeeded = False
+            drain_amount = 0
+            
 
         events = {
             "move_succeeded": int(move_succeeded),

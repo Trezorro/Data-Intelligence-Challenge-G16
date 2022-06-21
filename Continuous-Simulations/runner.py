@@ -1,3 +1,4 @@
+from functools import partial
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 import gym
@@ -23,7 +24,6 @@ register(
 
 
 if __name__ == '__main__':
-    env_fn = lambda: gym.make('ContinuousWorld-v0', render_mode="non_human")
 
     import argparse
 
@@ -56,19 +56,39 @@ if __name__ == '__main__':
             "epochs": args.epochs,
             "batch_size": args.batch_size,
             "algorithm": args.algorithm,
-            "polyak": args.polyak
+            "polyak": args.polyak,
         }
-        wandb.init(project="data-intelligence-challenge", entity="data-intelligence-challenge-g16", config=config)
+        run = wandb.init(project="data-intelligence-challenge", entity="data-intelligence-challenge-g16", config=config,
+                         mode="disabled"
+                         )
         logger_kwargs["wandb_logger"] = wandb
         # logger_kwargs["output_dir"] = './data/' + wandb.run.name
 
+    env_fn = partial(gym.make, 'ContinuousWorld-v0', render_mode="non_human")
     torch.set_num_threads(torch.get_num_threads())
+
     if args.algorithm == "ppo":
-        ppo(env_fn=env_fn, steps_per_epoch=args.steps_per_epoch, epochs=args.epochs,
-            clip_ratio=args.clip_ratio, pi_lr=args.lr, vf_lr=args.lr,
-            gamma=args.gamma, max_ep_len=args.max_ep_len, logger_kwargs=logger_kwargs, device=DEVICE)
+        ppo(env_fn=env_fn,
+            steps_per_epoch=args.steps_per_epoch,
+            epochs=args.epochs,
+            clip_ratio=args.clip_ratio,
+            pi_lr=args.lr,
+            vf_lr=args.lr,
+            gamma=args.gamma,
+            max_ep_len=args.max_ep_len,
+            logger_kwargs=logger_kwargs,
+            device=DEVICE)
     else:
-        sac(env_fn=env_fn, lr=args.lr, alpha=args.alpha, polyak=args.polyak,
-            steps_per_epoch=args.steps_per_epoch, epochs=args.epochs, batch_size=args.batch_size,
-            num_test_episodes=args.num_test_episodes, max_ep_len=args.max_ep_len, gamma=args.gamma,
-            update_after=args.updates_after, logger_kwargs=logger_kwargs, device=DEVICE)
+        sac(env_fn=env_fn,
+            lr=args.lr,
+            alpha=args.alpha,
+            polyak=args.polyak,
+            steps_per_epoch=args.steps_per_epoch,
+            epochs=args.epochs,
+            batch_size=args.batch_size,
+            num_test_episodes=args.num_test_episodes,
+            max_ep_len=args.max_ep_len,
+            gamma=args.gamma,
+            update_after=args.updates_after,
+            logger_kwargs=logger_kwargs,
+            device=DEVICE)

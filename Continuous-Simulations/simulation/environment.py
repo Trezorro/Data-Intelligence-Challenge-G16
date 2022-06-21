@@ -50,6 +50,7 @@ class ContinuousEnv(gym.Env):
         self.world: Optional[WorldModel] = WorldModel()  # empty world
         self.window_size = (1152, 768)  # Pygame window size.
         self.agent_speed = 60
+        self.episode_steps = 0
 
         # Set up the observation space
         # All observations with Discrete(2) represent booleans. 0 for False and
@@ -96,13 +97,14 @@ class ContinuousEnv(gym.Env):
         super().reset(seed=seed)
         # First set defaults
         self.info = START_STATS.copy()
+        self.episode_steps = 0
 
         params = {
             "grid_size": 24,
             "num_obstacles": 4,
-            "num_dirt": 2000,
+            "num_dirt": 4000,
             "cell_size": 64,
-            "battery_drain": 0.25,
+            "battery_drain": .25,
             "agent_width": 60,
             "agent_speed": 60
         }
@@ -140,22 +142,28 @@ class ContinuousEnv(gym.Env):
         Returns:
             observation, reward, done, and info.
         """
+        self.episode_steps += 1
         # Applies move to the world and asks environment_model for observation.
         if len(action) == 1:
             action = action[0]
 
-        absolute_angle = int(180 * action[0])
+        absolute_angle = int(360 * action[0])
         relative_angle = absolute_angle - self.world.agent_angle
-        self.world.rotate_agent(relative_angle)
-        move_distance = action[1] * self.agent_speed
-        events, observation = self.world.move_agent(int(move_distance))
+        move_distance = min(abs(action[1]),1) * self.agent_speed
+        events, observation = self.world.move_agent(move_distance, rotate_angle=relative_angle)
 
         # Calculate reward from move and update info
         reward = self._get_reward(events)
         self._update_info(events, reward)
 
         # Provide reward and observation back to agent
-        done = not self.world.agent_is_alive
+        done = ( not self.world.agent_is_alive or
+                (self.episode_steps > 50 and (
+                    self.info["successful_moves"] / self.episode_steps < 0.1
+                    or self.info["wall_hits"] / self.episode_steps > 0.8
+                    or self.info["obstacle_hits"] / self.episode_steps > 0.8
+                    )
+                ))
 
         return_observation = {
             "agent_center": self.world.agent_rect.center,
@@ -175,9 +183,11 @@ class ContinuousEnv(gym.Env):
         """
         reward = 0
         if events["hit_death"] == 1:
-            reward -= 100
-        reward -= events["drain_amount"]
-        return reward + events["hit_dirt"] * 2
+            reward-=100
+        reward-=events["drain_amount"]
+        reward-=events["hit_wall"]
+        reward+= events["hit_dirt"] * 1
+        return reward
 
     def _update_info(self, events: dict, reward: int):
         """Updates the info dict."""
@@ -338,11 +348,11 @@ class ContinuousEnv(gym.Env):
         """Draws run info."""
         font = pygame.font.Font(None, 38)
         human_names = {"successful_moves": "Moves:",
-                       "wall_hits": "Wall:",
-                       "obstacle_hits": "Obstacles:",
-                       "dirt_hits": "Dirt:",
-                       "death_hits": "Death:",
-                       "is_alive": "Alive:",
+                       "wall_hits": "Wall hits:",
+                       "obstacle_hits": "Obstacles hit:",
+                       "dirt_hits": "Dirt cleaned:",
+                       "death_hits": "Death tiles hit:",
+                       "is_alive": "Still alive:",
                        "score": "Score:",
                        "Cleanliness": "Cleanliness:",
                        "fps": "FPS:"}
@@ -355,6 +365,8 @@ class ContinuousEnv(gym.Env):
             key_pos.y = y_pos
             surface.blit(key_label, key_pos)
 
+            if not type(value) == str:
+                value = round(value,3)
             val_label = font.render(f"{value}", True, (10, 10, 10))
             val_pos = val_label.get_rect()
             val_pos.x = surface.get_rect().width - padding - val_pos.width

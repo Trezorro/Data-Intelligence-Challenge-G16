@@ -12,11 +12,12 @@ class CustomAct(nn.Module):
         self.inplace = inplace
 
     def forward(self, input: Tensor) -> Tensor:
-        input[:, 0] = torch.tanh(input[:, 0])
+        out = torch.zeros(input.shape).to(input.device)
+        out[:, 0] = torch.tanh(input[:, 0])
         if input.shape[1] == 2:
-            input[:, 1] = F.threshold(input[:, 1], 0, 1)
+            out[:, 1] = torch.clamp(input[:, 1], 0, 1)
 
-        return input
+        return out
 
 
 def init_weights(m):
@@ -40,8 +41,12 @@ def conv(conv_sizes: Tuple, dense_sizes: Tuple, activation: nn.Module):
     )
 
 
-def conv_last(out_size: int, input_size: int, activation: nn.Module):
+def conv_last(out_size: int, input_size: int, activation: nn.Module = CustomAct):
     return nn.Sequential(
-        nn.Linear(input_size, out_size),
+        nn.Linear(input_size, input_size),
+        nn.ReLU(),
+        nn.Linear(input_size, input_size//2),
+        nn.ReLU(),
+        nn.Linear(input_size//2, out_size),
         activation(),
     )

@@ -129,6 +129,11 @@ class Logger:
             logger.save_config(locals())
         """
         config_json = convert_json(config)
+        if self.wandb_logger is not None:
+            # self.wandb_logger.run.summary["sac_config"] = config_json
+            self.wandb_logger.config['sac_config'] = config_json
+            
+
         if self.exp_name is not None:
             config_json['exp_name'] = self.exp_name
         if proc_id() == 0:
