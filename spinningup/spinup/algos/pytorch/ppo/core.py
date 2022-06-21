@@ -116,7 +116,7 @@ class MLPCritic(nn.Module):
 
 class MLPActorCritic(nn.Module):
 
-    def __init__(self, action_space, device, conv_sizes=(64, 32, 16), dense_sizes=(512, 128), activation_conv=nn.ReLU):
+    def __init__(self, action_space, device, conv_sizes=(32, 64, 128), dense_sizes=(512, 128), activation_conv=nn.ReLU):
         super().__init__()
 
         self.device = device
