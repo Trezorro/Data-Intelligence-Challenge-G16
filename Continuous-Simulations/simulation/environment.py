@@ -235,7 +235,7 @@ class ContinuousEnv(gym.Env):
         self._draw_world(background, scalar)
         self._draw_agent(background, scalar)
         self._draw_info(background, 798, 30)
-        self._draw_observation(background, 798, 350)
+        self._draw_observation(background, 798, 400)
         self._draw_battery(background, 798, 30)
 
         # Update the actual display
