@@ -6,7 +6,7 @@ from torch.optim import Adam
 import gym
 import time
 
-from tqdm import tqdm
+from tqdm import tqdm, trange
 
 import spinup.algos.pytorch.sac.core as core
 from spinup.utils.logx import EpochLogger
@@ -50,11 +50,26 @@ class ReplayBuffer:
         return {k: torch.as_tensor(v, dtype=torch.float32, device=device) for k, v in batch.items()}
 
 
-def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
-        steps_per_epoch=4000, epochs=100, replay_size=int(1e6), gamma=0.99,
-        polyak=0.995, lr=1e-3, alpha=0.2, batch_size=100, start_steps=10000,
-        update_after=1000, update_every=50, num_test_episodes=10, max_ep_len=1000,
-        logger_kwargs=dict(), save_freq=1, device=torch.device('cpu')):
+def sac(env_fn,
+        actor_critic=core.MLPActorCritic,
+        ac_kwargs=dict(),
+        seed=0,
+        steps_per_epoch=2000,
+        epochs=100,
+        replay_size=int(1e6),
+        gamma=0.99,
+        polyak=0.995,
+        lr=1e-3,
+        alpha=0.2,
+        batch_size=100,
+        start_steps=5000,
+        update_after=1000,
+        update_every=500, # change here
+        num_test_episodes=10,
+        max_ep_len=500,
+        logger_kwargs=dict(),
+        save_freq=1,
+        device=torch.device('cpu')):
     """
     Soft Actor-Critic (SAC)
 
@@ -158,7 +173,7 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     torch.manual_seed(seed)
     np.random.seed(seed)
 
-    env, test_env = env_fn(), env_fn()
+    env, test_env = env_fn(), env_fn( render_mode="human")
     obs_dim = env.observation_space.spaces['world'].shape
     act_dim = env.action_space.shape[0]
 
@@ -246,7 +261,7 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         # Record things
         logger.store(LossQ=loss_q.item(), **q_info)
 
-        # Freeze Q-networks so you don't waste computational effort 
+        # Freeze Q-networks so you don't waste computational effort
         # computing gradients for them during the policy learning step.
         for p in q_params:
             p.requires_grad = False
@@ -271,19 +286,25 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
                 # params, as opposed to "mul" and "add", which would make new tensors.
                 p_targ.data.mul_(polyak)
                 p_targ.data.add_((1 - polyak) * p.data)
+        return loss_q.item(), loss_pi.item()
 
     def get_action(o, deterministic=False):
         return ac.act(o, deterministic)
 
-    def test_agent():
-        print(f"\nsac.test_agent: Testing agent for {num_test_episodes} episodes with max_ep_len {max_ep_len}")
-        for j in range(num_test_episodes):
+    def test_agent(render=True, num_episodes=num_test_episodes):
+        test_progr = trange(num_episodes, desc="Testing agent", unit="episodes")
+        for j in test_progr:
             o, d, ep_ret, ep_len = test_env.reset(), False, 0, 0
             while not (d or (ep_len == max_ep_len)):
-                # Take deterministic actions at test time 
-                o, r, d, info_dict = test_env.step(get_action(o, True))
+                # Take deterministic actions at test time
+                action = get_action(o, False)
+                o, r, d, info_dict = test_env.step(action)
                 ep_ret += r
                 ep_len += 1
+                
+                test_progr.set_postfix(r=r, action=action, ep_ret=ep_ret, refresh=True)
+                if render:
+                    test_env.render()
             logger.store(TestEpRet=ep_ret, TestEpLen=ep_len)
             logger.store(**info_dict)
 
@@ -293,20 +314,30 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
     o, ep_ret, ep_len = env.reset(), 0, 0
 
     # Main loop: collect experience in env and update/log each epoch
-    for t in tqdm(range(total_steps)):
+    epoch = 0
+    test_agent(num_episodes=1)
+    progress =  trange(total_steps, desc="SAC", unit="steps")
+    for t in progress:
 
         # Until start_steps have elapsed, randomly sample actions
-        # from a uniform distribution for better exploration. Afterwards, 
-        # use the learned policy. 
+        # from a uniform distribution for better exploration. Afterwards,
+        # use the learned policy.
         if t > start_steps:
             a = get_action(o)
         else:
             a = env.action_space.sample()
+            if len(a) == 1:
+                a[0][0] /=4 # reduce randomness of rotation in initial exploration
+            else:
+                a[0] /= 4
+            
 
         # Step the env
         o2, r, d, info_dict = env.step(a)
         ep_ret += r
         ep_len += 1
+        if t % 20 == 0:
+            progress.set_postfix(r=r, a=a, ep_len=ep_len, cleanliness=info_dict['Cleanliness'], refresh=True)
 
         # Ignore the "done" signal if it comes from hitting the time
         # horizon (that is, when it's an artificial terminal signal
@@ -316,25 +347,32 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
         # Store experience to replay buffer
         replay_buffer.store(o, a, r, o2, d)
 
-        # Super critical, easy to overlook step: make sure to update 
+        # Super critical, easy to overlook step: make sure to update
         # most recent observation!
         o = o2
 
         # End of trajectory handling
         if d or (ep_len == max_ep_len):
+            progress.set_postfix_str("Resetting for new episode.")
             logger.store(EpRet=ep_ret, EpLen=ep_len, TrainCleanliness=info_dict['Cleanliness'])
             o, ep_ret, ep_len = env.reset(), 0, 0
 
         # Update handling
         if t >= update_after and t % update_every == 0:
-            for j in range(update_every):
+            train_prog = trange(update_every//2, desc=f"Training at epoch {epoch}", unit='batch')
+            for j in train_prog:
                 batch = replay_buffer.sample_batch(batch_size, device=device)
-                update(data=batch)
+                lq, loss_pi = update(data=batch)
+                if j % 10 == 0:
+                    train_prog.set_postfix(loss_q=lq, loss_pi=loss_pi, refresh=False)
+            
+            
         # End of epoch handling
         if (t + 1) % steps_per_epoch == 0:
             epoch = (t + 1) // steps_per_epoch
 
             # Save model
+            progress.set_postfix_str(f"Saving model at epoch {epoch}")
             if (epoch % save_freq == 0) or (epoch == epochs):
                 logger.save_state({'env': env}, None)
 
@@ -357,6 +395,8 @@ def sac(env_fn, actor_critic=core.MLPActorCritic, ac_kwargs=dict(), seed=0,
             logger.log_tabular('LossQ', average_only=True)
             logger.log_tabular('Time', time.time() - start_time)
             logger.dump_tabular()
+            progress.set_postfix_str("Ended epoch {}".format(epoch))
+            
 
 
 if __name__ == '__main__':
