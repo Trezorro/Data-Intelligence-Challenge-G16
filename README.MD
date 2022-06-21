@@ -26,7 +26,7 @@ We recommend using (mini)conda for installing the dependencies in a separate new
 3. Install the spinup module and it's dependencies using: `pip install -e spinningup` (inside your conda environment.)
 4. Running training and evaluation:
    - To train the vacuum robot: `python .\Continuous-Simulations\runner.py`
-   - Watch trained robot policy by running `python .\Continuous-Simulations\watch_trained_bot.py`
+   - Watch trained robot policy by running `python .\Continuous-Simulations\watch_trained_bot.py`. A ready to go algorithm is already included in this folder.
    - For Windows: if there is a Windows Firewall popup, allow Python to communicate through the firewall.
 
 **Note** that the C++ build tools on your system are required for using this project.
