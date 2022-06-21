@@ -2,19 +2,19 @@
 
 The simulation environment used for our continuous vacuum cleaner.
 """
+import math
+import sys
 from pathlib import Path
 from typing import Optional, Union, Tuple, List, Dict as Dict_py
-import sys
-from random import randint
-import numpy as np
-import math
-from grid_generator import GridBuilder
-from simulation.world_model import WorldModel
 
 import gym
-from gym.spaces import Box, Dict, Discrete
+import numpy as np
 import pygame
 from PIL import Image
+from gym.spaces import Box, Dict, Discrete
+
+from grid_generator import GridBuilder
+from simulation.world_model import WorldModel
 
 GRID_SIZE = 24
 OBSERVATION_SPACE = Dict({
@@ -47,7 +47,7 @@ class ContinuousEnv(gym.Env):
                 "human" or None.
         """
         self.grid: Optional[np.ndarray] = None
-        self.world: Optional[WorldModel] =  WorldModel() # empty world
+        self.world: Optional[WorldModel] = WorldModel()  # empty world
         self.window_size = (1152, 768)  # Pygame window size.
         self.agent_speed = 60
 
@@ -80,7 +80,7 @@ class ContinuousEnv(gym.Env):
 
         Args:
             seed: The random seed to use.
-            return_info: Whether or not to return info from the environment.
+            return_info: Whether to return info from the environment.
             options: An optional dictionary containing run parameters. It can
                 contain the following keys
                 {"grid_size": int,
@@ -165,19 +165,19 @@ class ContinuousEnv(gym.Env):
         return return_observation, reward, done, self.info
 
     def _get_reward(self, events: dict) -> int:
-        """Given the events dict, returns the reward.
+        """ Given the events dict, returns the reward.
 
         Args:
-            events: The dictionary of events that occured during a step.
+            events: The dictionary of events that occurred during a step.
 
         Returns:
             The reward value.
         """
         reward = 0
         if events["hit_death"] == 1:
-            reward-=100
-        reward-=events["drain_amount"]
-        return events["hit_dirt"] * 2
+            reward -= 100
+        reward -= events["drain_amount"]
+        return reward + events["hit_dirt"] * 2
 
     def _update_info(self, events: dict, reward: int):
         """Updates the info dict."""
@@ -212,7 +212,7 @@ class ContinuousEnv(gym.Env):
 
     @staticmethod
     def _downsample_rect(rect: pygame.Rect, scalar: float) -> pygame.Rect:
-        """Downsamples the given rectangle by a scalar."""
+        """Down-samples the given rectangle by a scalar."""
         x = rect.x * scalar
         y = rect.y * scalar
         width = rect.width * scalar
@@ -302,7 +302,7 @@ class ContinuousEnv(gym.Env):
         img_pos = img.get_rect()
         img_pos.center = agent_surface.get_rect().center
         agent_surface.blit(img, img_pos)
-        # Draw the a triangle representing its direction
+        # Draw a triangle representing its direction
         # Triangle has three points (a, b, c) with a center at the origin
         #         C
         #         ^

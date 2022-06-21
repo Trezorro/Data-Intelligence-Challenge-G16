@@ -19,7 +19,7 @@ class WorldModel:
             cell_size: int = 64,
             battery_drain: float = 0.25,
             agent_width: int = 60,
-            agent_speed = 60,
+            agent_speed=60,
             slam_accuracy: float = 0.7
     ):
         """A very simple environment model which holds data about the world.
@@ -51,8 +51,8 @@ class WorldModel:
         self.world_size = self.grid_size * self.cell_size
         self.start_dirtiness = num_dirt
 
-        self.occluding_walls: List[Rect] = [] # actual walls
-        self.wall_rects: List[Rect] = [] # walls that the robot detected using SLAM
+        self.occluding_walls: List[Rect] = []  # actual walls
+        self.wall_rects: List[Rect] = []  # walls that the robot detected using SLAM
         self.death_rects: List[Rect] = []
 
         self.obstacle_rects: List[Rect] = []
@@ -133,7 +133,7 @@ class WorldModel:
             rect = Rect(position[0], position[1], width, height)
 
             # Check for collisions
-            collisions_dict = self._check_colisions(rect)
+            collisions_dict = self._check_collisions(rect)
             # Check that all produced collision lists are of length 0, i.e.,
             # that all types of collisions are avoided
             thing_placed = all([len(v) == 0 for v in collisions_dict.values()])
@@ -181,7 +181,6 @@ class WorldModel:
                 else:
                     self.obstacle_rects.append(rect)
 
-
     def _place_obstacles(self, num_obstacles: int):
         """Places the given number of obstacles on the grid.
 
@@ -191,7 +190,7 @@ class WorldModel:
         Args:
             num_obstacles: The number of obstacles to be placed.
         """
-        #TODO: increase minimum obstacle size
+        # TODO: increase minimum obstacle size
         for _ in range(num_obstacles):
             width = (random() * 3. * self.cell_size) + 0.5
             height = (random() * 3. * self.cell_size) + 0.5
@@ -234,13 +233,13 @@ class WorldModel:
     def _place_agent(self):
         """Places the agent somewhere on the world, respecting existing objects.
 
-        The agent should always be placed last so it doesn't start off inside
+        The agent should always be placed last, so it doesn't start off inside
         an obstacle or on top of dirt.
         """
         self.agent_rect = self._place_thing(width=self.agent_width,
                                             height=self.agent_width)
 
-    def _check_colisions(self, rect: Rect, check_walls=True) -> Dict[str, list]:
+    def _check_collisions(self, rect: Rect, check_walls=True) -> Dict[str, list]:
         """Tests if the provided rectangle collides with anything in the world.
 
         Args:
@@ -254,8 +253,8 @@ class WorldModel:
                 {"walls": [], "obstacles": [2], "dirt": [1, 5], "death": []}
         """
         collisions = {"obstacles": rect.collidelistall(self.obstacle_rects),
-                      "dirt": rect.collidelistall(self.dirt_rects)}
-        collisions["death"] = rect.collidelistall(self.death_rects)
+                      "dirt": rect.collidelistall(self.dirt_rects),
+                      "death": rect.collidelistall(self.death_rects)}
         if check_walls:
             collisions["walls"] = rect.collidelistall(self.occluding_walls)
 
@@ -282,7 +281,7 @@ class WorldModel:
             self.agent_angle = (self.agent_angle + angle) % 360
 
     def move_agent(self, distance: int) -> Tuple[dict, np.ndarray]:
-        """Moves the agent by the given distance and checks for colisions.
+        """Moves the agent by the given distance and checks for collisions.
 
         Sets the observation dict which is a dictionary containing keys
         [move_succeeded, hit_wall, hit_obstacle, hit_dirt, hit_death, is_alive].
@@ -315,13 +314,14 @@ class WorldModel:
             # Moves the agent by the given distance respecting its current angle
             heading = np.array([math.cos(self.agent_angle / 180 * math.pi),
                                 math.sin(self.agent_angle / 180 * math.pi)])
+
             for completion_ratio in [r / 100 for r in range(100, -1, -5)]:
                 moved_distance = distance * completion_ratio
                 move_by = (heading * moved_distance).astype(int)
                 move_by = (int(move_by[0]), int(move_by[1]))
                 next_position_rect = self.agent_rect.move(move_by[0], move_by[1])
 
-                # Check for colisions
+                # Check for collisions
 
                 # Check if we hit a wall or obstacle
                 if len(next_position_rect.collidelistall(self.occluding_walls)) > 0:
@@ -330,19 +330,19 @@ class WorldModel:
                     hit_obstacle = True
                 if hit_wall or hit_obstacle:
                     move_succeeded = False
-                    continue # backtrack a bit
+                    continue  # backtrack a bit
 
-                # no wall or obstacle, move succesful! Check for dirt and death.
-                self.agent_rect  = next_position_rect
+                # no wall or obstacle, move successful! Check for dirt and death.
+                self.agent_rect = next_position_rect
                 break
-                
+
             if moved_distance > 0:
-                drain_amount = self._drain_battery(move_amount=moved_distance / self.agent_speed) 
+                drain_amount = self._drain_battery(move_amount=moved_distance / self.agent_speed)
                 self.agent_is_alive = self.agent_battery > 0
             else:
                 drain_amount = 0
 
-            collisions = self._check_colisions(self.agent_rect, check_walls=False)
+            collisions = self._check_collisions(self.agent_rect, check_walls=False)
             # Check if we hit a death tile
             if len(collisions["death"]) > 0:
                 move_succeeded = False
@@ -356,8 +356,8 @@ class WorldModel:
             if hit_dirt > 0:
                 # Remove vacuumed up dirt
                 new_dirt_rects = [dirt
-                                    for i, dirt in enumerate(self.dirt_rects)
-                                    if i not in collisions["dirt"]]
+                                  for i, dirt in enumerate(self.dirt_rects)
+                                  if i not in collisions["dirt"]]
                 self.dirt_rects = new_dirt_rects
 
             # Set the current grid cell as visited
@@ -376,9 +376,6 @@ class WorldModel:
             "is_alive": int(self.agent_is_alive),
             "drain_amount": drain_amount
         }
-        # TODO: maintain fog of war and obstacle channels
-        # add visible cells to fog of war 
-        # add visible obstacles to obstacle channel
 
         self.last_observation = self._get_world_observation()
 
@@ -408,11 +405,11 @@ class WorldModel:
 
         new_shape = [1, self.grid.shape[0], self.grid.shape[1]]
         obs = np.concatenate([
-            self.grid.reshape(new_shape),             # 0: walls/death
-            obstacles_with_fow.reshape(new_shape),    # 1: obstacles
-            dirt_with_fow.reshape(new_shape),         # 2: dirt
-            self.visited_grid.reshape(new_shape),     # 3: visited
-            self.fow_grid.reshape(new_shape)          # 4: fog of war
+            self.grid.reshape(new_shape),  # 0: walls/death
+            obstacles_with_fow.reshape(new_shape),  # 1: obstacles
+            dirt_with_fow.reshape(new_shape),  # 2: dirt
+            self.visited_grid.reshape(new_shape),  # 3: visited
+            self.fow_grid.reshape(new_shape)  # 4: fog of war
         ], axis=0).astype(float)
 
         return obs
@@ -421,7 +418,8 @@ class WorldModel:
         """Checks if the cell is visible to the agent.
 
         Args:
-            cell: The cell to check.
+            cell_x: the x coordinate of the cell to check.
+            cell_y: the y coordinate of the cell to check.
 
         Returns:
             True if the cell is visible, False otherwise.
@@ -452,7 +450,7 @@ class WorldModel:
                 if wall_rect.clipline(self.agent_rect.center, side_center):
                     # line of sight blocked by a wall
                     no_ocludes = False
-                    break  
+                    break
             if no_ocludes:
                 # Found a side that is visible
                 return True

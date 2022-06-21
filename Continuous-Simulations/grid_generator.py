@@ -112,7 +112,7 @@ class GridBuilder:
 if __name__ == '__main__':
     for i in trange(100000):
         try:
-            grid = GridBuilder().generate_grid()
+            g = GridBuilder().generate_grid()
         except Exception as e:
             print(e)
             break
