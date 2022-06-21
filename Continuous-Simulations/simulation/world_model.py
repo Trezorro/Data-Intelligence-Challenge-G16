@@ -293,12 +293,11 @@ class WorldModel:
         where each z axis contains 0 or 1 values. Each z axis represents a
         different types of object in the world. A value of 1 means that
         something of that object type exists in that grid square.
-            0: Walls
-            1: Death
-            2: Obstacles
-            3: Dirt
-            4: Visited
-            5: Fog of war
+            0: Walls / death
+            1: Obstacles
+            2: Dirt
+            3: Visited
+            4: Fog of war
 
         Args:
             distance: The distance to move the agent by.
