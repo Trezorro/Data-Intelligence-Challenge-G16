@@ -27,6 +27,8 @@ dependencies:
   - seaborn
   - swig
   - pip
+  - wandb
+  - ipykernel
   - pip:
     - gym[box2d]==0.24.0
     - pygame

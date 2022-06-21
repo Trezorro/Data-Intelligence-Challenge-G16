@@ -1,7 +1,7 @@
 import random
 
 
-def get_action_random_agent(o):
+def get_action_random_agent(_):
     """ Function generates a random move. This random move consists on one random float between
     -1 and 1, and one random int either being 0 or 1.
 
