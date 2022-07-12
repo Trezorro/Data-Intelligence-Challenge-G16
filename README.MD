@@ -1,5 +1,9 @@
 # Data Intelligence Challenge solution
 
+https://user-images.githubusercontent.com/19216539/178445143-edc68b35-0e06-4cb1-992a-064c88522db8.mp4
+
+_Demo of our continuous simulation environment with a PPO-based agent, trained for 300 epochs_
+
 ## Continuous Simulation Setup
 We recommend using (mini)conda for installing the dependencies in a separate new environment. This makes installing Pytorch on CUDA and other libraries a little easier. Installing dependencies may be done using `pip install -r requirements.txt`, but we provide no guarantees for this method.
 
@@ -12,6 +16,8 @@ We recommend using (mini)conda for installing the dependencies in a separate new
      3. Run the downloaded file and install Microsoft MPI.
      4. Confirm that Microsoft MPI has been added to your path.
         1. Either click Start, type Run, and press Enter OR press Windows+R.
+
+
         2. Type `sysdm.cpl` and click "OK".
         3. Click the "Advanced" tab and then click "Environment Variables...".
         4. Under the "System Variables" panel (lower square), find the variable "Path" and confirm that `C:\Program Files\Microsoft MPI\Bin` (or wherever you installed Microsoft MPI) is there.
